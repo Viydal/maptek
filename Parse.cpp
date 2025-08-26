@@ -28,7 +28,9 @@ Parse::Parse(std::vector<std::string> Lines) {
     if (i == 0) {
       ss >> Xcount >> delimeter >> Ycount >> delimeter >> Zcount >> delimeter >>
           ParentX >> delimeter >> ParentY >> delimeter >> ParentZ;
-
+      NumXBlocks = Xcount/ParentX;
+      NumYBlocks = Ycount/ParentY;
+      NumZBlocks = Ycount/ParentZ;
     } else if (!map) {
       std::string location;
       char symbol;
@@ -36,8 +38,13 @@ Parse::Parse(std::vector<std::string> Lines) {
       TagTable[symbol] = location;
 
     } else if (map) {
-      // std::cout << Lines[i] << std::endl;
-      // std::cout << RLERow(Lines[i]) << std::endl;
+      std::cout << Lines[i] << std::endl;
+      std::cout << RLERow(Lines[i]) << std::endl;
+      std::string *blocks = RLERowParent(Lines[i], ParentX, NumXBlocks);
+      for (int blockNumT = 0; blockNumT < NumXBlocks; blockNumT++) {
+        std::cout << " " << blocks[blockNumT] << "    ";
+      }
+      std::cout << "\n\n";
       layer.push_back(RLERow(Lines[i]));
     }
   }
@@ -47,6 +54,39 @@ Parse::Parse(std::vector<std::string> Lines) {
 }
 
 std::unordered_map<char, std::string> Parse::getTagTable() { return TagTable; }
+
+
+std::string* Parse::RLERowParent(std::string Row, int ParentX, int NumXBlocks){
+  std::string *blocks = new std::string[NumXBlocks];
+  int Counter = 0;
+  int blockCounter = 0;
+  int blockNum = 0;
+  char PrevChar = Row[0];
+  std::string TempString;
+  for (size_t i = 0; i < Row.length(); i++) {
+    char CurrChar = Row[i];
+    if (CurrChar == PrevChar) {
+      Counter++;
+      blockCounter ++;
+    } else {
+      TempString += std::to_string(Counter) + PrevChar;
+      PrevChar = CurrChar;
+      Counter = 1;
+      blockCounter ++;
+    }
+    if (blockCounter == ParentX){
+      TempString += std::to_string(Counter) + PrevChar;
+      blocks[blockNum] = TempString;
+      TempString.clear();
+      PrevChar = CurrChar;
+      Counter = 0;
+      blockCounter = 0;
+      blockNum ++;
+    }
+  }
+  return blocks;
+}
+
 
 std::string Parse::RLERow(std::string Row) {
   std::string RLEString;
