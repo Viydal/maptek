@@ -1,24 +1,20 @@
-#ifndef PARSE_H
-#define PARSE_H
+#ifndef COMPRESSION_H
+#define COMPRESSION_H
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
 
-class Parse {
+class Compression {
 public:
   int Xcount, Ycount, Zcount, ParentX, ParentY, ParentZ;
   std::unordered_map<char, std::string> TagTable;
   std::vector<std::vector<std::string>> MapInformation;
 
 public:
-  Parse();
-  Parse(std::vector<std::string> Line);
-  std::unordered_map<char, std::string> getTagTable();
-  std::string RLERow(std::string Row);
-  std::vector<std::vector<std::string>> GetMap();
-  char GetLetter(std::string encoded, int col);
+  Compression();
+  std::string SingleLineCompress(std::string Row, std::unordered_map<char, std::string> TagTable, int ParentX = 0, int ParentY = 0, int ParentZ = 0, int row_num = 0, int layer_num = 0);
 };
 
 #endif
