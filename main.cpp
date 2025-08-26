@@ -29,4 +29,12 @@ int main() {
     for (const auto& pair : allMappings) {
         std::cout << "TagTable['" << pair.first << "'] = \"" << pair.second << "\"" << std::endl;
     }
+
+    std::vector<std::vector<std::string>> map = parser.GetMap();
+
+    for (size_t i = 0; i < map.size(); i++) {
+        for (size_t j = 0; j < map[i].size(); j++) {
+            std::cout << map[i][j] << std::endl;
+        }
+    }
 }
