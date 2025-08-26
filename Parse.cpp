@@ -28,3 +28,35 @@ Parse::Parse(std::vector<std::string> lines) {
 }
 
 std::unordered_map<char, std::string> Parse::getTagTable() { return TagTable; }
+
+char Parse::GetLetter(std::string encoded, int col) {
+    bool notFound = true;
+    char letter = ' ';
+    int count = 0;
+    int pos = 0;  // running position in expanded string
+
+    // parse through the string
+    while (notFound && count < encoded.size()) {
+        // read number
+        int num = 0;
+        while (count < encoded.size() && isdigit(encoded[count])) {
+            num = num * 10 + (encoded[count] - '0');
+            count++;
+        }
+
+        // read character
+        char ch = encoded[count];
+        count++;
+
+        // check if col falls inside this run
+        if (col < pos + num) {
+            letter = ch;
+            // found the letter
+            notFound = false;
+        }
+
+        pos += num;
+    }
+
+    return letter;
+}

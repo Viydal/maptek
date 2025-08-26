@@ -15,6 +15,7 @@ public:
   Parse();
   Parse(std::vector<std::string> line);
   std::unordered_map<char, std::string> getTagTable();
+  char GetLetter(std::string encoded, int col);
 };
 
 #endif
