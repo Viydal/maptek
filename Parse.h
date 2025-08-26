@@ -19,6 +19,7 @@ public:
   char GetLetter(std::string encoded, int col);
   std::string RLERow(std::string Row);
   std::vector<std::vector<std::string>> GetMap();
+  char GetLetter(std::string encoded, int col);
 };
 
 #endif
