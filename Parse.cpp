@@ -36,8 +36,8 @@ Parse::Parse(std::vector<std::string> Lines) {
       TagTable[symbol] = location;
 
     } else if (map) {
-      std::cout << Lines[i] << std::endl;
-      std::cout << RLERow(Lines[i]) << std::endl;
+      // std::cout << Lines[i] << std::endl;
+      // std::cout << RLERow(Lines[i]) << std::endl;
       layer.push_back(RLERow(Lines[i]));
     }
   }
