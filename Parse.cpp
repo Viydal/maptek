@@ -39,7 +39,6 @@ Parse::Parse(std::vector<std::string> Lines) {
       std::cout << Lines[i] << std::endl;
       std::cout << RLERow(Lines[i]) << std::endl;
       layer.push_back(RLERow(Lines[i]));
-
     }
   }
   if (!layer.empty()) {
@@ -67,6 +66,38 @@ std::string Parse::RLERow(std::string Row) {
 
   RLEString += std::to_string(Counter) + PrevChar;
   return RLEString;
+}
+
+char Parse::GetLetter(std::string encoded, int col) {
+  bool notFound = true;
+  char letter = ' ';
+  size_t count = 0;
+  int pos = 0; // running position in expanded string
+
+  // parse through the string
+  while (notFound && count < encoded.size()) {
+    // read number
+    int num = 0;
+    while (count < encoded.size() && isdigit(encoded[count])) {
+      num = num * 10 + (encoded[count] - '0');
+      count++;
+    }
+
+    // read character
+    char ch = encoded[count];
+    count++;
+
+    // check if col falls inside this run
+    if (col < pos + num) {
+      letter = ch;
+      // found the letter
+      notFound = false;
+    }
+
+    pos += num;
+  }
+
+  return letter;
 }
 
 std::vector<std::vector<std::string>> Parse::GetMap() { return MapInformation; }

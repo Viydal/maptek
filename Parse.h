@@ -18,6 +18,7 @@ public:
   std::unordered_map<char, std::string> getTagTable();
   std::string RLERow(std::string Row);
   std::vector<std::vector<std::string>> GetMap();
+  char GetLetter(std::string encoded, int col);
 };
 
 #endif
