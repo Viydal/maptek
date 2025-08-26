@@ -36,5 +36,6 @@ int main() {
         for (size_t j = 0; j < map[i].size(); j++) {
             std::cout << map[i][j] << std::endl;
         }
+        std::cout << std::endl;
     }
 }
