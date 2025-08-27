@@ -40,6 +40,7 @@ int main() {
             std::cout << compressor.SingleLineCompress(map[i][j], allMappings, parser.ParentX, parser.ParentY, parser.ParentZ, j, i);
             output.push_back(compressor.SingleLineCompress(map[i][j], allMappings, parser.ParentX, parser.ParentY, parser.ParentZ, j, i));
         }
+        std::cout << std::endl;
     }
 
     std::cout<<std::endl<<"UNCOMPRESSION"<<std::endl<<std::endl;

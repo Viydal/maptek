@@ -12,10 +12,10 @@ public:
   std::unordered_map<char, std::string> TagTable;
   std::vector<std::vector<std::string>> MapInformation;
 
-public:
   Compression();
   std::string SingleLineCompress(std::string Row, std::unordered_map<char, std::string> TagTable, int ParentX = 0, int ParentY = 0, int ParentZ = 0, int row_num = 0, int layer_num = 0);
   void Uncompress2d(std::vector<std::string> output, std::unordered_map<char, std::string> TagTable,int Xcount, int Ycount);
+  void FormatOutput(std::ostringstream& output, int x_pos, int row_num, int layer_num, int num, char ch, std::unordered_map<char, std::string> TagTable);
 };
 
 #endif
