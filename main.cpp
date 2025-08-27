@@ -91,8 +91,8 @@ int main() {
   std::vector<std::vector<std::string>> Blocks = parser.Blocks;
 
   for (size_t block = 0; block < ParentBlockInformation.size(); block++) {
-    std::cout << "Block " << block << ":\n";
-    std::cout << "--------\n";
+    // std::cout << "Block " << block << ":\n";
+    // std::cout << "--------\n";
 
     std::vector<std::vector<std::string>> IndividualBlock = ParentBlockInformation[block];
     compressor.TwoDCompression(parser, IndividualBlock, block);

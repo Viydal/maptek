@@ -131,7 +131,7 @@ void Compression::TwoDCompression(Parse Parser, std::vector<std::vector<std::str
             for (size_t element = 0; element < block[row_num].size(); element++) {
                 RowElements += row[element];
             }
-            std::cout << "\nstring: " << RowElements << std::endl;
+            // std::cout << "\nstring: " << RowElements << std::endl;
             std::string output = SingleLineCompress(RowElements, Parser.TagTable, Parser.ParentX, Parser.ParentY, Parser.ParentZ, XCoord, YCoord + row_num, ZCoord);
             std::cout << output;
         }
