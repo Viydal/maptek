@@ -38,5 +38,6 @@ int main() {
             // std::cout << "Row " << j << " of layer " << i << ": " << map[i][j] << std::endl;
             std::cout << compressor.SingleLineCompress(map[i][j], allMappings, parser.ParentX, parser.ParentY, parser.ParentZ, j, i);
         }
+        std::cout << std::endl;
     }
 }
