@@ -1,5 +1,6 @@
 #include "Parse.h"
 #include "Compression.h"
+#include "MultiLineCompression.h"
 #include <iostream>
 #include <string>
 
@@ -14,7 +15,7 @@ int main() {
 
     Parse parser = Parse(lines);
     Compression compressor = Compression();
-
+    MultiLineCompression MultiLineCompressor = MultiLineCompression();
     // Print all integer values
     // std::cout << "\n=== INTEGER VALUES ===" << std::endl;
     // std::cout << "Xcount: " << parser.Xcount << std::endl;
@@ -36,15 +37,21 @@ int main() {
 
     for (size_t i = 0; i < map.size(); i++) {
         for (size_t j = 0; j < map[i].size(); j++) {
-            // std::cout << "Row " << j << " of layer " << i << ": " << map[i][j] << std::endl;
-            std::cout << compressor.SingleLineCompress(map[i][j], allMappings, parser.ParentX, parser.ParentY, parser.ParentZ, j, i);
             output.push_back(compressor.SingleLineCompress(map[i][j], allMappings, parser.ParentX, parser.ParentY, parser.ParentZ, j, i));
         }
-        std::cout << std::endl;
     }
 
-    std::cout<<std::endl<<"UNCOMPRESSION"<<std::endl<<std::endl;
+    // Multi-line compression
+    std::vector<std::string> uncompress;
+    uncompress.push_back(MultiLineCompressor.MultiLineCompress(output, allMappings, parser.Xcount, parser.Ycount, parser.ParentY));
+    std::cout<<uncompress[0];
+
+    /*Uncoment to decompress Multiline compression*/
+    //std::cout<<std::endl<<"UNCOMPRESSION"<<std::endl<<std::endl;
+    //compressor.Uncompress2d(uncompress, allMappings, parser.Xcount, parser.Ycount);
+
+    /*Uncoment to decompress single line compression*/
     // uncompresses output, compare with input to ensure compression is correct;
-    compressor.Uncompress2d(output, allMappings, parser.Xcount, parser.Ycount);
+    //compressor.Uncompress2d(output, allMappings, parser.Xcount, parser.Ycount);
     
 }
