@@ -11,6 +11,8 @@ public:
   int Xcount, Ycount, Zcount, ParentX, ParentY, ParentZ;
   std::unordered_map<char, std::string> TagTable;
   std::vector<std::vector<std::string>> MapInformation;
+  std::vector<std::vector<std::string>> Blocks;
+  std::vector<std::vector<std::vector<std::string>>> ParentBlockInformation;
   int NumXBlocks, NumYBlocks, NumZBlocks;
 
 public:

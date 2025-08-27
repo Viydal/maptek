@@ -1,0 +1,23 @@
+16,6,2,4,3,1
+o, sea
+w, WA
+n, NT
+s, SA
+q, QLD
+e, NSW
+v, VIC
+t, TAS
+
+oooooooooooooooo
+owwwnnnneeeqqqqo
+owwwnnnneeeqqqqo
+osssvvvvttttoooo
+osssvvvvttttoooo
+oooooooooooooooo
+
+oooooooooooooooo
+wwwwwwwwwwwwwwww
+ooosssvvvttttooo
+ooosssvvvttttooo
+oooooooooooooooo
+oooooooooooooooo
