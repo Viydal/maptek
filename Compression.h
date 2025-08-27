@@ -15,6 +15,7 @@ public:
 public:
   Compression();
   std::string SingleLineCompress(std::string Row, std::unordered_map<char, std::string> TagTable, int ParentX = 0, int ParentY = 0, int ParentZ = 0, int row_num = 0, int layer_num = 0);
+  void Uncompress2d(std::vector<std::string> output, std::unordered_map<char, std::string> TagTable,int Xcount, int Ycount);
 };
 
 #endif
