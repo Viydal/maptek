@@ -38,13 +38,13 @@ Parse::Parse(std::vector<std::string> Lines) {
       TagTable[symbol] = location;
 
     } else if (map) {
-      std::cout << Lines[i] << std::endl;
-      std::cout << RLERow(Lines[i]) << std::endl;
+      // std::cout << Lines[i] << std::endl;
+      // std::cout << RLERow(Lines[i]) << std::endl;
       std::string *blocks = RLERowParent(Lines[i], ParentX, NumXBlocks);
-      for (int blockNumT = 0; blockNumT < NumXBlocks; blockNumT++) {
-        std::cout << " " << blocks[blockNumT] << "    ";
-      }
-      std::cout << "\n\n";
+      // for (int blockNumT = 0; blockNumT < NumXBlocks; blockNumT++) {
+      //   std::cout << " " << blocks[blockNumT] << "    ";
+      // }
+      // std::cout << "\n\n";
       layer.push_back(RLERow(Lines[i]));
     }
   }
