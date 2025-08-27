@@ -90,6 +90,8 @@ int main() {
       parser.ParentBlockInformation;
   std::vector<std::vector<std::string>> Blocks = parser.Blocks;
 
+//   std::cout << parser.NumXBlocks << " " << parser.NumYBlocks << " " << parser.NumZBlocks << std::endl;
+
   for (size_t block = 0; block < ParentBlockInformation.size(); block++) {
     // std::cout << "Block " << block << ":\n";
     // std::cout << "--------\n";
