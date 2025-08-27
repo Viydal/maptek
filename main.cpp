@@ -35,13 +35,13 @@ int main() {
 
     std::ostringstream output;
 
-    for (size_t i = 0; i < map.size(); i++) {
+    for (size_t z = 0; z < map.size(); z++) {
         // for (size_t j = 0; j < map[i].size(); j++) {
         //     // std::cout << "Row " << j << " of layer " << i << ": " << map[i][j] << std::endl;
         //     std::cout << compressor.SingleLineCompress(map[i][j], allMappings, parser.ParentX, parser.ParentY, parser.ParentZ, j, i);
         // }
         // std::cout << std::endl;
-        compressor.ProcessLayer(map[i], parser.ParentX, parser.ParentY, parser.ParentZ, i, output, allMappings);
+        compressor.ProcessLayer(map[z], parser.ParentX, parser.ParentY, parser.ParentZ, z, output, allMappings);
         // compressor.Uncompress2d(compressor.ProcessLayer(map[i], parser.ParentX, parser.ParentY, parser.ParentZ, i, output, allMappings), allMappings, parser.Xcount, parser.Ycount);
     }
 

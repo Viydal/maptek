@@ -96,7 +96,14 @@ std::vector<Block> Compression::MergeRows(const std::vector<Block>& prevRow,
                 p.ch == c.ch &&
                 p.z_pos == c.z_pos &&
                 ((p.y_pos / ParentY) == (c.y_pos / ParentY)) &&
-                (c.y_pos == p.y_pos - p.y_size)) {
+                (c.y_pos == p.y_pos + p.y_size)) {
+
+                // std::cout << "Merging block at (" << c.x_pos << "," << c.y_pos
+                //           << "," << c.z_pos << ") size (" << c.x_size << ","
+                //           << c.y_size << "," << c.z_size << ") with block at ("
+                //           << p.x_pos << "," << p.y_pos << "," << p.z_pos
+                //           << ") size (" << p.x_size << "," << p.y_size << ","
+                //           << p.z_size << ")\n";
 
                 // extend vertically
                 p.y_size += c.y_size;
@@ -137,9 +144,8 @@ void Compression::ProcessLayer(const std::vector<std::string>& rows,
     // Iterate bottom -> top
     for (int row_num = 0; row_num < height; row_num++) {
         int y_pos = row_num; // bottom = 0
-        int rowIndex = height - 1 - row_num; // map to input row (topmost in file is highest y)
 
-        auto currRow = SingleLineBlocks(rows[rowIndex],
+        auto currRow = SingleLineBlocks(rows[y_pos],
                                         ParentX, ParentY, ParentZ,
                                         y_pos, layer_num);
 
