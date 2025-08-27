@@ -11,6 +11,8 @@ public:
   int Xcount, Ycount, Zcount, ParentX, ParentY, ParentZ;
   std::unordered_map<char, std::string> TagTable;
   std::vector<std::vector<std::string>> MapInformation;
+  std::vector<std::vector<std::string>> Blocks;
+  std::vector<std::vector<std::vector<std::string>>> ParentBlockInformation;
   int NumXBlocks, NumYBlocks, NumZBlocks;
 
 public:
@@ -18,7 +20,7 @@ public:
   Parse(std::vector<std::string> Line);
   std::unordered_map<char, std::string> getTagTable();
   std::string RLERow(std::string Row);
-  std::string* RLERowParent(std::string Row, int ParentX, int NumXBlocks);
+  std::string *RLERowParent(std::string Row, int ParentX, int NumXBlocks);
   std::vector<std::vector<std::string>> GetMap();
   char GetLetter(std::string encoded, int col);
 };
