@@ -1,4 +1,4 @@
-64,8,2,8,8,1
+64,8,1,8,8,1
 o, sea
 w, WA
 n, NT
@@ -25,3 +25,102 @@ ooooooooooooooooooooooooooooooooooooooooooooooooottttooooooooooo
 ooooooooooooooooooooooooooooooooooooooooooooooootttttooooooooooo
 oooooooooooooooooooooooooooooooooooooooooooooooottootooooooooooo
 oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+
+
+
+
+8,8,1,8,8,1
+o, sea
+w, WA
+n, NT
+s, SA
+q, QLD
+e, NSW
+v, VIC
+t, TAS
+
+oooooooo 
+oooooooo
+oooooooo
+oooooooo
+oooooooo
+oooooooo
+oooooooo
+oooooooo
+
+
+
+
+
+
+000811sea
+800811sea
+1600811sea
+2400811sea
+3200811sea
+4000811sea
+4800811sea
+5600811sea
+sea
+010811sea
+810811sea
+1610811sea
+2410811sea
+3210811sea
+4010811sea
+4810811sea
+5610811sea
+sea
+020811sea
+820811sea
+1620811sea
+2420811sea
+3220811sea
+4020811sea
+4820111sea
+4920211TAS
+TAS
+030811sea
+830811sea
+1630811sea
+2430811sea
+3230811sea
+4030811sea
+4830111sea
+4930311TAS
+TAS
+040811sea
+840811sea
+1640811sea
+2440811sea
+3240811sea
+4040811sea
+4840111sea
+4940411TAS
+TAS
+050811sea
+850811sea
+1650811sea
+2450811sea
+3250811sea
+4050811sea
+4850511TAS
+5350811sea
+sea
+060811sea
+860811sea
+1660811sea
+2460811sea
+3260811sea
+4060811sea
+4860211TAS
+5060211sea
+sea
+070811sea
+870811sea
+1670811sea
+2470811sea
+3270811sea
+4070811sea
+4870811sea
+5670811sea
