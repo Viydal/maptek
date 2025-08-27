@@ -51,55 +51,57 @@ Parse::Parse(std::vector<std::string> Lines) {
       layer.push_back(RLERow(Lines[i]));
       Blocks.push_back(Block2D);
     }
-    if (!layer.empty()) {
-      MapInformation.push_back(layer);
-    }
-    std::vector<std::vector<std::vector<std::string>>> BlocksByLayer;
-    int RowsPerLayer = Ycount;
-    int CurrentLayer = 0;
-    int RowsInCurrentLayer = 0;
+  }
+  if (!layer.empty()) {
+    MapInformation.push_back(layer);
+  }
+  std::vector<std::vector<std::vector<std::string>>> BlocksByLayer;
+  int RowsPerLayer = Ycount;
+  int CurrentLayer = 0;
+  int RowsInCurrentLayer = 0;
 
-    std::vector<std::vector<std::string>> CurrentLayerBlocks;
-    for (size_t row = 0; row < Blocks.size(); row++) {
-      CurrentLayerBlocks.push_back(Blocks[row]);
-      RowsInCurrentLayer++;
+  std::vector<std::vector<std::string>> CurrentLayerBlocks;
+  for (size_t row = 0; row < Blocks.size(); row++) {
+    CurrentLayerBlocks.push_back(Blocks[row]);
+    RowsInCurrentLayer++;
 
-      if (RowsInCurrentLayer == RowsPerLayer) {
-        BlocksByLayer.push_back(CurrentLayerBlocks);
-        CurrentLayerBlocks.clear();
-        RowsInCurrentLayer = 0;
-        CurrentLayer++;
-      }
-    }
-
-    if (!CurrentLayerBlocks.empty()) {
+    if (RowsInCurrentLayer == RowsPerLayer) {
       BlocksByLayer.push_back(CurrentLayerBlocks);
+      CurrentLayerBlocks.clear();
+      RowsInCurrentLayer = 0;
+      CurrentLayer++;
     }
+  }
 
-    int TotalParentBlocks = (NumXBlocks) * (NumYBlocks) * (NumZBlocks);
-    for (int ParentBlockIndex = 0; ParentBlockIndex < TotalParentBlocks; ParentBlockIndex++) {
-      int BlockZ = ParentBlockIndex / (NumYBlocks * NumXBlocks);
-      int BlockY = (ParentBlockIndex % (NumXBlocks * NumYBlocks)) / NumXBlocks;
-      int BlockX = ParentBlockIndex % NumXBlocks;
+  if (!CurrentLayerBlocks.empty()) {
+    BlocksByLayer.push_back(CurrentLayerBlocks);
+  }
 
-      std::vector<std::vector<std::string>> CompleteBlock;
-      for (int z = 0; z < ParentZ && (BlockZ * ParentZ + z) < static_cast<int>(BlocksByLayer.size()); z++) {
-        int ActualZ = BlockZ * ParentZ + z;
+  int TotalParentBlocks = (NumXBlocks) * (NumYBlocks) * (NumZBlocks);
+  for (int ParentBlockIndex = 0; ParentBlockIndex < TotalParentBlocks;
+       ParentBlockIndex++) {
+    int BlockZ = ParentBlockIndex / (NumYBlocks * NumXBlocks);
+    int BlockY = (ParentBlockIndex % (NumXBlocks * NumYBlocks)) / NumXBlocks;
+    int BlockX = ParentBlockIndex % NumXBlocks;
 
-        for (int y = 0; y < ParentY && (BlockY * ParentY + y) < static_cast<int>(BlocksByLayer[ActualZ].size()); y++) {
-          int ActualY = BlockY * ParentY + y;
+    std::vector<std::vector<std::string>> CompleteBlock;
+    for (int z = 0; z < ParentZ && (BlockZ * ParentZ + z) < static_cast<int>(BlocksByLayer.size()); z++) {
+      int ActualZ = BlockZ * ParentZ + z;
 
-          if (BlockX < static_cast<int>(BlocksByLayer[ActualZ][ActualY].size())) {
-            CompleteBlock.push_back({BlocksByLayer[ActualZ][ActualY][BlockX]});
-          }
+      for (int y = 0; y < ParentY && (BlockY * ParentY + y) < static_cast<int>(BlocksByLayer[ActualZ].size()); y++) {
+        int ActualY = BlockY * ParentY + y;
+
+        if (BlockX < static_cast<int>(BlocksByLayer[ActualZ][ActualY].size())) {
+          CompleteBlock.push_back({BlocksByLayer[ActualZ][ActualY][BlockX]});
         }
       }
-      if (!CompleteBlock.empty()) {
-        ParentBlockInformation.push_back(CompleteBlock);
-      }
+    }
+    if (!CompleteBlock.empty()) {
+      ParentBlockInformation.push_back(CompleteBlock);
     }
   }
 }
+
 
 std::unordered_map<char, std::string> Parse::getTagTable() { return TagTable; }
 

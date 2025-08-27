@@ -13,7 +13,6 @@ void Compression::BetterFormat(int x_pos, int y_pos, int layer_num, int size_x, 
 
 std::string Compression::SingleLineCompress(const std::string Row, std::unordered_map<char, std::string> TagTable, int ParentX, int ParentY, int ParentZ, int x_pos, int row_num, int layer_num) {
     size_t count = 0;
-    int x_pos = 0;  // track where each run starts
     std::ostringstream output;
 
     // parse through the string
@@ -54,8 +53,8 @@ void Compression::Uncompress2d(std::vector<std::string> output, std::unordered_m
     std::string CurrNum = "";
     std::vector<std::string> CompressedBlock;
     
-    for (int i = 0; i < output.size(); i++){
-        for (int j = 0; j < output[i].size(); j++){
+    for (size_t i = 0; i < output.size(); i++){
+        for (size_t j = 0; j < output[i].size(); j++){
             if (output[i][j] == ','){
                 CompressedBlock.push_back(CurrNum);
                 CurrNum = "";
@@ -132,7 +131,7 @@ void Compression::TwoDCompression(Parse Parser, std::vector<std::vector<std::str
             for (size_t element = 0; element < block[row_num].size(); element++) {
                 RowElements += row[element];
             }
-            std::cout << "string: " << RowElements << std::endl;
+            std::cout << "\nstring: " << RowElements << std::endl;
             std::string output = SingleLineCompress(RowElements, Parser.TagTable, Parser.ParentX, Parser.ParentY, Parser.ParentZ, XCoord, YCoord + (Parser.ParentY - 1 - row_num), ZCoord);
             std::cout << output;
         }

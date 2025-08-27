@@ -1,8 +1,50 @@
 #include "Compression.h"
-#include "MultiLineCompression.h"
 #include "Parse.h"
 #include <iostream>
 #include <string>
+
+void DrawMap(const std::vector<std::string> &compressedInput, int Xcount,
+             int Ycount) {
+  // Initialize grid filled with '.'
+  std::vector<std::string> grid(Ycount, std::string(Xcount, '.'));
+
+  // Label-to-char mapping
+  std::unordered_map<std::string, char> labelToChar = {
+      {"sea", 'o'}, {"WA", 'w'},  {"NT", 'n'},  {"SA", 's'},
+      {"QLD", 'q'}, {"NSW", 'e'}, {"VIC", 'v'}, {"TAS", 't'}};
+
+  for (const auto &line : compressedInput) {
+    std::stringstream ss(line);
+    std::string token;
+    std::vector<std::string> tokens;
+
+    while (std::getline(ss, token, ',')) {
+      tokens.push_back(token);
+    }
+
+    if (tokens.size() < 7)
+      continue;
+
+    int XStart = std::stoi(tokens[0]);
+    int YStart = std::stoi(tokens[1]);
+    int XSize = std::stoi(tokens[3]);
+    int YSize = std::stoi(tokens[4]);
+    std::string label = tokens[6];
+
+    char fillChar = (labelToChar.count(label) ? labelToChar[label] : '?');
+
+    for (int y = YStart; y < YStart + YSize && y < Ycount; y++) {
+      for (int x = XStart; x < XStart + XSize && x < Xcount; x++) {
+        grid[y][x] = fillChar;
+      }
+    }
+  }
+
+  // Print from top (Ycount-1) down to 0
+  for (int y = Ycount - 1; y >= 0; y--) {
+    std::cout << grid[y] << "\n";
+  }
+}
 
 int main() {
   // std::cout << "Enter input:" << std::endl;
@@ -15,7 +57,7 @@ int main() {
 
   Parse parser = Parse(lines);
   Compression compressor = Compression();
-  MultiLineCompression MultiLineCompressor = MultiLineCompression();
+
   // Print all integer values
   // std::cout << "\n=== INTEGER VALUES ===" << std::endl;
   // std::cout << "Xcount: " << parser.Xcount << std::endl;
@@ -35,41 +77,28 @@ int main() {
   // }
 
   std::vector<std::vector<std::string>> map = parser.GetMap();
-  std::vector<std::string> output;
 
-  for (size_t i = 0; i < map.size(); i++) {
-    for (size_t j = 0; j < map[i].size(); j++) {
-      output.push_back(
-          compressor.SingleLineCompress(map[i][j], allMappings, parser.ParentX,
-                                        parser.ParentY, parser.ParentZ, j, i));
-    }
-  }
+  // for (size_t i = 0; i < map.size(); i++) {
+  //   for (size_t j = 0; j < map[i].size(); j++) {
+  //     std::cout << map[i][j] << std::endl;
+  //   }
+  //   std::cout << std::endl;
+  //   // std::vector<std::string> blocks = compressor.ExtractRegion(map[i]);
+  // }
 
-  // Multi-line compression
-  std::vector<std::string> uncompress;
-  uncompress.push_back(MultiLineCompressor.MultiLineCompress(
-      output, allMappings, parser.Xcount, parser.Ycount, parser.ParentY));
-  std::cout << uncompress[0];
-
-  /*Uncoment to decompress Multiline compression*/
-  // std::cout<<std::endl<<"UNCOMPRESSION"<<std::endl<<std::endl;
-  // compressor.Uncompress2d(uncompress, allMappings, parser.Xcount,
-  // parser.Ycount);
-
-  /*Uncoment to decompress single line compression*/
-  // uncompresses output, compare with input to ensure compression is correct;
-  // compressor.Uncompress2d(output, allMappings, parser.Xcount, parser.Ycount);
-
-  std::vector<std::vector<std::vector<std::string>>> ParentBlockInformation = parser.ParentBlockInformation;
+  std::vector<std::vector<std::vector<std::string>>> ParentBlockInformation =
+      parser.ParentBlockInformation;
   std::vector<std::vector<std::string>> Blocks = parser.Blocks;
 
   for (size_t block = 0; block < ParentBlockInformation.size(); block++) {
-    // std::cout << "Block " << block << ":\n";
-    // std::cout << "--------\n";
+    std::cout << "Block " << block << ":\n";
+    std::cout << "--------\n";
 
     std::vector<std::vector<std::string>> IndividualBlock = ParentBlockInformation[block];
     compressor.TwoDCompression(parser, IndividualBlock, block);
 
     // std::cout << "\n";
   }
+
+
 }
