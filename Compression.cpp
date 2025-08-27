@@ -1,5 +1,5 @@
 #include "Compression.h"
-
+#include <cmath>
 Compression::Compression() {}
 
 void Compression::FormatOutput(std::ostringstream& output, int x_pos, int row_num, int layer_num, int num, char ch, std::unordered_map<char, std::string> TagTable) {
@@ -47,6 +47,7 @@ std::string Compression::SingleLineCompress(const std::string Row, std::unordere
 
 
 
+
 void Compression::Uncompress2d(std::vector<std::string> output, std::unordered_map<char, std::string> TagTable,int Xcount, int Ycount){
     // create empty field for uncompressed ouput
     std::vector<std::string> uncompressed(Ycount, std::string(Xcount, 'X'));
@@ -74,7 +75,7 @@ void Compression::Uncompress2d(std::vector<std::string> output, std::unordered_m
                 std::string label = CompressedBlock[6];
                 char fillChar = 'X';
 
-                //unashamed use of  chat gpt here
+                //unashamed use of chat gpt here
                 //searches TagTable for the char that corresponds to the label
                 for (const auto& pair : TagTable) {
                     if (pair.second == label) {
