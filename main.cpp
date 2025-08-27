@@ -33,11 +33,17 @@ int main() {
 
     std::vector<std::vector<std::string>> map = parser.GetMap();
 
+    std::ostringstream output;
+
     for (size_t i = 0; i < map.size(); i++) {
-        for (size_t j = 0; j < map[i].size(); j++) {
-            // std::cout << "Row " << j << " of layer " << i << ": " << map[i][j] << std::endl;
-            std::cout << compressor.SingleLineCompress(map[i][j], allMappings, parser.ParentX, parser.ParentY, parser.ParentZ, j, i);
-        }
-        std::cout << std::endl;
+        // for (size_t j = 0; j < map[i].size(); j++) {
+        //     // std::cout << "Row " << j << " of layer " << i << ": " << map[i][j] << std::endl;
+        //     std::cout << compressor.SingleLineCompress(map[i][j], allMappings, parser.ParentX, parser.ParentY, parser.ParentZ, j, i);
+        // }
+        // std::cout << std::endl;
+        compressor.ProcessLayer(map[i], parser.ParentX, parser.ParentY, parser.ParentZ, i, output, allMappings);
+        // compressor.Uncompress2d(compressor.ProcessLayer(map[i], parser.ParentX, parser.ParentY, parser.ParentZ, i, output, allMappings), allMappings, parser.Xcount, parser.Ycount);
     }
+
+    std::cout << output.str();
 }

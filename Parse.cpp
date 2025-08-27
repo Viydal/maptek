@@ -30,7 +30,7 @@ Parse::Parse(std::vector<std::string> Lines) {
           ParentX >> delimeter >> ParentY >> delimeter >> ParentZ;
       NumXBlocks = Xcount/ParentX;
       NumYBlocks = Ycount/ParentY;
-      NumZBlocks = Ycount/ParentZ;
+      NumZBlocks = Zcount/ParentZ;
     } else if (!map) {
       std::string location;
       char symbol;
