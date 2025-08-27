@@ -43,3 +43,67 @@ std::string Compression::SingleLineCompress(const std::string Row, std::unordere
 
     return output.str();
 }
+
+
+
+
+void Compression::Uncompress2d(std::vector<std::string> output, std::unordered_map<char, std::string> TagTable,int Xcount, int Ycount){
+    // create empty field for uncompressed ouput
+    std::vector<std::string> uncompressed(Ycount, std::string(Xcount, 'X'));
+
+
+    std::string CurrNum = "";
+    std::vector<std::string> CompressedBlock;
+    
+    for (int i = 0; i < output.size(); i++){
+        for (int j = 0; j < output[i].size(); j++){
+            if (output[i][j] == ','){
+                CompressedBlock.push_back(CurrNum);
+                CurrNum = "";
+                continue;
+            }
+
+            if (output[i][j] == '\n' || output[i][j] == '\r'){
+                CompressedBlock.push_back(CurrNum);
+
+                // paint the uncompressed field
+                int XStart = stoi(CompressedBlock[0]);
+                int YStart = stoi(CompressedBlock[1]);
+                int XSize = stoi(CompressedBlock[3]);
+                int YSize = stoi(CompressedBlock[4]);
+                std::string label = CompressedBlock[6];
+                char fillChar = 'X';
+
+                //unashamed use of  chat gpt here
+                //searches TagTable for the char that corresponds to the label
+                for (const auto& pair : TagTable) {
+                    if (pair.second == label) {
+                        fillChar = pair.first;
+                        break;
+                    }
+                }
+
+                for (int k = YStart; k < YStart + YSize; k++){
+                    for (int l = XStart; l < XStart + XSize; l++){
+                        uncompressed[k][l] = fillChar;
+                    }
+                }
+
+                CompressedBlock.clear();
+                CurrNum = "";
+                continue;
+            }
+            CurrNum += output[i][j];
+        }
+    }
+    
+    //print uncompressed field
+    for (int i = 0; i < Ycount; i++){
+        for (int j = 0; j < Xcount; j++){
+            std::cout<<uncompressed[i][j]; 
+        }
+        std::cout<<std::endl;
+    }
+    
+
+}
