@@ -45,6 +45,6 @@ int main() {
 
     std::cout<<std::endl<<"UNCOMPRESSION"<<std::endl<<std::endl;
     // uncompresses output, compare with input to ensure compression is correct;
-    compressor.Uncompress2d(output, allMappings, parser.Xcount, parser.Ycount, parser.Zcount);
+    compressor.Uncompress2d(output, allMappings, parser.Xcount, parser.Ycount);
     
 }
