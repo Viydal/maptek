@@ -115,6 +115,9 @@ void Compression::TwoDCompression(Parse Parser, std::vector<std::vector<std::str
 
     std::vector<std::string> row = block[0];
     bool uniform = true;
+    if (row[0][0] != '8') {
+        uniform = false;
+    }
     for (size_t i = 0; i < block.size(); i++) {
         if (block[i] != row) {
             uniform = false;
