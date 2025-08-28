@@ -28,9 +28,9 @@ Parse::Parse(std::vector<std::string> Lines) {
     if (i == 0) {
       ss >> Xcount >> delimeter >> Ycount >> delimeter >> Zcount >> delimeter >>
           ParentX >> delimeter >> ParentY >> delimeter >> ParentZ;
-      NumXBlocks = Xcount / ParentX;
-      NumYBlocks = Ycount / ParentY;
-      NumZBlocks = Zcount / ParentZ;
+      NumXBlocks = Xcount/ParentX;
+      NumYBlocks = Ycount/ParentY;
+      NumZBlocks = Zcount/ParentZ;
     } else if (!map) {
       std::string location;
       char symbol;
@@ -40,13 +40,10 @@ Parse::Parse(std::vector<std::string> Lines) {
     } else if (map) {
       // std::cout << Lines[i] << std::endl;
       // std::cout << RLERow(Lines[i]) << std::endl;
-      std::string *blocks = RLERowParent(Lines[i], ParentX, NumXBlocks);
-
-      std::vector<std::string> Block2D;
-      for (int blockNumT = 0; blockNumT < NumXBlocks; blockNumT++) {
-        // std::cout << " " << blocks[blockNumT] << "    ";
-        Block2D.push_back(blocks[blockNumT]);
-      }
+      // std::string *blocks = RLERowParent(Lines[i], ParentX, NumXBlocks);
+      // for (int blockNumT = 0; blockNumT < NumXBlocks; blockNumT++) {
+      //   std::cout << " " << blocks[blockNumT] << "    ";
+      // }
       // std::cout << "\n\n";
       layer.push_back(RLERow(Lines[i]));
       Blocks.push_back(Block2D);

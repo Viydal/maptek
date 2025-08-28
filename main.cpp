@@ -78,29 +78,17 @@ int main() {
 
   std::vector<std::vector<std::string>> map = parser.GetMap();
 
-  // for (size_t i = 0; i < map.size(); i++) {
-  //   for (size_t j = 0; j < map[i].size(); j++) {
-  //     std::cout << map[i][j] << std::endl;
-  //   }
-  //   std::cout << std::endl;
-  //   // std::vector<std::string> blocks = compressor.ExtractRegion(map[i]);
-  // }
+    std::ostringstream output;
 
-  std::vector<std::vector<std::vector<std::string>>> ParentBlockInformation =
-      parser.ParentBlockInformation;
-  std::vector<std::vector<std::string>> Blocks = parser.Blocks;
+    for (size_t z = 0; z < map.size(); z++) {
+        // for (size_t j = 0; j < map[i].size(); j++) {
+        //     // std::cout << "Row " << j << " of layer " << i << ": " << map[i][j] << std::endl;
+        //     std::cout << compressor.SingleLineCompress(map[i][j], allMappings, parser.ParentX, parser.ParentY, parser.ParentZ, j, i);
+        // }
+        // std::cout << std::endl;
+        compressor.ProcessLayer(map[z], parser.ParentX, parser.ParentY, parser.ParentZ, z, output, allMappings);
+        // compressor.Uncompress2d(compressor.ProcessLayer(map[i], parser.ParentX, parser.ParentY, parser.ParentZ, i, output, allMappings), allMappings, parser.Xcount, parser.Ycount);
+    }
 
-//   std::cout << parser.NumXBlocks << " " << parser.NumYBlocks << " " << parser.NumZBlocks << std::endl;
-
-  for (size_t block = 0; block < ParentBlockInformation.size(); block++) {
-    // std::cout << "Block " << block << ":\n";
-    // std::cout << "--------\n";
-
-    std::vector<std::vector<std::string>> IndividualBlock = ParentBlockInformation[block];
-    compressor.TwoDCompression(parser, IndividualBlock, block);
-
-    // std::cout << "\n";
-  }
-
-
+    std::cout << output.str();
 }
