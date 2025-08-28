@@ -40,7 +40,7 @@ Parse::Parse(std::vector<std::string> Lines) {
     } else if (map) {
       // std::cout << Lines[i] << std::endl;
       // std::cout << RLERow(Lines[i]) << std::endl;
-      std::string *blocks = RLERowParent(Lines[i], ParentX, NumXBlocks);
+      // std::string *blocks = RLERowParent(Lines[i], ParentX, NumXBlocks);
       // for (int blockNumT = 0; blockNumT < NumXBlocks; blockNumT++) {
       //   std::cout << " " << blocks[blockNumT] << "    ";
       // }
