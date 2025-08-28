@@ -2,181 +2,166 @@
 
 Compression::Compression() {}
 
-void Compression::FormatOutput(std::ostringstream& output, int x_pos,
-                               int row_num, int layer_num, int numX, int numY,
-                               int numZ, char ch,
+void Compression::FormatOutput(std::ostringstream &Output, int XPos, int RowNum,
+                               int LayerNum, int NumX, int NumY, int NumZ,
+                               char Ch,
                                std::unordered_map<char, std::string> TagTable) {
-    output << x_pos << "," << row_num << "," << layer_num << "," << numX << ","
-           << numY << "," << numZ << "," << TagTable[ch] << "\n";
-    return;
+  Output << XPos << "," << RowNum << "," << LayerNum << "," << NumX << ","
+         << NumY << "," << NumZ << "," << TagTable[Ch] << "\n";
+  return;
 }
 
 std::string Compression::SingleLineCompress(
     const std::string Row, std::unordered_map<char, std::string> TagTable,
-    int ParentX, int ParentY, int ParentZ, int row_num, int layer_num) {
-    size_t count = 0;
-    int x_pos = 0;  // track where each run starts
-    std::ostringstream output;
+    int ParentX, int ParentY, int ParentZ, int RowNum, int LayerNum) {
+  size_t Count = 0;
+  int XPos = 0; // track where each run starts
+  std::ostringstream Output;
 
-    // parse through the string
-    while (count < Row.size()) {
-        // read number
-        int num = 0;
-        while (count < Row.size() && isdigit(Row[count])) {
-            num = num * 10 + (Row[count] - '0');
-            count++;
-        }
-
-        // read character (label)
-        char ch = Row[count];
-        count++;
-
-        // break the run into ParentX-sized chunks
-        while (num > 0) {
-            int remaining =
-                ParentX - (x_pos % ParentX);  // space left in this block
-            int chunk = std::min(num, remaining);
-            // append line in the format:
-            // x_position, y_position, z_position, x_size, y_size, z_size, label
-            FormatOutput(output, x_pos, row_num, layer_num, chunk, 1, 1, ch,
-                         TagTable);
-            // advance x position
-            x_pos += chunk;
-            num -= chunk;
-        }
+  // parse through the string
+  while (Count < Row.size()) {
+    // read number
+    int Num = 0;
+    while (Count < Row.size() && isdigit(Row[Count])) {
+      Num = Num * 10 + (Row[Count] - '0');
+      Count++;
     }
 
-    return output.str();
+    // read character (label)
+    char Ch = Row[Count];
+    Count++;
+
+    // break the run into ParentX-sized chunks
+    while (Num > 0) {
+      int Remaining = ParentX - (XPos % ParentX); // space left in this block
+      int Chunk = std::min(Num, Remaining);
+      // append line in the format:
+      // x_position, y_position, z_position, Xsize, Ysize, Zsize, label
+      FormatOutput(Output, XPos, RowNum, LayerNum, Chunk, 1, 1, Ch, TagTable);
+      // advance x position
+      XPos += Chunk;
+      Num -= Chunk;
+    }
+  }
+
+  return Output.str();
 }
 
 std::vector<Block> Compression::SingleLineBlocks(const std::string Row,
                                                  int ParentX, int ParentY,
-                                                 int ParentZ, int row_num,
-                                                 int layer_num) {
-    size_t count = 0;
-    int x_pos = 0;
-    std::vector<Block> blocks;
+                                                 int ParentZ, int RowNum,
+                                                 int LayerNum) {
+  size_t Count = 0;
+  int XPos = 0;
+  std::vector<Block> Blocks;
 
-    while (count < Row.size()) {
-        // read number
-        int num = 0;
-        while (count < Row.size() && isdigit(Row[count])) {
-            num = num * 10 + (Row[count] - '0');
-            count++;
-        }
-
-        char ch = Row[count];
-        count++;
-
-        while (num > 0) {
-            int remaining = ParentX - (x_pos % ParentX);
-            int chunk = std::min(num, remaining);
-
-            blocks.push_back({x_pos, row_num, layer_num, chunk, 1, 1, ch});
-
-            x_pos += chunk;
-            num -= chunk;
-        }
+  while (Count < Row.size()) {
+    // read number
+    int Num = 0;
+    while (Count < Row.size() && isdigit(Row[Count])) {
+      Num = Num * 10 + (Row[Count] - '0');
+      Count++;
     }
-    return blocks;
+
+    char Ch = Row[Count];
+    Count++;
+
+    while (Num > 0) {
+      int Remaining = ParentX - (XPos % ParentX);
+      int Chunk = std::min(Num, Remaining);
+
+      Blocks.push_back({XPos, RowNum, LayerNum, Chunk, 1, 1, Ch});
+
+      XPos += Chunk;
+      Num -= Chunk;
+    }
+  }
+  return Blocks;
 }
 
-std::vector<Block> Compression::MergeRows(const std::vector<Block>& prevRow,
-                                          const std::vector<Block>& currRow,
+std::vector<Block> Compression::MergeRows(const std::vector<Block> &PrevRow,
+                                          const std::vector<Block> &CurrRow,
                                           int ParentY) {
-    std::vector<Block> merged = prevRow;
+  std::vector<Block> Merged = PrevRow;
 
-    for (auto& c : currRow) {
-        bool mergedFlag = false;
-        for (auto& p : merged) {
-            // same x range, same label, same z, same ParentY block
-            // and c is directly above p
-            if (p.x_pos == c.x_pos &&
-                p.x_size == c.x_size &&
-                p.ch == c.ch &&
-                p.z_pos == c.z_pos &&
-                ((p.y_pos / ParentY) == (c.y_pos / ParentY)) &&
-                (c.y_pos == p.y_pos + p.y_size)) {
+  for (auto &C : CurrRow) {
+    bool MergedFlag = false;
+    for (auto &P : Merged) {
+      // same x range, same label, same z, same ParentY block
+      // and C is directly above P
+      if (P.XPos == C.XPos && P.XSize == C.XSize && P.Ch == C.Ch &&
+          P.ZPos == C.ZPos && ((P.YPos / ParentY) == (C.YPos / ParentY)) &&
+          (C.YPos == P.YPos + P.YSize)) {
 
-                // std::cout << "Merging block at (" << c.x_pos << "," << c.y_pos
-                //           << "," << c.z_pos << ") size (" << c.x_size << ","
-                //           << c.y_size << "," << c.z_size << ") with block at ("
-                //           << p.x_pos << "," << p.y_pos << "," << p.z_pos
-                //           << ") size (" << p.x_size << "," << p.y_size << ","
-                //           << p.z_size << ")\n";
+        // extend vertically
+        P.YSize += C.YSize;
 
-                // extend vertically
-                p.y_size += c.y_size;
+        // always set YPos to the *lowest row*
+        P.YPos = std::min(P.YPos, C.YPos);
 
-                // always set y_pos to the *lowest row*
-                p.y_pos = std::min(p.y_pos, c.y_pos);
-
-                mergedFlag = true;
-                break;
-            }
-        }
-        if (!mergedFlag) {
-            merged.push_back(c);
-        }
+        MergedFlag = true;
+        break;
+      }
     }
+    if (!MergedFlag) {
+      Merged.push_back(C);
+    }
+  }
 
-    return merged;
+  return Merged;
 }
 
 void Compression::WriteBlocks(
-    const std::vector<Block>& blocks, std::ostringstream& output,
-    const std::unordered_map<char, std::string>& TagTable) {
-    for (const auto& b : blocks) {
-        FormatOutput(output, b.x_pos, b.y_pos, b.z_pos, b.x_size, b.y_size,
-                     b.z_size, b.ch, TagTable);
-    }
+    const std::vector<Block> &Blocks, std::ostringstream &Output,
+    const std::unordered_map<char, std::string> &TagTable) {
+  for (const auto &B : Blocks) {
+    FormatOutput(Output, B.XPos, B.YPos, B.ZPos, B.XSize, B.YSize, B.ZSize,
+                 B.Ch, TagTable);
+  }
 }
 
-void Compression::ProcessLayer(const std::vector<std::string>& rows,
-                               int ParentX, int ParentY, int ParentZ,
-                               int layer_num,
-                               std::ostringstream& output,
-                               const std::unordered_map<char, std::string>& TagTable) {
-    std::vector<Block> accumulated;   // merged blocks for current ParentY group
+void Compression::ProcessLayer(
+    const std::vector<std::string> &Rows, int ParentX, int ParentY, int ParentZ,
+    int LayerNum, std::ostringstream &Output,
+    const std::unordered_map<char, std::string> &TagTable) {
+  std::vector<Block> Accumulated; // merged blocks for current ParentY group
 
-    int height = (int)rows.size();
+  int Height = (int)Rows.size();
 
-    // Iterate bottom -> top
-    for (int row_num = 0; row_num < height; row_num++) {
-        int y_pos = row_num; // bottom = 0
+  // Iterate bottom -> top
+  for (int RowNum = 0; RowNum < Height; RowNum++) {
+    int YPos = RowNum; // bottom = 0
 
-        auto currRow = SingleLineBlocks(rows[y_pos],
-                                        ParentX, ParentY, ParentZ,
-                                        y_pos, layer_num);
+    auto CurrRow =
+        SingleLineBlocks(Rows[YPos], ParentX, ParentY, ParentZ, YPos, LayerNum);
 
-        accumulated = MergeRows(accumulated, currRow, ParentY);
+    Accumulated = MergeRows(Accumulated, CurrRow, ParentY);
 
-        // If we've completed a ParentY block or hit the last row, flush
-        if ((row_num + 1) % ParentY == 0 || row_num == height - 1) {
-            WriteBlocks(accumulated, output, TagTable);
-            accumulated.clear();
-        }
+    // If we've completed a ParentY block or hit the last row, flush
+    if ((RowNum + 1) % ParentY == 0 || RowNum == Height - 1) {
+      WriteBlocks(Accumulated, Output, TagTable);
+      Accumulated.clear();
     }
+  }
 }
-
 
 std::string Compression::FormatOutputStrings(
-    std::ostringstream& output, int x_pos, int row_num, int layer_num, int numX,
-    int numY, int numZ, char ch,
+    std::ostringstream &Output, int XPos, int RowNum, int LayerNum, int NumX,
+    int NumY, int NumZ, char Ch,
     std::unordered_map<char, std::string> TagTable) {
-    output << x_pos << "," << row_num << "," << layer_num << "," << numX << ","
-           << numY << "," << numZ << "," << TagTable[ch] << "\n";
-    return output.str();
+  Output << XPos << "," << RowNum << "," << LayerNum << "," << NumX << ","
+         << NumY << "," << NumZ << "," << TagTable[Ch] << "\n";
+  return Output.str();
 }
 
 std::vector<std::string> Compression::WriteBlocksVectorStrings(
-    const std::vector<Block>& blocks, std::ostringstream& output,
-    const std::unordered_map<char, std::string>& TagTable) {
-    std::vector<std::string> result;
-    for (const auto& b : blocks) {
-        result.push_back(FormatOutputStrings(output, b.x_pos, b.y_pos, b.z_pos,
-                                             b.x_size, b.y_size, b.z_size, b.ch,
-                                             TagTable));
-    }
-    return result;
+    const std::vector<Block> &Blocks, std::ostringstream &Output,
+    const std::unordered_map<char, std::string> &TagTable) {
+  std::vector<std::string> Result;
+  for (const auto &B : Blocks) {
+    Result.push_back(FormatOutputStrings(Output, B.XPos, B.YPos, B.ZPos,
+                                         B.XSize, B.YSize, B.ZSize, B.Ch,
+                                         TagTable));
+  }
+  return Result;
 }
