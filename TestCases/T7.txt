@@ -1,0 +1,45 @@
+32,16,2,8,4,1
+o, sea
+w, WA
+n, NT
+s, SA
+q, QLD
+e, NSW
+v, VIC
+t, TAS
+
+oooswwtqeeoosvvwneeeeovovwtov
+ssqqooowwoeonnswovvtnsqooesw
+oovnqqwweeossvtnsqqoeeooswnn
+wwooeeossvtnqooeovwntssqqooe
+tovwsqoonnseevwwqqoossnntovw
+qqooeeovwwtssnnoovvwoessqqnt
+ovvtnsqqoeeooswnnoowwtovssqe
+eeooswnnoowwtovssqqooeeovwwt
+ssnnoovvwoessqqntovvtnsqqoee
+ooswnnoowwtovssqqooeeovwwtss
+nnoovvwoessqqntovvtnsqqoeeoo
+swnnoowwtovssqqooeeovwwtssnn
+ooovvwoessqqntovvtnsqqoeeoss
+wwoovssqqooeeovwwtssnnoovvwo
+essqqntovvtnsqqoeeooswnnooww
+tovssqqooeeovwwtssnnoovvwoess
+
+nnoovvwoessqqntovvtnsqqoeeoo
+swnnoowwtovssqqooeeovwwtssnn
+ooovvwoessqqntovvtnsqqoeeoss
+wwoovssqqooeeovwwtssnnoovvwo
+essqqntovvtnsqqoeeooswnnooww
+tovssqqooeeovwwtssnnoovvwoess
+oooswwtqeeoosvvwneeeeovovwtov
+ssqqooowwoeonnswovvtnsqooesw
+oovnqqwweeossvtnsqqoeeooswnn
+wwooeeossvtnqooeovwntssqqooe
+tovwsqoonnseevwwqqoossnntovw
+qqooeeovwwtssnnoovvwoessqqnt
+ovvtnsqqoeeooswnnoowwtovssqe
+eeooswnnoowwtovssqqooeeovwwt
+ssnnoovvwoessqqntovvtnsqqoee
+ooswnnoowwtovssqqooeeovwwtss
+
+

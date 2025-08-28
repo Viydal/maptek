@@ -49,12 +49,27 @@ int main(int argc, char* argv[]) {
     // --- Create Test object and compare ---
     Test myTest(Lines, outputLines);
 
+    std::cout << "--- COMPARE PARSE --- \n";
+
     myTest.printInputParse();
     myTest.printOutputParse();
 
     bool match = myTest.compareInputOutput();
 
+    // --- Compute compression percentage ---
+    size_t inputSize = 0;
+    for (auto &layer : myTest.InputMapExpanded)
+        for (auto &row : layer)
+            inputSize += row.size();   // total number of characters in expanded input
+
+    size_t compressedRows = outputLines.size(); // each rectangle is one line
+
+    double compressionPercent = 100.0 * (1.0 - double(compressedRows) / double(inputSize));
+
+    myTest.printOutputBlocks();
+
     // --- Report results ---
-    std::cout << "| Test Success | " << match << " || Time | " << elapsed.count() << " seconds |\n";
+    std::cout << "| Test Success | " << match << " || Compression Time | " << elapsed.count() << " seconds" << " || Compression % | " << compressionPercent << "% |\n";
+    
     return 0;
 }
