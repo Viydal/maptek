@@ -51,8 +51,8 @@ public:
   bool TryRelaxedMerge(Block& prev,
                      Block& curr,
                      int ParentY,
-                     std::vector<Block>& currLeftovers,
-                     std::vector<Block>& prevLeftovers);
+                     std::vector<Block>& BlockStack,
+                     std::vector<Block>& OutputStack);
 };
 
 #endif

@@ -82,8 +82,8 @@ std::vector<Block> Compression::SingleLineBlocks(const std::string Row,
 bool Compression::TryRelaxedMerge(Block& prev,
                     Block& curr,
                     int ParentY,
-                    std::vector<Block>& currLeftovers,
-                    std::vector<Block>& prevLeftovers) 
+                    std::vector<Block>& BlockStack,
+                    std::vector<Block>& OutputStack) 
 {
     // Rule 0: must be same "row group"
     if ((prev.YPos / ParentY) != (curr.YPos / ParentY)) return false;
@@ -91,10 +91,10 @@ bool Compression::TryRelaxedMerge(Block& prev,
     if (prev.Ch != curr.Ch) return false;
 
     // --- compute overlap in x
-    int start = std::max(prev.XPos, curr.XPos);
-    int end   = std::min(prev.XPos + prev.XSize,
-                         curr.XPos + curr.XSize);
-    int overlap = end - start;
+    int StartMerge = std::max(prev.XPos, curr.XPos);
+    int EndMerge   = std::min(prev.XPos + prev.XSize,
+                        curr.XPos + curr.XSize);
+    int overlap = EndMerge - StartMerge;
     if (overlap <= 0) return false; // no horizontal overlap
 
     // --- Rule 2: cannot shrink prev overlap too much
@@ -103,11 +103,11 @@ bool Compression::TryRelaxedMerge(Block& prev,
     }
 
         // --- split prev into (left, overlap, right)
-    int prev_left  = start - prev.XPos;
-    int prev_right = (prev.XPos + prev.XSize) - end;
+    int prev_left  = StartMerge - prev.XPos;
+    int prev_right = (prev.XPos + prev.XSize) - EndMerge;
     // --- split curr into (left, overlap, right)
-    int curr_left  = start - curr.XPos;
-    int curr_right = (curr.XPos + curr.XSize) - end;
+    int curr_left  = StartMerge - curr.XPos;
+    int curr_right = (curr.XPos + curr.XSize) - EndMerge;
 
     // enforce Rule 1/3/4 by tracking "which side relaxed"
     // Right now we only allow one side trimming for prev and curr
@@ -116,36 +116,35 @@ bool Compression::TryRelaxedMerge(Block& prev,
     if ((prev_left > 0 && curr_right > 0) ||
         (prev_right > 0 && curr_left > 0)) return false;
 
+    //std::cout << "\nRelaxed merging block at (" << prev.XPos << "," << prev.YPos << "," << prev.ZPos << ") size (" << prev.XSize << "," << prev.YSize << "," << prev.ZSize << ") with block at (" << curr.XPos << "," << curr.YPos << "," << curr.ZPos << ") size (" << curr.XSize << "," << curr.YSize << "," << curr.ZSize << ")\n";
         // --- leftovers from prev: must be flushed immediately
     if (prev_left > 0) {
         Block left = {prev.XPos, prev.YPos, prev.ZPos,
                       prev_left, prev.YSize, prev.ZSize, prev.Ch};
-        prevLeftovers.push_back(left);
-        // std::cout << "Prev left leftover: (" << left.XPos << "," << left.YPos << "," << left.ZPos << ") size (" << left.XSize << "," << left.YSize << "," << left.ZSize << ")" << left.Ch << "\n";
-    }
-    if (prev_right > 0) {
-        Block right = {end, prev.YPos, prev.ZPos,
+        OutputStack.push_back(left);
+        //std::cout << "Prev left Output: (" << left.XPos << "," << left.YPos << "," << left.ZPos << ") size (" << left.XSize << "," << left.YSize << "," << left.ZSize << ") - " << left.Ch << "\n";
+    } else if (prev_right > 0) {
+        Block right = {EndMerge, prev.YPos, prev.ZPos,
                        prev_right, prev.YSize, prev.ZSize, prev.Ch};
-        prevLeftovers.push_back(right);
-        // std::cout << "Prev right leftover: (" << right.XPos << "," << right.YPos << "," << right.ZPos << ") size (" << right.XSize << "," << right.YSize << "," << right.ZSize << ")" << right.Ch << "\n";
+        OutputStack.push_back(right);
+        //std::cout << "Prev right Output: (" << right.XPos << "," << right.YPos << "," << right.ZPos << ") size (" << right.XSize << "," << right.YSize << "," << right.ZSize << ") - " << right.Ch << "\n";
     }
 
     // --- perform the merge using overlap region
-    prev.XPos  = start;
+    prev.XPos  = StartMerge;
     prev.XSize = overlap;
     prev.YSize += curr.YSize;
 
     if (curr_left > 0) {
         Block left = {curr.XPos, curr.YPos, curr.ZPos,
                       curr_left, curr.YSize, curr.ZSize, curr.Ch};
-        currLeftovers.push_back(left);
-        // std::cout << "Curr left leftover: (" << left.XPos << "," << left.YPos << "," << left.ZPos << ") size (" << left.XSize << "," << left.YSize << "," << left.ZSize << ")" << left.Ch << "\n";
-    }
-    if (curr_right > 0) {
-        Block right = {end, curr.YPos, curr.ZPos,
+        BlockStack.push_back(left);
+        //std::cout << "Curr left Block Stack: (" << left.XPos << "," << left.YPos << "," << left.ZPos << ") size (" << left.XSize << "," << left.YSize << "," << left.ZSize << ") - " << left.Ch << "\n";
+    } else if (curr_right > 0) {
+        Block right = {EndMerge, curr.YPos, curr.ZPos,
                        curr_right, curr.YSize, curr.ZSize, curr.Ch};
-        currLeftovers.push_back(right);
-        // std::cout << "Curr right leftover: (" << right.XPos << "," << right.YPos << "," << right.ZPos << ") size (" << right.XSize << "," << right.YSize << "," << right.ZSize << ")" << right.Ch << "\n";
+        BlockStack.push_back(right);
+        //std::cout << "  Curr right BlockStack: (" << right.XPos << "," << right.YPos << "," << right.ZPos << ") size (" << right.XSize << "," << right.YSize << "," << right.ZSize << ") - " << right.Ch << "\n";
     }
 
 
@@ -170,40 +169,48 @@ void Compression::MergeRows(std::vector<Block> &OutputStack,
   while (StackPointer < BlockStack.size()){
     EBlock = BlockStack[StackPointer];
     MergedFlag = false;
-    for (Block NewB  : Cr) {
+    
+    for (size_t NewBPos = 0; NewBPos < Cr.size(); NewBPos++) {
+      
+      Block NewB = Cr[NewBPos];
+      if (EBlock.Ch == NewB.Ch){
       // same x range, same label, same z, same ParentY block
       // and C is directly above P
-      if (EBlock.XPos == NewB.XPos && EBlock.XSize == NewB.XSize && EBlock.Ch == NewB.Ch &&
+      if (EBlock.XPos == NewB.XPos && EBlock.XSize == NewB.XSize &&
           EBlock.ZPos == NewB.ZPos && ((EBlock.YPos / ParentY) == (NewB.YPos / ParentY)) &&
           (NewB.YPos == EBlock.YPos + EBlock.YSize)) 
       {
+        //std::cout << "Perfect Merging at (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
         // extend vertically
         EBlock.YSize += NewB.YSize;
         // always set YPos to the *lowest index row*
         EBlock.YPos = std::min(EBlock.YPos, NewB.YPos);
+        BlockStack[StackPointer] = EBlock;
         MergedFlag = true;
-        break;
-      }
-    // else if (TryRelaxedMerge(P, C, ParentY, CurrLeftovers, PrevLeftovers)) {
-    //          //std::cout << "Relaxed merging block at (" << C.XPos << "," << C.YPos << "," << C.ZPos << ") size (" << C.XSize << "," << C.YSize << "," << C.ZSize << ") with block at (" << P.XPos << "," << P.YPos << "," << P.ZPos << ") size (" << P.XSize << "," << P.YSize << "," << P.ZSize << ")\n";
-    //         MergedFlag = true;
-    //                              // append any leftover cut pieces
-    //          for (auto& l : CurrLeftovers) {
-    //              Merged.push_back(l); 
-    //          }
-    //          // append prev leftovers (these will later be printed in WriteBlocks)
-    //          for (auto& l : PrevLeftovers) {
-    //              Merged.push_back(l);
-    //          }
-    //          break;
-    //      }
+        Cr.erase(Cr.begin()+NewBPos);
+        NewBPos--;
+        goto NEXTBLOCK;
+      } else if (TryRelaxedMerge(EBlock, NewB, ParentY, BlockStack, OutputStack)) {
+              //std::cout << "Relaxed merging block at (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
+              BlockStack[StackPointer] = EBlock;
+              MergedFlag = true;
+              Cr.erase(Cr.begin()+NewBPos);
+              NewBPos--;
+              goto NEXTBLOCK;
+          } else {
+            //std::cout << "No Merging (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
+          }
+    } //else {std::cout << "No Merging (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";}
     }
+    NEXTBLOCK:
     if (!MergedFlag) {
-      std::cout << "StackPointer: " << StackPointer << std::endl;
+      //std::cout << "Adding most recent block to Output\n"; 
       OutputStack.push_back(EBlock);
       BlockStack.erase(BlockStack.begin()+StackPointer);
     } else {StackPointer++;}
-    
+    //std::cout <<"SP: " << StackPointer << " StackSize: " << BlockStack.size() << " CR_Size:" << Cr.size() << "\n\n";
+      
+
   }
   for(Block block : Cr) {
     BlockStack.push_back(block);
@@ -234,19 +241,25 @@ void Compression::ProcessLayer(
     std::vector<Block> CurrRow =
         SingleLineBlocks(Rows[YPos], ParentX, ParentY, ParentZ, YPos, LayerNum);
 
-    for (Block Block: CurrRow) {
-      std::cout <<  Block.XPos << "," << Block.YPos << "," << Block.ZPos << "," << Block.XSize << "," << Block.YSize << "," << Block.ZSize << "," << Block.Ch << " - ";
-    }
-    std::cout << std::endl;
+    //for (Block Block: CurrRow) {
+    //  std::cout <<  Block.XPos << "," << Block.YPos << "," << Block.ZPos << "," << Block.XSize << "," << Block.YSize << "," << Block.ZSize << "," << Block.Ch << " - ";
+    //}
+    //std::cout << std::endl;
 
     MergeRows(OutputBlocks, CurrRow, BlockStack, ParentY);
 
     // If we've completed a ParentY block or hit the last row, flush
     if ((RowNum + 1) % ParentY == 0 || RowNum == Height - 1) {
+      //std::cout << "\n Clearing Blockstack and writing output\n\n";
       WriteBlocks(OutputBlocks, Output, TagTable);
       OutputBlocks.clear();
+      if (!BlockStack.empty()) {
+        WriteBlocks(BlockStack, Output, TagTable);
+        BlockStack.clear();
+      }
     }
   }
+  
 }
 
 std::string Compression::FormatOutputStrings(
