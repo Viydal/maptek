@@ -1,4 +1,4 @@
-16,6,2,4,3,1
+8,4,1,8,4,1
 o, sea
 w, WA
 n, NT
@@ -8,16 +8,23 @@ e, NSW
 v, VIC
 t, TAS
 
-eeeooooooooooooo
-owwwnnnneeeqqqqo
-owwwnnnneeeqqqqo
-osssvvvvttttoooo
-osssvvvvttttoooo
-ssoooooooooooooo
+eeeeoooo
+eeeooooo
+eeeooooo
+oooooooo
 
-oooooooooooooooo
-wwwwwwwwwwwwwwww
-ooosssvvvttttooo
-ooosssvvvttttooo
-oooooooooooooooo
-oooooooooooooooo
+
+0,0,0,3,3,1,NSW
+4,0,0,4,4,1,sea
+3,1,0,1,1,1,sea
+3,0,0,1,1,1,NSW
+3,2,0,1,1,1,sea
+0,3,0,4,1,1,sea
+
+
+0,0,0,3,2,1,NSW
+4,0,0,4,1,1,sea
+3,0,0,1,1,1,NSW
+
+0,1,0,3,1,1,NSW
+4,1,0,5,1,1,sea
