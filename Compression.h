@@ -45,6 +45,12 @@ public:
   std::vector<std::string> WriteBlocksVectorStrings(
       const std::vector<Block> &Blocks, std::ostringstream &Output,
       const std::unordered_map<char, std::string> &TagTable);
+
+  bool TryRelaxedMerge(Block& prev,
+                     Block& curr,
+                     int ParentY,
+                     std::vector<Block>& currLeftovers,
+                     std::vector<Block>& prevLeftovers);
 };
 
 #endif
