@@ -156,6 +156,7 @@ void Compression::MergeRows(std::vector<Block> &OutputStack,
                                           std::vector<Block> &Cr,
                                           std::vector<Block> &BlockStack, //Stack of blocks that have been cut off and are pending
                                           int ParentY) {
+                                            std::cout << "Merging rows. Current stack size: " << BlockStack.size() << ", Current row size: " << Cr.size() << std::endl;
   std::vector<Block> CRow = Cr; //Current row of ParentX sized Blocks
   // to hold any leftover cut pieces that need to be appended
   std::vector<Block> PrevLeftovers;
@@ -200,6 +201,7 @@ void Compression::MergeRows(std::vector<Block> &OutputStack,
     }
     if (!MergedFlag) {
       std::cout << "StackPointer: " << StackPointer << std::endl;
+      std::cout << "Pushing block at (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") " << EBlock.Ch << " to output\n";
       OutputStack.push_back(EBlock);
       BlockStack.erase(BlockStack.begin()+StackPointer);
     } else {StackPointer++;}
@@ -226,13 +228,18 @@ void Compression::ProcessLayer(
   std::vector<Block> OutputBlocks; // merged blocks for current ParentY group
   std::vector<Block> BlockStack;
   int Height = (int)Rows.size();
+  // std::cout << "Processing layer " << LayerNum << " with " << Height << " rows.\n";
 
   // Iterate bottom -> top
   for (int RowNum = 0; RowNum < Height; RowNum++) {
+    std::cout << "  Processing row " << RowNum << " / " << Height - 1 << std::endl;
     int YPos = RowNum; // bottom = 0
 
     std::vector<Block> CurrRow =
         SingleLineBlocks(Rows[YPos], ParentX, ParentY, ParentZ, YPos, LayerNum);
+
+    // Debug print
+    std::cout << "    Current row blocks: ";
 
     for (Block Block: CurrRow) {
       std::cout <<  Block.XPos << "," << Block.YPos << "," << Block.ZPos << "," << Block.XSize << "," << Block.YSize << "," << Block.ZSize << "," << Block.Ch << " - ";
@@ -243,6 +250,9 @@ void Compression::ProcessLayer(
 
     // If we've completed a ParentY block or hit the last row, flush
     if ((RowNum + 1) % ParentY == 0 || RowNum == Height - 1) {
+      for(Block block : BlockStack) {
+        OutputBlocks.push_back(block);
+      }
       WriteBlocks(OutputBlocks, Output, TagTable);
       OutputBlocks.clear();
     }
