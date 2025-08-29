@@ -1,0 +1,15 @@
+1,1,2,1,1,1
+o, sea
+w, WA
+n, NT
+s, SA
+q, QLD
+e, NSW
+v, VIC
+t, TAS
+
+o
+w
+
+n
+s
