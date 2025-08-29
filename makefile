@@ -8,7 +8,7 @@ submit:
 
 # To compile the testing main
 test:
-	g++ -std=c++11 Compression.cpp Parse.cpp Test.cpp TestMain.cpp -o testmain.exe
+	g++ -std=c++11 -g Compression.cpp Parse.cpp Test.cpp TestMain.cpp -o testmain.exe
 
 clean: # Remove made files
 	rm *.o *.exe main
