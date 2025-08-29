@@ -30,8 +30,10 @@ public:
   std::vector<Block> SingleLineBlocks(const std::string Row, int ParentX,
                                       int ParentY, int ParentZ, int RowNum,
                                       int LayerNum);
-  std::vector<Block> MergeRows(const std::vector<Block> &PrevRow,
-                               const std::vector<Block> &CurrRow, int ParentY);
+  void MergeRows( std::vector<Block> &Output,
+                  std::vector<Block> &CurrRow,
+                  std::vector<Block> &BlockStack,
+                  int ParentY);
   void WriteBlocks(const std::vector<Block> &Blocks, std::ostringstream &Output,
                    const std::unordered_map<char, std::string> &TagTable);
   void ProcessLayer(const std::vector<std::string> &Rows, int ParentX,

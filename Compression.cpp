@@ -80,10 +80,10 @@ std::vector<Block> Compression::SingleLineBlocks(const std::string Row,
 }
 
 bool Compression::TryRelaxedMerge(Block& prev,
-                     Block& curr,
-                     int ParentY,
-                     std::vector<Block>& currLeftovers,
-                     std::vector<Block>& prevLeftovers) 
+                    Block& curr,
+                    int ParentY,
+                    std::vector<Block>& currLeftovers,
+                    std::vector<Block>& prevLeftovers) 
 {
     // Rule 0: must be same "row group"
     if ((prev.YPos / ParentY) != (curr.YPos / ParentY)) return false;
@@ -152,55 +152,62 @@ bool Compression::TryRelaxedMerge(Block& prev,
     return true;
 }
 
-std::vector<Block> Compression::MergeRows(const std::vector<Block> &PrevRow,
-                                          const std::vector<Block> &Cr,
+void Compression::MergeRows(std::vector<Block> &OutputStack,
+                                          std::vector<Block> &Cr,
+                                          std::vector<Block> &BlockStack, //Stack of blocks that have been cut off and are pending
                                           int ParentY) {
-  std::vector<Block> Merged = PrevRow;
-  std::vector<Block> Crow = Cr;
-
-    // to hold any leftover cut pieces that need to be appended
-    std::vector<Block> PrevLeftovers;
-    std::vector<Block> CurrLeftovers;
-
-  for (auto C : Crow) {
-    bool MergedFlag = false;
-    for (auto &P : Merged) {
+  std::vector<Block> CRow = Cr; //Current row of ParentX sized Blocks
+  // to hold any leftover cut pieces that need to be appended
+  std::vector<Block> PrevLeftovers;
+  std::vector<Block> CurrLeftovers;
+  bool MergedFlag = false;
+  Block EBlock;
+  int StackPointer = 0;
+  if (BlockStack.size() == 0) {
+    BlockStack = Cr;
+    return;
+  }
+  while (StackPointer < BlockStack.size()){
+    EBlock = BlockStack[StackPointer];
+    MergedFlag = false;
+    for (Block NewB  : Cr) {
       // same x range, same label, same z, same ParentY block
       // and C is directly above P
-      if (P.XPos == C.XPos && P.XSize == C.XSize && P.Ch == C.Ch &&
-          P.ZPos == C.ZPos && ((P.YPos / ParentY) == (C.YPos / ParentY)) &&
-          (C.YPos == P.YPos + P.YSize)) {
-
+      if (EBlock.XPos == NewB.XPos && EBlock.XSize == NewB.XSize && EBlock.Ch == NewB.Ch &&
+          EBlock.ZPos == NewB.ZPos && ((EBlock.YPos / ParentY) == (NewB.YPos / ParentY)) &&
+          (NewB.YPos == EBlock.YPos + EBlock.YSize)) 
+      {
         // extend vertically
-        P.YSize += C.YSize;
-
-        // always set YPos to the *lowest row*
-        P.YPos = std::min(P.YPos, C.YPos);
-
+        EBlock.YSize += NewB.YSize;
+        // always set YPos to the *lowest index row*
+        EBlock.YPos = std::min(EBlock.YPos, NewB.YPos);
         MergedFlag = true;
         break;
       }
-      else if (TryRelaxedMerge(P, C, ParentY, CurrLeftovers, PrevLeftovers)) {
-                // std::cout << "Relaxed merging block at (" << c.XPos << "," << c.YPos << "," << c.ZPos << ") size (" << c.XSize << "," << c.YSize << "," << c.ZSize << ") with block at (" << p.XPos << "," << p.YPos << "," << p.ZPos << ") size (" << p.XSize << "," << p.YSize << "," << p.ZSize << ")\n";
-                MergedFlag = true;
-                                    // append any leftover cut pieces
-                for (auto& l : CurrLeftovers) {
-                    Merged.push_back(l); 
-                }
-                
-                // append prev leftovers (these will later be printed in WriteBlocks)
-                for (auto& l : PrevLeftovers) {
-                    Merged.push_back(l);
-                }
-                break;
-            }
+    // else if (TryRelaxedMerge(P, C, ParentY, CurrLeftovers, PrevLeftovers)) {
+    //          //std::cout << "Relaxed merging block at (" << C.XPos << "," << C.YPos << "," << C.ZPos << ") size (" << C.XSize << "," << C.YSize << "," << C.ZSize << ") with block at (" << P.XPos << "," << P.YPos << "," << P.ZPos << ") size (" << P.XSize << "," << P.YSize << "," << P.ZSize << ")\n";
+    //         MergedFlag = true;
+    //                              // append any leftover cut pieces
+    //          for (auto& l : CurrLeftovers) {
+    //              Merged.push_back(l); 
+    //          }
+    //          // append prev leftovers (these will later be printed in WriteBlocks)
+    //          for (auto& l : PrevLeftovers) {
+    //              Merged.push_back(l);
+    //          }
+    //          break;
+    //      }
     }
     if (!MergedFlag) {
-      Merged.push_back(C);
-    }
+      std::cout << "StackPointer: " << StackPointer << std::endl;
+      OutputStack.push_back(EBlock);
+      BlockStack.erase(BlockStack.begin()+StackPointer);
+    } else {StackPointer++;}
+    
   }
-
-  return Merged;
+  for(Block block : Cr) {
+    BlockStack.push_back(block);
+  }
 }
 
 void Compression::WriteBlocks(
@@ -216,23 +223,28 @@ void Compression::ProcessLayer(
     const std::vector<std::string> &Rows, int ParentX, int ParentY, int ParentZ,
     int LayerNum, std::ostringstream &Output,
     const std::unordered_map<char, std::string> &TagTable) {
-  std::vector<Block> Accumulated; // merged blocks for current ParentY group
-
+  std::vector<Block> OutputBlocks; // merged blocks for current ParentY group
+  std::vector<Block> BlockStack;
   int Height = (int)Rows.size();
 
   // Iterate bottom -> top
   for (int RowNum = 0; RowNum < Height; RowNum++) {
     int YPos = RowNum; // bottom = 0
 
-    auto CurrRow =
+    std::vector<Block> CurrRow =
         SingleLineBlocks(Rows[YPos], ParentX, ParentY, ParentZ, YPos, LayerNum);
 
-    Accumulated = MergeRows(Accumulated, CurrRow, ParentY);
+    for (Block Block: CurrRow) {
+      std::cout <<  Block.XPos << "," << Block.YPos << "," << Block.ZPos << "," << Block.XSize << "," << Block.YSize << "," << Block.ZSize << "," << Block.Ch << " - ";
+    }
+    std::cout << std::endl;
+
+    MergeRows(OutputBlocks, CurrRow, BlockStack, ParentY);
 
     // If we've completed a ParentY block or hit the last row, flush
     if ((RowNum + 1) % ParentY == 0 || RowNum == Height - 1) {
-      WriteBlocks(Accumulated, Output, TagTable);
-      Accumulated.clear();
+      WriteBlocks(OutputBlocks, Output, TagTable);
+      OutputBlocks.clear();
     }
   }
 }

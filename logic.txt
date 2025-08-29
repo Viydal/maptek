@@ -1,0 +1,22 @@
+
+
+OutputStack, all blocks to be written
+blockStack, Pending Blocks
+CurrRow, New blocks
+
+
+For Block in Blockstack
+    for NewBlock in CurrRow
+        if NormalMerge:
+            good, remove from NewBlock
+            keep in Blockstack
+        else if relaxedMerge:
+            okay, calculate cut off
+            add cut off block to Blockstack
+            remove from newBlock
+        else 
+            remove block from Blockstack
+
+
+
+
