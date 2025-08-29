@@ -153,15 +153,16 @@ bool Compression::TryRelaxedMerge(Block& prev,
 }
 
 std::vector<Block> Compression::MergeRows(const std::vector<Block> &PrevRow,
-                                          const std::vector<Block> &CurrRow,
+                                          const std::vector<Block> &Cr,
                                           int ParentY) {
   std::vector<Block> Merged = PrevRow;
+  std::vector<Block> Crow = Cr;
 
     // to hold any leftover cut pieces that need to be appended
     std::vector<Block> PrevLeftovers;
     std::vector<Block> CurrLeftovers;
 
-  for (auto &C : CurrRow) {
+  for (auto C : Crow) {
     bool MergedFlag = false;
     for (auto &P : Merged) {
       // same x range, same label, same z, same ParentY block
@@ -186,6 +187,11 @@ std::vector<Block> Compression::MergeRows(const std::vector<Block> &PrevRow,
                 for (auto& l : CurrLeftovers) {
                     Merged.push_back(l); 
                 }
+                
+                // append prev leftovers (these will later be printed in WriteBlocks)
+                for (auto& l : PrevLeftovers) {
+                    Merged.push_back(l);
+                }
                 break;
             }
     }
@@ -193,12 +199,6 @@ std::vector<Block> Compression::MergeRows(const std::vector<Block> &PrevRow,
       Merged.push_back(C);
     }
   }
-
-      // append prev leftovers (these will later be printed in WriteBlocks)
-    for (auto& l : PrevLeftovers) {
-        Merged.push_back(l);
-    }
-
 
   return Merged;
 }
