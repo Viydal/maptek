@@ -8,7 +8,10 @@
 #include <chrono>  // for timing
 
 int main(int argc, char* argv[]) {
-    if (argc < 2) return 1;
+    if (argc < 2) {
+        std::cout << "Usage: ./testmain.exe [test file path]" << std::endl;
+        return 1;
+    }
 
     // --- Read input file ---
     std::ifstream infile(argv[1]);
