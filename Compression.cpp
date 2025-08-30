@@ -190,7 +190,7 @@ void Compression::MergeRows(std::vector<Block> &OutputStack,
         Cr.erase(Cr.begin()+NewBPos);
         NewBPos--;
         goto NEXTBLOCK;
-      } else if (TryRelaxedMerge(EBlock, NewB, ParentY, BlockStack, OutputStack)) {
+      } else if (TryRelaxedMerge(EBlock, NewB, ParentY, Cr, OutputStack)) {
               //std::cout << "Relaxed merging block at (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
               BlockStack[StackPointer] = EBlock;
               MergedFlag = true;
