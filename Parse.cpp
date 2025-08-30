@@ -35,7 +35,8 @@ Parse::Parse(std::vector<std::string> Lines) {
             std::string Location;
             char Symbol;
             Ss >> Symbol >> Delimeter >> Location;
-            TagTable[Symbol] = Location;
+
+            TagTable[static_cast<int>(Symbol)] = Location;
         } else if (Map) {
             Layer.push_back(RLERow(Lines[i]));
         }
@@ -45,7 +46,7 @@ Parse::Parse(std::vector<std::string> Lines) {
     }
 }
 
-std::unordered_map<char, std::string> Parse::GetTagTable() { return TagTable; }
+std::string* Parse::GetTagTable() { return TagTable; }
 
 std::string* Parse::RLERowParent(std::string Row, int ParentX, int NumXBlocks) {
     std::string* Blocks = new std::string[NumXBlocks];

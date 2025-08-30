@@ -1,9 +1,12 @@
 #include "Test.h"
 void Test::reconstructOutputParse() {
     // Reverse TagTable: full label -> single char
-    std::unordered_map<std::string, char> reverseMap;
-    for (auto &pair : InputParse.TagTable) {
-        reverseMap[pair.second] = pair.first;
+    std::unordered_map<std::string, int> reverseMap;
+    for (int i = 0; i<256; i++) {
+        if (!InputParse.TagTable[i].empty()) {
+            reverseMap[InputParse.TagTable[i]] = i;
+        }
+        
     }
 
     // Temporary expanded map
@@ -16,7 +19,6 @@ void Test::reconstructOutputParse() {
         std::stringstream ss(line);
         ss >> x >> comma >> y >> comma >> z >> comma >> w >> comma >> h >> comma >> d >> comma;
         ss >> label;
-
         char codeChar = reverseMap[label];
 
         for (int yy = y; yy < y + h; ++yy) {
