@@ -11,6 +11,76 @@ void Compression::FormatOutput(std::ostringstream &Output, int XPos, int RowNum,
   return;
 }
 
+void Compression::WriteBlocks(
+    const std::vector<Block> &Blocks, std::ostringstream &Output,
+    const std::unordered_map<char, std::string> &TagTable) {
+  for (const auto &B : Blocks) {
+    FormatOutput(Output, B.XPos, B.YPos, B.ZPos, B.XSize, B.YSize, B.ZSize,
+                 B.Ch, TagTable);
+  }
+}
+
+std::vector<Block> Compression::MergeRows(const std::vector<Block> &PrevRow,
+                                          const std::vector<Block> &CurrRow,
+                                          int ParentY) {
+  std::vector<Block> Merged = PrevRow;
+
+  for (auto &C : CurrRow) {
+    bool MergedFlag = false;
+    for (auto &P : Merged) {
+      // same x range, same label, same z, same ParentY block
+      // and C is directly above P
+      if (P.XPos == C.XPos && P.XSize == C.XSize && P.Ch == C.Ch &&
+          P.ZPos == C.ZPos && ((P.YPos / ParentY) == (C.YPos / ParentY)) &&
+          (C.YPos == P.YPos + P.YSize)) {
+
+        // extend vertically
+        P.YSize += C.YSize;
+
+        // always set YPos to the *lowest row*
+        P.YPos = std::min(P.YPos, C.YPos);
+
+        MergedFlag = true;
+        break;
+      }
+    }
+    if (!MergedFlag) {
+      Merged.push_back(C);
+    }
+  }
+
+  return Merged;
+}
+
+void Compression::ProcessLayer(
+    const std::vector<std::vector<Block>> &Rows, int ParentX, int ParentY, int ParentZ,
+    int LayerNum, std::ostringstream &Output,
+    const std::unordered_map<char, std::string> &TagTable) {
+  std::vector<Block> Accumulated; // merged blocks for current ParentY group
+
+  int Height = (int)Rows.size();
+
+  // Iterate bottom -> top
+  for (int RowNum = 0; RowNum < Height; RowNum++) {
+    int YPos = RowNum; // bottom = 0
+
+    auto CurrRow = Rows[YPos];
+
+    Accumulated = MergeRows(Accumulated, CurrRow, ParentY);
+
+    // If we've completed a ParentY block or hit the last row, flush
+    if ((RowNum + 1) % ParentY == 0 || RowNum == Height - 1) {
+      WriteBlocks(Accumulated, Output, TagTable);
+      Accumulated.clear();
+    }
+  }
+}
+
+
+
+//Unused functions
+
+//has been made redundant
 std::string Compression::SingleLineCompress(
     const std::string Row, std::unordered_map<char, std::string> TagTable,
     int ParentX, int ParentY, int ParentZ, int RowNum, int LayerNum) {
@@ -47,6 +117,7 @@ std::string Compression::SingleLineCompress(
   return Output.str();
 }
 
+//has been made redundant
 std::vector<Block> Compression::SingleLineBlocks(const std::string Row,
                                                  int ParentX, int ParentY,
                                                  int ParentZ, int RowNum,
@@ -79,71 +150,6 @@ std::vector<Block> Compression::SingleLineBlocks(const std::string Row,
   return Blocks;
 }
 
-std::vector<Block> Compression::MergeRows(const std::vector<Block> &PrevRow,
-                                          const std::vector<Block> &CurrRow,
-                                          int ParentY) {
-  std::vector<Block> Merged = PrevRow;
-
-  for (auto &C : CurrRow) {
-    bool MergedFlag = false;
-    for (auto &P : Merged) {
-      // same x range, same label, same z, same ParentY block
-      // and C is directly above P
-      if (P.XPos == C.XPos && P.XSize == C.XSize && P.Ch == C.Ch &&
-          P.ZPos == C.ZPos && ((P.YPos / ParentY) == (C.YPos / ParentY)) &&
-          (C.YPos == P.YPos + P.YSize)) {
-
-        // extend vertically
-        P.YSize += C.YSize;
-
-        // always set YPos to the *lowest row*
-        P.YPos = std::min(P.YPos, C.YPos);
-
-        MergedFlag = true;
-        break;
-      }
-    }
-    if (!MergedFlag) {
-      Merged.push_back(C);
-    }
-  }
-
-  return Merged;
-}
-
-void Compression::WriteBlocks(
-    const std::vector<Block> &Blocks, std::ostringstream &Output,
-    const std::unordered_map<char, std::string> &TagTable) {
-  for (const auto &B : Blocks) {
-    FormatOutput(Output, B.XPos, B.YPos, B.ZPos, B.XSize, B.YSize, B.ZSize,
-                 B.Ch, TagTable);
-  }
-}
-
-void Compression::ProcessLayer(
-    const std::vector<std::string> &Rows, int ParentX, int ParentY, int ParentZ,
-    int LayerNum, std::ostringstream &Output,
-    const std::unordered_map<char, std::string> &TagTable) {
-  std::vector<Block> Accumulated; // merged blocks for current ParentY group
-
-  int Height = (int)Rows.size();
-
-  // Iterate bottom -> top
-  for (int RowNum = 0; RowNum < Height; RowNum++) {
-    int YPos = RowNum; // bottom = 0
-
-    auto CurrRow =
-        SingleLineBlocks(Rows[YPos], ParentX, ParentY, ParentZ, YPos, LayerNum);
-
-    Accumulated = MergeRows(Accumulated, CurrRow, ParentY);
-
-    // If we've completed a ParentY block or hit the last row, flush
-    if ((RowNum + 1) % ParentY == 0 || RowNum == Height - 1) {
-      WriteBlocks(Accumulated, Output, TagTable);
-      Accumulated.clear();
-    }
-  }
-}
 
 std::string Compression::FormatOutputStrings(
     std::ostringstream &Output, int XPos, int RowNum, int LayerNum, int NumX,

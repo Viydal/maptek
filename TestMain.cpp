@@ -24,7 +24,7 @@ int main(int argc, char* argv[]) {
     Parse Parser(Lines);
     Compression Compressor;
     std::ostringstream Output;
-    auto Map = Parser.GetMap();
+    auto Map = Parser.XBlocks;
     auto AllMappings = Parser.GetTagTable();
 
     // --- Compression loop with timing ---

@@ -60,10 +60,13 @@ int main() {
     std::unordered_map<char, std::string> AllMappings = Parser.GetTagTable();
 
     std::vector<std::vector<std::string>> Map = Parser.GetMap();
+    std::vector<std::vector<std::vector<Block>>> XBlocks = Parser.XBlocks;
     std::ostringstream Output;
 
-    for (size_t z = 0; z < Map.size(); z++) {
-        Compressor.ProcessLayer(Map[z], Parser.ParentX, Parser.ParentY, Parser.ParentZ, z, Output, AllMappings);
+    
+
+    for (size_t z = 0; z < XBlocks.size(); z++) {
+        Compressor.ProcessLayer(XBlocks[z], Parser.ParentX, Parser.ParentY, Parser.ParentZ, z, Output, AllMappings);
     }
 
     std::cout << Output.str();
