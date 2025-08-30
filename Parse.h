@@ -9,14 +9,14 @@
 class Parse {
 public:
   int XCount, YCount, ZCount, ParentX, ParentY, ParentZ;
-  std::unordered_map<char, std::string> TagTable;
+  std::string TagTable[256];
   std::vector<std::vector<std::string>> MapInformation;
   int NumXBlocks, NumYBlocks, NumZBlocks;
 
 public:
   Parse();
   Parse(std::vector<std::string> Line);
-  std::unordered_map<char, std::string> GetTagTable();
+  std::string * GetTagTable();
   std::string RLERow(std::string Row);
   std::string *RLERowParent(std::string Row, int ParentX, int NumXBlocks);
   std::vector<std::vector<std::string>> GetMap();

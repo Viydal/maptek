@@ -5,14 +5,14 @@ Compression::Compression() {}
 void Compression::FormatOutput(std::ostringstream &Output, int XPos, int RowNum,
                                int LayerNum, int NumX, int NumY, int NumZ,
                                char Ch,
-                               std::unordered_map<char, std::string> TagTable) {
+                               const std::string* TagTable) {
   Output << XPos << "," << RowNum << "," << LayerNum << "," << NumX << ","
          << NumY << "," << NumZ << "," << TagTable[Ch] << "\n";
   return;
 }
 
 std::string Compression::SingleLineCompress(
-    const std::string Row, std::unordered_map<char, std::string> TagTable,
+    const std::string Row, std::string* TagTable,
     int ParentX, int ParentY, int ParentZ, int RowNum, int LayerNum) {
   size_t Count = 0;
   int XPos = 0; // track where each run starts
@@ -219,7 +219,7 @@ void Compression::MergeRows(std::vector<Block> &OutputStack,
 
 void Compression::WriteBlocks(
     const std::vector<Block> &Blocks, std::ostringstream &Output,
-    const std::unordered_map<char, std::string> &TagTable) {
+    const std::string* TagTable) {
   for (const auto &B : Blocks) {
     FormatOutput(Output, B.XPos, B.YPos, B.ZPos, B.XSize, B.YSize, B.ZSize,
                  B.Ch, TagTable);
@@ -229,7 +229,7 @@ void Compression::WriteBlocks(
 void Compression::ProcessLayer(
     const std::vector<std::string> &Rows, int ParentX, int ParentY, int ParentZ,
     int LayerNum, std::ostringstream &Output,
-    const std::unordered_map<char, std::string> &TagTable) {
+    const std::string* TagTable) {
   std::vector<Block> OutputBlocks; // merged blocks for current ParentY group
   std::vector<Block> BlockStack;
   int Height = (int)Rows.size();
@@ -265,7 +265,7 @@ void Compression::ProcessLayer(
 std::string Compression::FormatOutputStrings(
     std::ostringstream &Output, int XPos, int RowNum, int LayerNum, int NumX,
     int NumY, int NumZ, char Ch,
-    std::unordered_map<char, std::string> TagTable) {
+    const std::string* TagTable) {
   Output << XPos << "," << RowNum << "," << LayerNum << "," << NumX << ","
          << NumY << "," << NumZ << "," << TagTable[Ch] << "\n";
   return Output.str();
@@ -273,7 +273,7 @@ std::string Compression::FormatOutputStrings(
 
 std::vector<std::string> Compression::WriteBlocksVectorStrings(
     const std::vector<Block> &Blocks, std::ostringstream &Output,
-    const std::unordered_map<char, std::string> &TagTable) {
+    const std::string* TagTable) {
   std::vector<std::string> Result;
   for (const auto &B : Blocks) {
     Result.push_back(FormatOutputStrings(Output, B.XPos, B.YPos, B.ZPos,
