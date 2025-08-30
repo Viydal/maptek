@@ -87,10 +87,10 @@ Parse::Parse(std::vector<std::string> Lines) {
             for (size_t i = 1; i < XBlockString.size(); i++) {
                 if (XBlockString[i] != first) uniform = false;
             }
-            if (uniform){
-                RowBlocks.push_back({ startX, YInLayer, LayerNum, len, 1, 1, first });
-                continue;
-            }   
+            //if (uniform){
+            //    RowBlocks.push_back({ startX, YInLayer, LayerNum, len, 1, 1, first });
+            //    continue;
+            //}   
             //else, run RLE on the block
             RLERow(XBlockString, &RowBlocks, &DP,startX, YInLayer, LayerNum);
         }
@@ -102,6 +102,26 @@ Parse::Parse(std::vector<std::string> Lines) {
         XBlocks.push_back(LayerBlocks);
     }
 
+}
+
+std::string Parse::TestRLERow(std::string Row) {
+    std::string RLEString;
+    int Counter = 0;
+    char PrevChar = Row[0];
+
+    for (size_t i = 0; i < Row.length(); i++) {
+        char CurrChar = Row[i];
+        if (CurrChar == PrevChar) {
+            Counter++;
+        } else {
+            RLEString += std::to_string(Counter) + PrevChar;
+            PrevChar = CurrChar;
+            Counter = 1;
+        }
+    }
+
+    RLEString += std::to_string(Counter) + PrevChar;
+    return RLEString;
 }
 
 void Parse::RLERow(std::string XBlockString, std::vector<Block> *RowBlocks, std::unordered_map<std::string, std::vector<std::pair<int,char>>> *DP,int StartX, int RowNum, int LayerNum) {
