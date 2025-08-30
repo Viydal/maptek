@@ -1,0 +1,14 @@
+8,4,1,2,2,1
+o, sea
+w, WA
+n, NT
+s, SA
+q, QLD
+e, NSW
+v, VIC
+t, TAS
+
+owowowow
+nqnqnqnq
+ewewewew
+tvtvtvtv
