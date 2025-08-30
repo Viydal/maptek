@@ -21,28 +21,47 @@ public:
      // Fully expanded vector forms (not RLE)
     std::vector<std::vector<std::string>> InputMapExpanded;
     std::vector<std::vector<std::string>> OutputMapExpanded;
-
+    std::unordered_map<std::string, char> reverseMap;
 public:
     // Constructor: takes the input lines and output lines
     Test(const std::vector<std::string> &inputLines, const std::vector<std::string> &compressedLines)
         : InputParse(inputLines), outputLines(compressedLines) 
     {
         // Expand input map for direct access
-        auto map = InputParse.GetMap();
-        InputMapExpanded.resize(map.size());
-        for (size_t z = 0; z < map.size(); ++z) {
-            for (const auto &rleRow : map[z]) {
-                std::string expanded;
-                for (size_t i = 0; i < rleRow.size(); ) {
-                    int count = 0;
-                    while (i < rleRow.size() && isdigit(rleRow[i])) {
-                        count = count * 10 + (rleRow[i] - '0');
-                        i++;
-                    }
-                    char ch = rleRow[i++];
-                    expanded.append(count, ch);
-                }
-                InputMapExpanded[z].push_back(expanded);
+            
+        InputMapExpanded.resize(InputParse.ZCount, std::vector<std::string>(InputParse.YCount, std::string(InputParse.XCount, ' ')));
+        //std::cout << InputParse.ZCount << " " << InputParse.YCount << " " << InputParse.XCount << "    -    " << InputMapExpanded.size() << " " << InputMapExpanded[0].size() << " " << InputMapExpanded[0][0].size() << std::endl;
+        //std::cout <<"Before test \n";
+        int Iterator = 0;
+        
+        while (!inputLines[Iterator].empty()) {
+            //std::cout << "Line: " << inputLines[Iterator] << std::endl;
+            Iterator++;
+        }
+        std::cout << "\n\n";
+        Iterator++;
+        int z_count = 0;
+        int y_count = 0;
+        while(Iterator < inputLines.size()){
+            if (inputLines[Iterator].empty()){
+                z_count++;
+                Iterator++;
+                y_count = 0;
+                continue;
+            }
+            std::string line = inputLines[Iterator];
+            for (int x = 0; x < line.size(); x++) {
+                InputMapExpanded[z_count][(y_count) % InputParse.YCount][x] = (line[x]);
+            }
+            Iterator++;
+            y_count++;
+        }
+        // Convert expanded rows back into RLE for OutputParse
+        InputParse.MapInformation.resize(InputParse.ZCount);
+        for (size_t z = 0; z < InputParse.ZCount; ++z) {
+            for (size_t y = 0; y < InputParse.YCount; ++y) {
+                std::string rleRow = InputParse.TestRLERow(InputMapExpanded[z][y]);
+                InputParse.MapInformation[z].push_back(rleRow);
             }
         }
 
