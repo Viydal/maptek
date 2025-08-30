@@ -4,46 +4,24 @@
 #include <string>
 
 int main() {
-    // std::cout << "Enter input:" << std::endl;
-    std::string line;
-    std::vector<std::string> lines;
+    std::string Line;
+    std::vector<std::string> Lines;
 
-    while(std::getline(std::cin, line)) {
-        lines.push_back(line);
+    while(std::getline(std::cin, Line)) {
+        Lines.push_back(Line);
     }
 
-    Parse parser = Parse(lines);
-    Compression compressor = Compression();
+    Parse Parser = Parse(Lines);
+    Compression Compressor = Compression();
 
-    // Print all integer values
-    // std::cout << "\n=== INTEGER VALUES ===" << std::endl;
-    // std::cout << "Xcount: " << parser.Xcount << std::endl;
-    // std::cout << "Ycount: " << parser.Ycount << std::endl;
-    // std::cout << "Zcount: " << parser.Zcount << std::endl;
-    // std::cout << "ParentX: " << parser.ParentX << std::endl;
-    // std::cout << "ParentY: " << parser.ParentY << std::endl;
-    // std::cout << "ParentZ: " << parser.ParentZ << std::endl;
-    
-    // Print all TagTable entries
-    // std::cout << "\n=== TAG TABLE (std::unordered_map<char, std::string>) ===" << std::endl;
-    std::unordered_map<char, std::string> allMappings = parser.getTagTable();
-    // for (const auto& pair : allMappings) {
-    //     std::cout << "TagTable['" << pair.first << "'] = \"" << pair.second << "\"" << std::endl;
-    // }
+    std::unordered_map<char, std::string> AllMappings = Parser.GetTagTable();
 
-    std::vector<std::vector<std::string>> map = parser.GetMap();
-    std::vector<std::string> output;
+    std::vector<std::vector<std::string>> Map = Parser.GetMap();
+    std::ostringstream Output;
 
-    for (size_t i = 0; i < map.size(); i++) {
-        for (size_t j = 0; j < map[i].size(); j++) {
-            // std::cout << "Row " << j << " of layer " << i << ": " << map[i][j] << std::endl;
-            std::cout << compressor.SingleLineCompress(map[i][j], allMappings, parser.ParentX, parser.ParentY, parser.ParentZ, j, i);
-            output.push_back(compressor.SingleLineCompress(map[i][j], allMappings, parser.ParentX, parser.ParentY, parser.ParentZ, j, i));
-        }
+    for (size_t z = 0; z < Map.size(); z++) {
+        Compressor.ProcessLayer(Map[z], Parser.ParentX, Parser.ParentY, Parser.ParentZ, z, Output, AllMappings);
     }
 
-    std::cout<<std::endl<<"UNCOMPRESSION"<<std::endl<<std::endl;
-    // uncompresses output, compare with input to ensure compression is correct;
-    compressor.Uncompress2d(output, allMappings, parser.Xcount, parser.Ycount, parser.Zcount);
-    
+    std::cout << Output.str();
 }
