@@ -31,7 +31,7 @@ int main(int argc, char* argv[]) {
     Compression Compressor;
     std::ostringstream Output;
     auto Map = Parser.XBlocks;
-    auto AllMappings = Parser.GetTagTable();
+    std::string *AllMappings = Parser.GetTagTable();
 
     // --- Compression loop with timing ---
     std::cout << "Compressing...\n";
