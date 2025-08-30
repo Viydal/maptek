@@ -32,7 +32,7 @@ void Test::reconstructOutputParse() {
     OutputParse.MapInformation.resize(InputParse.ZCount);
     for (size_t z = 0; z < InputParse.ZCount; ++z) {
         for (size_t y = 0; y < InputParse.YCount; ++y) {
-            std::string rleRow = InputParse.RLERow(OutputMapExpanded[z][y]);
+            std::string rleRow = InputParse.TestRLERow(OutputMapExpanded[z][y]);
             OutputParse.MapInformation[z].push_back(rleRow);
         }
     }

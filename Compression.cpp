@@ -155,46 +155,49 @@ void Compression::MergeRows(std::vector<Block> &OutputStack,
                                           std::vector<Block> &Cr,
                                           std::vector<Block> &BlockStack, //Stack of blocks that have been cut off and are pending
                                           int ParentY) {
-  std::vector<Block> CRow = Cr; //Current row of ParentX sized Blocks
+  //std::vector<Block> CRow = Cr; //Current row of ParentX sized Blocks
   // to hold any leftover cut pieces that need to be appended
-  std::vector<Block> PrevLeftovers;
-  std::vector<Block> CurrLeftovers;
   bool MergedFlag = false;
-  Block EBlock;
+  //Block EBlock;
   int StackPointer = 0;
   if (BlockStack.size() == 0) {
     BlockStack = Cr;
     return;
   }
-  while (StackPointer < BlockStack.size()){
-    EBlock = BlockStack[StackPointer];
+
+  size_t BsSize = BlockStack.size();
+  size_t CrSize = Cr.size();
+  while (StackPointer < BsSize){
+    //EBlock = BlockStack[StackPointer];
     MergedFlag = false;
     
-    for (size_t NewBPos = 0; NewBPos < Cr.size(); NewBPos++) {
+    for (size_t NewBPos = 0; NewBPos < CrSize; NewBPos++) {
       
-      Block NewB = Cr[NewBPos];
-      if (EBlock.Ch == NewB.Ch){
+      //Block NewB = Cr[NewBPos];
+      if (BlockStack[StackPointer].Ch == Cr[NewBPos].Ch){
       // same x range, same label, same z, same ParentY block
       // and C is directly above P
-      if (EBlock.XPos == NewB.XPos && EBlock.XSize == NewB.XSize &&
-          EBlock.ZPos == NewB.ZPos && ((EBlock.YPos / ParentY) == (NewB.YPos / ParentY)) &&
-          (NewB.YPos == EBlock.YPos + EBlock.YSize)) 
+      if (BlockStack[StackPointer].XPos == Cr[NewBPos].XPos && BlockStack[StackPointer].XSize == Cr[NewBPos].XSize &&
+          BlockStack[StackPointer].ZPos == Cr[NewBPos].ZPos && ((BlockStack[StackPointer].YPos / ParentY) == (Cr[NewBPos].YPos / ParentY)) &&
+          (Cr[NewBPos].YPos == BlockStack[StackPointer].YPos + BlockStack[StackPointer].YSize)) 
       {
         //std::cout << "Perfect Merging at (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
         // extend vertically
-        EBlock.YSize += NewB.YSize;
+        BlockStack[StackPointer].YSize += Cr[NewBPos].YSize;
         // always set YPos to the *lowest index row*
-        EBlock.YPos = std::min(EBlock.YPos, NewB.YPos);
-        BlockStack[StackPointer] = EBlock;
+        BlockStack[StackPointer].YPos = std::min(BlockStack[StackPointer].YPos, Cr[NewBPos].YPos);
+        //BlockStack[StackPointer] = BlockStack[StackPointer];
         MergedFlag = true;
         Cr.erase(Cr.begin()+NewBPos);
+        CrSize--;
         NewBPos--;
         goto NEXTBLOCK;
-      } else if (TryRelaxedMerge(EBlock, NewB, ParentY, Cr, OutputStack)) {
+      } else if (TryRelaxedMerge(BlockStack[StackPointer], Cr[NewBPos], ParentY, Cr, OutputStack)) {
               //std::cout << "Relaxed merging block at (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
-              BlockStack[StackPointer] = EBlock;
+              //BlockStack[StackPointer] = BlockStack[StackPointer];
               MergedFlag = true;
               Cr.erase(Cr.begin()+NewBPos);
+              CrSize--;
               NewBPos--;
               goto NEXTBLOCK;
           } else {
@@ -205,8 +208,9 @@ void Compression::MergeRows(std::vector<Block> &OutputStack,
     NEXTBLOCK:
     if (!MergedFlag) {
       //std::cout << "Adding most recent block to Output\n"; 
-      OutputStack.push_back(EBlock);
+      OutputStack.push_back(BlockStack[StackPointer]);
       BlockStack.erase(BlockStack.begin()+StackPointer);
+      BsSize--;
     } else {StackPointer++;}
     //std::cout <<"SP: " << StackPointer << " StackSize: " << BlockStack.size() << " CR_Size:" << Cr.size() << "\n\n";
       
