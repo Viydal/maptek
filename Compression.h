@@ -1,13 +1,11 @@
 #ifndef COMPRESSION_H
 #define COMPRESSION_H
-#include "Parse.h"
-#include "Block.h"
 #include <iostream>
 #include <sstream>
 #include <string>
 #include <unordered_map>
 #include <vector>
-
+#include "Block.h"
 
 class Compression {
 public:

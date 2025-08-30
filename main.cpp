@@ -57,9 +57,9 @@ int main() {
     Parse Parser = Parse(Lines);
     Compression Compressor = Compression();
 
-    std::string* AllMappings = {Parser.GetTagTable()};
+    std::string* AllMappings = Parser.TagTable;
 
-    std::vector<std::vector<std::string>> Map = Parser.GetMap();
+    std::vector<std::vector<std::vector<Block>>> Map = Parser.XBlocks;
     std::vector<std::vector<std::vector<Block>>> XBlocks = Parser.XBlocks;
     std::ostringstream Output;
 
