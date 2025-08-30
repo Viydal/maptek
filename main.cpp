@@ -57,7 +57,7 @@ int main() {
     Parse Parser = Parse(Lines);
     Compression Compressor = Compression();
 
-    std::unordered_map<char, std::string> AllMappings = Parser.GetTagTable();
+    std::string* AllMappings = {Parser.GetTagTable()};
 
     std::vector<std::vector<std::string>> Map = Parser.GetMap();
     std::vector<std::vector<std::vector<Block>>> XBlocks = Parser.XBlocks;

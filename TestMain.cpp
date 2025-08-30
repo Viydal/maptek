@@ -17,7 +17,13 @@ int main(int argc, char* argv[]) {
     std::ifstream infile(argv[1]);
     std::vector<std::string> Lines;
     std::string Line;
-    while (std::getline(infile, Line)) Lines.push_back(Line);
+    while (std::getline(infile, Line)) {
+        if (!Line.empty() && Line.back() == '\r')
+    {
+        Line.pop_back();
+    }
+        Lines.push_back(Line);
+    }
     infile.close();
 
     // --- Prepare Parser & Compressor ---
