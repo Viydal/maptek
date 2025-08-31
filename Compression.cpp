@@ -1,4 +1,5 @@
 #include "Compression.h"
+#include <algorithm>
 
 Compression::Compression() {}
 
@@ -200,72 +201,56 @@ void Compression::WriteBlocks(const std::vector<Block> &Blocks, std::ostringstre
 }
 
 void Compression::MergeLayers(std::vector<Block> &Blocks, int ParentZ) {
-  std::vector<bool> toRemove(Blocks.size(), false);
-  Block NewBlock;
-  for (size_t i = 0; i < Blocks.size(); i++) {
-    if (toRemove[i]) {
-      continue;
-    } 
-    for (size_t j = i + 1; j < Blocks.size(); j++) {
-      if (toRemove[j]) {
-        continue;
-      } 
-      if (abs(Blocks[i].ZPos - Blocks[j].ZPos) == 0) {
-        // In the same layer, continue
-        continue;
-      }
-      if (Blocks[i].XPos == Blocks[j].XPos && Blocks[i].YPos == Blocks[j].YPos && Blocks[i].XSize == Blocks[j].XSize && Blocks[i].YSize == Blocks[j].YSize && Blocks[i].Ch == Blocks[j].Ch) {
-        // In neighbouring layer and identical x and y coordinates
-        if (Blocks[i].ZSize + Blocks[j].ZSize > ParentZ) {
-          // Split large section into two blocks
-
-          // Block 1
-          NewBlock.XPos = Blocks[i].XPos;
-          NewBlock.YPos = Blocks[i].YPos;
-          NewBlock.ZPos = std::min(Blocks[i].ZPos, Blocks[j].ZPos);
-          NewBlock.XSize = Blocks[i].XSize;
-          NewBlock.YSize = Blocks[i].YSize;
-          NewBlock.ZSize = ParentZ;
-          NewBlock.Ch = Blocks[i].Ch;
-
-          Blocks.push_back(NewBlock);
-
-          // Block 2
-          NewBlock.XPos = Blocks[i].XPos;
-          NewBlock.YPos = Blocks[i].YPos;
-          NewBlock.ZPos = std::min(Blocks[i].ZPos, Blocks[j].ZPos) + ParentZ;
-          NewBlock.XSize = Blocks[i].XSize;
-          NewBlock.YSize = Blocks[i].YSize;
-          NewBlock.ZSize = (Blocks[i].ZSize + Blocks[j].ZSize) - ParentZ;
-          NewBlock.Ch = Blocks[i].Ch;
-
-          Blocks.push_back(NewBlock);
-        } else {
-          NewBlock.XPos = Blocks[i].XPos;
-          NewBlock.YPos = Blocks[i].YPos;
-          NewBlock.ZPos = std::min(Blocks[i].ZPos, Blocks[j].ZPos);
-          NewBlock.XSize = Blocks[i].XSize;
-          NewBlock.YSize = Blocks[i].YSize;
-          NewBlock.ZSize = Blocks[i].ZSize + Blocks[j].ZSize;
-          NewBlock.Ch = Blocks[i].Ch;
-          
-          Blocks.push_back(NewBlock);
+    if (Blocks.empty()) return;
+    
+    // Sort all blocks by position (X, Y, then Z)
+    std::sort(Blocks.begin(), Blocks.end(), [](const Block& a, const Block& b) {
+        if (a.XPos != b.XPos) return a.XPos < b.XPos;
+        if (a.YPos != b.YPos) return a.YPos < b.YPos;
+        if (a.XSize != b.XSize) return a.XSize < b.XSize;
+        if (a.YSize != b.YSize) return a.YSize < b.YSize;
+        if (a.Ch != b.Ch) return a.Ch < b.Ch;
+        return a.ZPos < b.ZPos;
+    });
+    
+    std::vector<Block> Result;
+    
+    for (size_t i = 0; i < Blocks.size(); i++) {
+        Block Current = Blocks[i];
+        
+        // Try to merge with following blocks that have same X,Y,Size,Ch
+        while (i + 1 < Blocks.size()) {
+            const Block& Next = Blocks[i + 1];
+            
+            // Check if blocks can merge (same position/size/channel, consecutive Z)
+            bool canMerge = (Current.XPos == Next.XPos && 
+                           Current.YPos == Next.YPos &&
+                           Current.XSize == Next.XSize && 
+                           Current.YSize == Next.YSize &&
+                           Current.Ch == Next.Ch &&
+                           Current.ZPos + Current.ZSize == Next.ZPos);
+            
+            if (!canMerge) break;
+            
+            // Check if merged size fits within parent
+            int totalZSize = Current.ZSize + Next.ZSize;
+            if (totalZSize <= ParentZ) {
+                // Merge blocks
+                Current.ZSize = totalZSize;
+                i++; // Skip the merged block
+            } else {
+                break; // Can't merge without exceeding parent size
+            }
         }
-
-        toRemove[i] = toRemove[j] = true;
-      }
-      break;
+        
+        Result.push_back(Current);
     }
-  }
-  for (int i = 0; i < toRemove.size(); i++) {
-    if (toRemove[i]) {
-      Blocks.erase(Blocks.begin() + i);
-    }
-  }
+    
+    Blocks = Result;
 }
 
 void Compression::ProcessLayer(const std::vector<std::vector<Block>> &Rows, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable) {
-  std::vector<Block> OutputBlocks; // merged blocks for current ParentY group
+  std::vector<Block> OutputBlocks; // merged blocks for Current ParentY group
   std::vector<Block> BlockStack;
   int Height = (int)Rows.size();
 
@@ -287,7 +272,6 @@ void Compression::ProcessLayer(const std::vector<std::vector<Block>> &Rows, int 
     }
   }
   if (ParentZ != 1) {
-    std::cout << "attemping to merge layer" << std::endl;
     MergeLayers(AllLayerBlocks, ParentZ);
   }
 }
