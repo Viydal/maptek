@@ -230,6 +230,10 @@ void Compression::WriteBlocks(
   }
 }
 
+void MergeLayers(std::vector<Block> &OutputStack, std::vector<Block> &Cr, std::vector<Block> &BlockStack, int ParentZ) {
+
+}
+
 void Compression::ProcessLayer(
     const std::vector<std::vector<Block>> &Rows, int ParentX, int ParentY, int ParentZ,
     int LayerNum, std::ostringstream &Output,

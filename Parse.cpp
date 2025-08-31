@@ -51,6 +51,8 @@ Parse::Parse(std::vector<std::string> Lines) {
             if (!LayerBlocks.empty()) {
                 XBlocks.push_back(LayerBlocks);
                 LayerBlocks.clear();
+                DP.clear();
+                DP.reserve(4096);
             }
             YInLayer = 0;
             LayerNum++;
@@ -79,20 +81,24 @@ Parse::Parse(std::vector<std::string> Lines) {
         //split the line into XBlocks of size ParentX
         for (int startX = 0; startX < XCount; startX += ParentX) {
             int len = std::min(ParentX, XCount - startX);
-            std::string XBlockString = Line.substr(startX, len);
+            char XBlockString[len];
+            for (int i = 0; i < len; i++) {
+                XBlockString[i] = Line[startX + i];
+            }
 
             //check if the entire block is uniform
             uniform = true;
             first = XBlockString[0];
-            for (size_t i = 1; i < XBlockString.size(); i++) {
+            for (size_t i = 1; i < len; i++) {
                 if (XBlockString[i] != first) uniform = false;
             }
-            //if (uniform){
-            //    RowBlocks.push_back({ startX, YInLayer, LayerNum, len, 1, 1, first });
-            //    continue;
-            //}   
+            if (uniform){
+                RowBlocks.push_back({ startX, YInLayer, LayerNum, len, 1, 1, first });
+                continue;
+            }   
+
             //else, run RLE on the block
-            RLERow(XBlockString, &RowBlocks, &DP,startX, YInLayer, LayerNum);
+            RLERow(&XBlockString[0], &RowBlocks, &DP,startX, YInLayer, LayerNum);
         }
         LayerBlocks.push_back(RowBlocks);
         YInLayer++;
@@ -124,10 +130,10 @@ std::string Parse::TestRLERow(std::string Row) {
     return RLEString;
 }
 
-void Parse::RLERow(std::string XBlockString, std::vector<Block> *RowBlocks, std::unordered_map<std::string, std::vector<std::pair<int,char>>> *DP,int StartX, int RowNum, int LayerNum) {
+void Parse::RLERow(char* XBlockString, std::vector<Block> *RowBlocks, std::unordered_map<std::string, std::vector<std::pair<int,char>>> *DP,int StartX, int RowNum, int LayerNum) {
     //dynamic programming / caching approach to caching previously computed RLE results
     //commented out for now as it doesn't seem to improve performance
-    /*
+    
     if (DP->count(XBlockString)) {
         auto& Runs = DP->at(XBlockString);
         for (int i = 0; i < static_cast<int>(Runs.size()); i++) {
@@ -139,26 +145,32 @@ void Parse::RLERow(std::string XBlockString, std::vector<Block> *RowBlocks, std:
         return;
     }
     std::vector<std::pair<int,char>> Runs;
-    */
+    
 
     int Counter = 1;
     char CurrChar;
     char PrevChar = XBlockString[0];
+    int len = std::min(ParentX, XCount - StartX);
 
-    for (size_t i = 1; i < XBlockString.length(); i++) {
+    for (size_t i = 1; i < len; i++) {
         CurrChar = XBlockString[i];
         if (CurrChar == PrevChar) {
             Counter++;
         } else {
             RowBlocks->push_back({StartX, RowNum, LayerNum, Counter, 1, 1, PrevChar});
-            //Runs.push_back({Counter, PrevChar});
+            Runs.push_back({Counter, PrevChar});
             PrevChar = CurrChar;
             StartX += Counter;
             Counter = 1;
         }
     }
     RowBlocks->push_back({StartX, RowNum, LayerNum, Counter, 1, 1, PrevChar});
-    //Runs.push_back({Counter, PrevChar});
+    Runs.push_back({Counter, PrevChar});
     
-    //DP->insert({XBlockString, Runs});
+    if (DP->size() > 4096){
+        DP->clear();
+        DP->reserve(4096);
+    }
+    DP->insert({XBlockString, Runs});
+    
 }

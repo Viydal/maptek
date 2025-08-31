@@ -29,7 +29,8 @@ public:
                   std::vector<Block> &CurrRow,
                   std::vector<Block> &BlockStack,
                   int ParentY);
-  void WriteBlocks(const std::vector<Block> &Blocks, std::ostringstream &Output,
+  void WriteBlocks(const std::vector<Block> &Blocks,
+                    std::ostringstream &Output,
                    const std::string*TagTable);
   void ProcessLayer(const std::vector<std::vector<Block>> &Rows, int ParentX,
                     int ParentY, int ParentZ, int LayerNum,
