@@ -2,9 +2,6 @@
 
 Parse::Parse() { XCount = YCount = ZCount = ParentX = ParentY = ParentZ = 0; }
 
-
-
-
 Parse::Parse(std::vector<std::string> Lines) {
     // Used for cahing RLE results
     std::unordered_map<std::string, std::vector<std::pair<int,char>>> DP;

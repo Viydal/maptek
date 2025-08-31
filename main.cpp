@@ -3,49 +3,6 @@
 #include <iostream>
 #include <string>
 
-void DrawMap(const std::vector<std::string> &compressedInput, int Xcount,
-             int Ycount) {
-  // Initialize grid filled with '.'
-  std::vector<std::string> grid(Ycount, std::string(Xcount, '.'));
-
-  // Label-to-char mapping
-  std::unordered_map<std::string, char> labelToChar = {
-      {"sea", 'o'}, {"WA", 'w'},  {"NT", 'n'},  {"SA", 's'},
-      {"QLD", 'q'}, {"NSW", 'e'}, {"VIC", 'v'}, {"TAS", 't'}};
-
-  for (const auto &line : compressedInput) {
-    std::stringstream ss(line);
-    std::string token;
-    std::vector<std::string> tokens;
-
-    while (std::getline(ss, token, ',')) {
-      tokens.push_back(token);
-    }
-
-    if (tokens.size() < 7)
-      continue;
-
-    int XStart = std::stoi(tokens[0]);
-    int YStart = std::stoi(tokens[1]);
-    int XSize = std::stoi(tokens[3]);
-    int YSize = std::stoi(tokens[4]);
-    std::string label = tokens[6];
-
-    char fillChar = (labelToChar.count(label) ? labelToChar[label] : '?');
-
-    for (int y = YStart; y < YStart + YSize && y < Ycount; y++) {
-      for (int x = XStart; x < XStart + XSize && x < Xcount; x++) {
-        grid[y][x] = fillChar;
-      }
-    }
-  }
-
-  // Print from top (Ycount-1) down to 0
-  for (int y = Ycount - 1; y >= 0; y--) {
-    std::cout << grid[y] << "\n";
-  }
-}
-
 int main() {
 
     std::ios::sync_with_stdio(false);
@@ -64,15 +21,21 @@ int main() {
 
     std::string* AllMappings = Parser.TagTable;
 
-    std::vector<std::vector<std::vector<Block>>> Map = Parser.XBlocks;
     std::vector<std::vector<std::vector<Block>>> XBlocks = Parser.XBlocks;
     std::ostringstream Output;
-
-    
 
     for (size_t z = 0; z < XBlocks.size(); z++) {
         Compressor.ProcessLayer(XBlocks[z], Parser.ParentX, Parser.ParentY, Parser.ParentZ, z, Output, AllMappings);
     }
+    Compressor.WriteBlocks(Compressor.GetBlocks(), Output, AllMappings);
+
+    // for (size_t layer = 0; layer < XBlocks.size(); layer++) {
+    //   for (size_t row = 0; row < XBlocks[0].size(); row++) {
+    //     for (size_t block = 0; block < XBlocks[0][0].size(); block++) {
+    //       std::cout << "X: " << XBlocks[layer][row][block].XPos << ", Y: " << XBlocks[layer][row][block].YPos << ", X-size: " << XBlocks[layer][row][block].XSize << ", z-layer: " << XBlocks[layer][row][block].ZPos << std::endl;
+    //     }
+    //   }
+    // }
 
     std::cout << Output.str();
 }
