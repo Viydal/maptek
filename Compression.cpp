@@ -200,7 +200,7 @@ void Compression::WriteBlocks(const std::vector<Block> &Blocks, std::ostringstre
   }
 }
 
-void Compression::MergeLayers(std::vector<Block> &Blocks, int ParentZ) {
+void Compression::MergeLayers(std::vector<Block> Blocks, int ParentZ) {
     if (Blocks.empty()) return;
     
     // Sort all blocks by position (X, Y, then Z)
@@ -246,7 +246,7 @@ void Compression::MergeLayers(std::vector<Block> &Blocks, int ParentZ) {
         Result.push_back(Current);
     }
     
-    Blocks = Result;
+    FinalBlocks = Result;
 }
 
 void Compression::ProcessLayer(const std::vector<std::vector<Block>> &Rows, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable) {
@@ -271,9 +271,6 @@ void Compression::ProcessLayer(const std::vector<std::vector<Block>> &Rows, int 
       BlockStack.clear();
     }
   }
-  if (ParentZ != 1) {
-    MergeLayers(AllLayerBlocks, ParentZ);
-  }
 }
 
 std::string Compression::FormatOutputStrings(std::ostringstream &Output, int XPos, int RowNum, int LayerNum, int NumX, int NumY, int NumZ, char Ch, const std::string* TagTable) {
@@ -291,4 +288,8 @@ std::vector<std::string> Compression::WriteBlocksVectorStrings(const std::vector
 
 std::vector<Block> Compression::GetBlocks(){
   return AllLayerBlocks;
+}
+
+std::vector<Block> Compression::GetFinalBlocks(){
+  return FinalBlocks;
 }

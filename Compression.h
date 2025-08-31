@@ -14,6 +14,8 @@ public:
   std::string * TagTable;
   std::vector<std::vector<std::string>> MapInformation;
   std::vector<Block> AllLayerBlocks;
+  std::vector<Block> FinalBlocks;
+
 
   Compression();
   std::string SingleLineCompress(std::string Row, std::string* TagTable, int ParentX = 0, int ParentY = 0, int ParentZ = 0, int RowNum = 0, int LayerNum = 0);
@@ -25,8 +27,9 @@ public:
   std::string FormatOutputStrings(std::ostringstream &Output, int XPos, int RowNum, int LayerNum, int NumX, int NumY, int NumZ, char Ch, const std::string* TagTable);
   std::vector<std::string> WriteBlocksVectorStrings(const std::vector<Block> &Blocks, std::ostringstream &Output, const std::string * TagTable);
   bool TryRelaxedMerge(Block& prev, Block& curr, int ParentY, std::vector<Block>& BlockStack, std::vector<Block>& OutputStack);
-  void MergeLayers(std::vector<Block> &OutputBlocks, int ParentZ);
+  void MergeLayers(std::vector<Block> OutputBlocks, int ParentZ);
   std::vector<Block> GetBlocks();
+  std::vector<Block> GetFinalBlocks();
 };
 
 #endif
