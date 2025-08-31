@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
     double compressionPercent = 100.0 * (1.0 - double(compressedRows) / double(inputSize));
 
     myTest.printOutputBlocks();
-
+    
     // --- Report results ---
     std::cout << "| Test Success | " << match << " || Compression Time | " << elapsed.count() << " seconds" << " || Compression % | " << compressionPercent << "% |\n";
     

@@ -4,7 +4,7 @@ main:
 
 # For wsl to compile main
 submit:
-	x86_64-w64-mingw32-g++ -static-libgcc -static-libstdc++ -std=c++11 Compression.cpp Parse.cpp main.cpp -o chill.exe
+	x86_64-w64-mingw32-g++ -static -std=c++11 Compression.cpp Parse.cpp main.cpp -o chill.exe
 
 # To compile the testing main
 test:
