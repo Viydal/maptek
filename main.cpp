@@ -3,49 +3,6 @@
 #include <iostream>
 #include <string>
 
-void DrawMap(const std::vector<std::string> &compressedInput, int Xcount,
-             int Ycount) {
-  // Initialize grid filled with '.'
-  std::vector<std::string> grid(Ycount, std::string(Xcount, '.'));
-
-  // Label-to-char mapping
-  std::unordered_map<std::string, char> labelToChar = {
-      {"sea", 'o'}, {"WA", 'w'},  {"NT", 'n'},  {"SA", 's'},
-      {"QLD", 'q'}, {"NSW", 'e'}, {"VIC", 'v'}, {"TAS", 't'}};
-
-  for (const auto &line : compressedInput) {
-    std::stringstream ss(line);
-    std::string token;
-    std::vector<std::string> tokens;
-
-    while (std::getline(ss, token, ',')) {
-      tokens.push_back(token);
-    }
-
-    if (tokens.size() < 7)
-      continue;
-
-    int XStart = std::stoi(tokens[0]);
-    int YStart = std::stoi(tokens[1]);
-    int XSize = std::stoi(tokens[3]);
-    int YSize = std::stoi(tokens[4]);
-    std::string label = tokens[6];
-
-    char fillChar = (labelToChar.count(label) ? labelToChar[label] : '?');
-
-    for (int y = YStart; y < YStart + YSize && y < Ycount; y++) {
-      for (int x = XStart; x < XStart + XSize && x < Xcount; x++) {
-        grid[y][x] = fillChar;
-      }
-    }
-  }
-
-  // Print from top (Ycount-1) down to 0
-  for (int y = Ycount - 1; y >= 0; y--) {
-    std::cout << grid[y] << "\n";
-  }
-}
-
 int main() {
 
     std::ios::sync_with_stdio(false);
@@ -62,14 +19,19 @@ int main() {
 
     std::string* AllMappings = Parser.TagTable;
 
-    std::vector<std::vector<std::vector<Block>>> Map = Parser.XBlocks;
     std::vector<std::vector<std::vector<Block>>> XBlocks = Parser.XBlocks;
     std::ostringstream Output;
 
-    
-
+    // Go through each block 
     for (size_t z = 0; z < XBlocks.size(); z++) {
         Compressor.ProcessLayer(XBlocks[z], Parser.ParentX, Parser.ParentY, Parser.ParentZ, z, Output, AllMappings);
+    }
+    // If the blocks can e greater than 1 layer in depth
+    if (Parser.ParentZ != 1) {
+        Compressor.MergeLayers(Compressor.GetBlocks(), Parser.ParentZ);
+        Compressor.WriteBlocks(Compressor.GetFinalBlocks(), Output, AllMappings);
+    } else { // Otherwise print the blocks
+        Compressor.WriteBlocks(Compressor.GetBlocks(), Output, AllMappings);
     }
 
     std::cout << Output.str();
