@@ -29,9 +29,10 @@ int main() {
     }
     if (Parser.ParentZ != 1) {
         Compressor.MergeLayers(Compressor.GetBlocks(), Parser.ParentZ);
+        Compressor.WriteBlocks(Compressor.GetFinalBlocks(), Output, AllMappings);
+    } else {
+        Compressor.WriteBlocks(Compressor.GetBlocks(), Output, AllMappings);
     }
-    // std::cout << Compressor.GetFinalBlocks().size() << std::endl;
-    Compressor.WriteBlocks(Compressor.GetFinalBlocks(), Output, AllMappings);
 
     // for (size_t layer = 0; layer < XBlocks.size(); layer++) {
     //   for (size_t row = 0; row < XBlocks[0].size(); row++) {

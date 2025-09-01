@@ -246,6 +246,12 @@ void Compression::MergeLayers(std::vector<Block> Blocks, int ParentZ) {
         Result.push_back(Current);
     }
     
+    std::sort(Result.begin(), Result.end(), [](const Block& a, const Block& b) {
+        if (a.YPos != b.YPos) return a.YPos < b.YPos;  // Row first
+        if (a.ZPos != b.ZPos) return a.ZPos < b.ZPos;  // Layer second
+        if (a.XPos != b.XPos) return a.XPos < b.XPos;  // X position third
+        return a.Ch < b.Ch;  // Channel last for consistency
+    });
     FinalBlocks = Result;
 }
 
