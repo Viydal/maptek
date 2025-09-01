@@ -3,3 +3,4 @@ main
 *.o
 *.out*
 *.txt
+*.json

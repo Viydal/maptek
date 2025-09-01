@@ -1,3 +1,4 @@
+
 #ifndef COMPRESSION_H
 #define COMPRESSION_H
 #include <iostream>
@@ -5,12 +6,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-
-struct Block {
-  int XPos, YPos, ZPos;
-  int XSize, YSize, ZSize;
-  char Ch;
-};
+#include "Block.h"
 
 class Compression {
 public:
@@ -34,9 +30,10 @@ public:
                   std::vector<Block> &CurrRow,
                   std::vector<Block> &BlockStack,
                   int ParentY);
-  void WriteBlocks(const std::vector<Block> &Blocks, std::ostringstream &Output,
+  void WriteBlocks(const std::vector<Block> &Blocks,
+                    std::ostringstream &Output,
                    const std::string*TagTable);
-  void ProcessLayer(const std::vector<std::string> &Rows, int ParentX,
+  void ProcessLayer(const std::vector<std::vector<Block>> &Rows, int ParentX,
                     int ParentY, int ParentZ, int LayerNum,
                     std::ostringstream &Output,
                     const std::string* TagTable);

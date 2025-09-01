@@ -183,7 +183,7 @@ void Compression::MergeRows(std::vector<Block> &OutputStack,
         //std::cout << "Perfect Merging at (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
         // extend vertically
         EBlock.YSize += NewB.YSize;
-        // always set YPos to the *lowest index row*
+        // always set YPos to the *lowest index row*    
         EBlock.YPos = std::min(EBlock.YPos, NewB.YPos);
         BlockStack[StackPointer] = EBlock;
         MergedFlag = true;
@@ -226,10 +226,15 @@ void Compression::WriteBlocks(
   }
 }
 
+void MergeLayers(std::vector<Block> &OutputStack, std::vector<Block> &Cr, std::vector<Block> &BlockStack, int ParentZ) {
+
+}
+
 void Compression::ProcessLayer(
-    const std::vector<std::string> &Rows, int ParentX, int ParentY, int ParentZ,
-    int LayerNum, std::ostringstream &Output,
-    const std::string* TagTable) {
+    const std::vector<std::vector<Block>> &Rows, int ParentX,
+                    int ParentY, int ParentZ, int LayerNum,
+                    std::ostringstream &Output,
+                    const std::string* TagTable) {
   std::vector<Block> OutputBlocks; // merged blocks for current ParentY group
   std::vector<Block> BlockStack;
   int Height = (int)Rows.size();
@@ -238,8 +243,8 @@ void Compression::ProcessLayer(
   for (int RowNum = 0; RowNum < Height; RowNum++) {
     int YPos = RowNum; // bottom = 0
 
-    std::vector<Block> CurrRow =
-        SingleLineBlocks(Rows[YPos], ParentX, ParentY, ParentZ, YPos, LayerNum);
+    std::vector<Block> CurrRow = Rows[YPos];
+        //SingleLineBlocks(, ParentX, ParentY, ParentZ, YPos, LayerNum);
 
     //for (Block Block: CurrRow) {
     //  std::cout <<  Block.XPos << "," << Block.YPos << "," << Block.ZPos << "," << Block.XSize << "," << Block.YSize << "," << Block.ZSize << "," << Block.Ch << " - ";

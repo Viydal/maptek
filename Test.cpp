@@ -1,7 +1,6 @@
 #include "Test.h"
 void Test::reconstructOutputParse() {
     // Reverse TagTable: full label -> single char
-    std::unordered_map<std::string, int> reverseMap;
     for (int i = 0; i<256; i++) {
         if (!InputParse.TagTable[i].empty()) {
             reverseMap[InputParse.TagTable[i]] = i;
@@ -20,7 +19,7 @@ void Test::reconstructOutputParse() {
         ss >> x >> comma >> y >> comma >> z >> comma >> w >> comma >> h >> comma >> d >> comma;
         ss >> label;
         char codeChar = reverseMap[label];
-
+        //std::cout << "Line: " << line << " test- x:" << x << " y:" << y << " z:" << z << " w:" << w << " h:" << h << " d:" << d << std::endl;
         for (int yy = y; yy < y + h; ++yy) {
             for (int xx = x; xx < x + w; ++xx) {
                 OutputMapExpanded[z][yy][xx] = codeChar;
@@ -32,7 +31,8 @@ void Test::reconstructOutputParse() {
     OutputParse.MapInformation.resize(InputParse.ZCount);
     for (size_t z = 0; z < InputParse.ZCount; ++z) {
         for (size_t y = 0; y < InputParse.YCount; ++y) {
-            std::string rleRow = InputParse.RLERow(OutputMapExpanded[z][y]);
+            std::string rleRow = InputParse.TestRLERow(OutputMapExpanded[z][y]);
+            //std::cout << "RLERow: " << rleRow << "  OME " << OutputMapExpanded[z][y] << std::endl;
             OutputParse.MapInformation[z].push_back(rleRow);
         }
     }

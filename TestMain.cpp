@@ -30,8 +30,8 @@ int main(int argc, char* argv[]) {
     Parse Parser(Lines);
     Compression Compressor;
     std::ostringstream Output;
-    auto Map = Parser.GetMap();
-    auto AllMappings = Parser.GetTagTable();
+    auto Map = Parser.XBlocks;
+    std::string *AllMappings = Parser.GetTagTable();
 
     // --- Compression loop with timing ---
     std::cout << "Compressing...\n";
@@ -76,7 +76,7 @@ int main(int argc, char* argv[]) {
     double compressionPercent = 100.0 * (1.0 - double(compressedRows) / double(inputSize));
 
     myTest.printOutputBlocks();
-
+    
     // --- Report results ---
     std::cout << "| Test Success | " << match << " || Compression Time | " << elapsed.count() << " seconds" << " || Compression % | " << compressionPercent << "% |\n";
     
