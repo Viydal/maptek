@@ -160,7 +160,7 @@ void Compression::MergeRows(std::vector<Block> &OutputStack, std::vector<Block> 
         //std::cout << "Perfect Merging at (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
         // extend vertically
         EBlock.YSize += NewB.YSize;
-        // always set YPos to the *lowest index row*
+        // always set YPos to the *lowest index row*    
         EBlock.YPos = std::min(EBlock.YPos, NewB.YPos);
         BlockStack[StackPointer] = EBlock;
         MergedFlag = true;

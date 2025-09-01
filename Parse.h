@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <vector>
 #include "Block.h"
+#include "robin_hood.h"
 
 class Parse {
 public:
