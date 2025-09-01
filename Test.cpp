@@ -20,9 +20,16 @@ void Test::reconstructOutputParse() {
         ss >> label;
         char codeChar = reverseMap[label];
         //std::cout << "Line: " << line << " test- x:" << x << " y:" << y << " z:" << z << " w:" << w << " h:" << h << " d:" << d << std::endl;
-        for (int yy = y; yy < y + h; ++yy) {
-            for (int xx = x; xx < x + w; ++xx) {
-                OutputMapExpanded[z][yy][xx] = codeChar;
+        for (int zz = z; zz < z + d; ++zz) {
+            for (int yy = y; yy < y + h; ++yy) {
+                for (int xx = x; xx < x + w; ++xx) {
+                    if(OutputMapExpanded[zz][yy][xx] != ' ') {
+                        std::cout << "Error: overlapping blocks at (" << xx << "," << yy << "," << zz << ")\n";
+                        std::cout << line << "\n";
+                        exit(0);
+                    }
+                    OutputMapExpanded[zz][yy][xx] = codeChar;
+                }
             }
         }
     }
