@@ -4,3 +4,4 @@ main
 *.out*
 *.txt
 *.json
+callgrind.*

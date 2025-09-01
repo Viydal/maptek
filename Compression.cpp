@@ -132,10 +132,6 @@ bool Compression::TryRelaxedMerge(Block& prev, Block& curr, int ParentY, std::ve
 }
 
 void Compression::MergeRows(std::vector<Block> &OutputStack, std::vector<Block> &Cr, std::vector<Block> &BlockStack, int ParentY) {
-  std::vector<Block> CRow = Cr; //Current row of ParentX sized Blocks
-  // to hold any leftover cut pieces that need to be appended
-  std::vector<Block> PrevLeftovers;
-  std::vector<Block> CurrLeftovers;
   bool MergedFlag = false;
   Block EBlock;
   int StackPointer = 0;
@@ -221,6 +217,7 @@ void Compression::MergeLayers(std::vector<Block> Blocks, int ParentZ) {
     });
     
     std::vector<Block> Result;
+    Result.reserve(Blocks.size());
     
     for (size_t i = 0; i < Blocks.size(); i++) {
         Block Current = Blocks[i];
