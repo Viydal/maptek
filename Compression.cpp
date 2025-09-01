@@ -207,8 +207,6 @@ void Compression::MergeLayers(std::vector<Block> Blocks, int ParentZ) {
     std::sort(Blocks.begin(), Blocks.end(), [](const Block& a, const Block& b) {
         if (a.XPos != b.XPos) return a.XPos < b.XPos;
         if (a.YPos != b.YPos) return a.YPos < b.YPos;
-        if (a.XSize != b.XSize) return a.XSize < b.XSize;
-        if (a.YSize != b.YSize) return a.YSize < b.YSize;
         if (a.Ch != b.Ch) return a.Ch < b.Ch;
         return a.ZPos < b.ZPos;
     });
@@ -231,12 +229,14 @@ void Compression::MergeLayers(std::vector<Block> Blocks, int ParentZ) {
                            Current.ZPos + Current.ZSize == Next.ZPos);
             
             if (!canMerge) break;
-            
+
+            int TotalZSize = Current.ZSize + Next.ZSize;
+            int MergedEndZ = (Current.ZPos % ParentZ) + TotalZSize;
+
             // Check if merged size fits within parent
-            int totalZSize = Current.ZSize + Next.ZSize;
-            if (totalZSize <= ParentZ) {
+            if (MergedEndZ <= ParentZ) {
                 // Merge blocks
-                Current.ZSize = totalZSize;
+                Current.ZSize = TotalZSize;
                 i++; // Skip the merged block
             } else {
                 break; // Can't merge without exceeding parent size
@@ -247,10 +247,10 @@ void Compression::MergeLayers(std::vector<Block> Blocks, int ParentZ) {
     }
     
     std::sort(Result.begin(), Result.end(), [](const Block& a, const Block& b) {
-        if (a.YPos != b.YPos) return a.YPos < b.YPos;  // Row first
-        if (a.ZPos != b.ZPos) return a.ZPos < b.ZPos;  // Layer second
-        if (a.XPos != b.XPos) return a.XPos < b.XPos;  // X position third
-        return a.Ch < b.Ch;  // Channel last for consistency
+      if (a.ZPos != b.ZPos) return a.ZPos < b.ZPos;  // Layer second (BEFORE X!)
+      if (a.YPos != b.YPos) return a.YPos < b.YPos;  // Row first
+      if (a.XPos != b.XPos) return a.XPos < b.XPos;  // X position third
+      return a.Ch < b.Ch;  // Channel last
     });
     FinalBlocks = Result;
 }
