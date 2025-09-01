@@ -194,10 +194,19 @@ void Compression::MergeRows(std::vector<Block> &OutputStack, std::vector<Block> 
   }
 }
 
-void Compression::WriteBlocks(const std::vector<Block> &Blocks, std::ostringstream &Output, const std::string* TagTable) {
+void Compression::WriteBlocks(std::vector<Block> Blocks, std::ostringstream &Output, const std::string* TagTable) {
+  FormatSubmit(Blocks);
   for (const auto &B : Blocks) {
     FormatOutput(Output, B.XPos, B.YPos, B.ZPos, B.XSize, B.YSize, B.ZSize, B.Ch, TagTable);
   }
+}
+
+void Compression::FormatSubmit(std::vector<Block> &OutputBlocks) {
+  std::sort(OutputBlocks.begin(), OutputBlocks.end(), [](const Block& a, const Block& b) {
+    if (a.ZPos != b.ZPos) return a.ZPos < b.ZPos;  // Sort Z axis (first)
+    if (a.YPos != b.YPos) return a.YPos < b.YPos;  // Sort Y axis (second)
+    return a.XPos < b.XPos;  // Sort X axis (third)
+  });
 }
 
 void Compression::MergeLayers(std::vector<Block> Blocks, int ParentZ) {
@@ -216,11 +225,11 @@ void Compression::MergeLayers(std::vector<Block> Blocks, int ParentZ) {
     for (size_t i = 0; i < Blocks.size(); i++) {
         Block Current = Blocks[i];
         
-        // Try to merge with following blocks that have same X,Y,Size,Ch
+        // Try to merge with blocks that have same X, Y, Size, and Ch
         while (i + 1 < Blocks.size()) {
             const Block& Next = Blocks[i + 1];
             
-            // Check if blocks can merge (same position/size/channel, consecutive Z)
+            // Can the blocks be merged?
             bool canMerge = (Current.XPos == Next.XPos && 
                            Current.YPos == Next.YPos &&
                            Current.XSize == Next.XSize && 
@@ -242,16 +251,8 @@ void Compression::MergeLayers(std::vector<Block> Blocks, int ParentZ) {
                 break; // Can't merge without exceeding parent size
             }
         }
-        
         Result.push_back(Current);
     }
-    
-    std::sort(Result.begin(), Result.end(), [](const Block& a, const Block& b) {
-      if (a.ZPos != b.ZPos) return a.ZPos < b.ZPos;  // Layer second (BEFORE X!)
-      if (a.YPos != b.YPos) return a.YPos < b.YPos;  // Row first
-      if (a.XPos != b.XPos) return a.XPos < b.XPos;  // X position third
-      return a.Ch < b.Ch;  // Channel last
-    });
     FinalBlocks = Result;
 }
 

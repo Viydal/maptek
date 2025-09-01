@@ -22,7 +22,7 @@ public:
   void FormatOutput(std::ostringstream &Output, int XPos, int RowNum,int LayerNum, int NumX, int NumY, int NumZ, char Ch, const std::string* TagTable);
   std::vector<Block> SingleLineBlocks(const std::string Row, int ParentX, int ParentY, int ParentZ, int RowNum, int LayerNum);
   void MergeRows(std::vector<Block> &Output, std::vector<Block> &CurrRow, std::vector<Block> &BlockStack, int ParentY);
-  void WriteBlocks(const std::vector<Block> &Blocks, std::ostringstream &Output, const std::string*TagTable);
+  void WriteBlocks(std::vector<Block> Blocks, std::ostringstream &Output, const std::string*TagTable);
   void ProcessLayer(const std::vector<std::vector<Block>> &Rows, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable);
   std::string FormatOutputStrings(std::ostringstream &Output, int XPos, int RowNum, int LayerNum, int NumX, int NumY, int NumZ, char Ch, const std::string* TagTable);
   std::vector<std::string> WriteBlocksVectorStrings(const std::vector<Block> &Blocks, std::ostringstream &Output, const std::string * TagTable);
@@ -30,6 +30,7 @@ public:
   void MergeLayers(std::vector<Block> OutputBlocks, int ParentZ);
   std::vector<Block> GetBlocks();
   std::vector<Block> GetFinalBlocks();
+  void FormatSubmit(std::vector<Block> &OutputBlocks);
 };
 
 #endif

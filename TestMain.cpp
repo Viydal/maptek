@@ -39,7 +39,6 @@ int main(int argc, char* argv[]) {
 
     for (size_t z = 0; z < Map.size(); ++z) {
         Compressor.ProcessLayer(Map[z], Parser.ParentX, Parser.ParentY, Parser.ParentZ, z, Output, AllMappings);
-        // Output << "\n"; // ensure line separation
     }
     if (Parser.ParentZ != 1) {
         Compressor.MergeLayers(Compressor.GetBlocks(), Parser.ParentZ);
