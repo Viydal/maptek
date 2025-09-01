@@ -50,8 +50,6 @@ int main() {
 
     std::ios::sync_with_stdio(false);
     std::cin.tie(nullptr);
-    std::ios::sync_with_stdio(false);
-    std::cin.tie(nullptr);
     std::string Line;
     std::vector<std::string> Lines;
 

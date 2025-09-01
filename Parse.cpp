@@ -2,13 +2,11 @@
 
 Parse::Parse() { XCount = YCount = ZCount = ParentX = ParentY = ParentZ = 0; }
 
-
-
-
 Parse::Parse(std::vector<std::string> Lines) {
     // Used for cahing RLE results
     std::unordered_map<std::string, std::vector<std::pair<int,char>>> DP;
-
+    DP.reserve(4096);
+    //robin_hood::unordered_flat_map<std::string, std::vector<std::pair<int,char>>> DP;
     //used for splitting input using string stream 
     char Delimeter;
     std::string Token;
@@ -41,7 +39,11 @@ Parse::Parse(std::vector<std::string> Lines) {
         
     // Read the map information, separating layers by blank lines
     std::vector<Block> RowBlocks;
+    RowBlocks.reserve(XCount);
     std::vector<std::vector<Block>> LayerBlocks;
+    LayerBlocks.reserve(YCount);
+    XBlocks.reserve(ZCount);
+
     int LayerNum = 0, YInLayer = 0;
     std::string Line;
     for (size_t i = Iterator; i < Lines.size(); i++) {
@@ -66,18 +68,41 @@ Parse::Parse(std::vector<std::string> Lines) {
         bool uniform = true;
         char first = Line[0];
         for (size_t i = 1; i < Line.size(); i++) {
-            if (Line[i] != first) uniform = false;
+            if (Line[i] != first){
+                uniform = false;
+                break;
+            } 
         }
+        
         if (uniform){
             for (int startX = 0; startX < XCount; startX += ParentX) {
                 int len = std::min(ParentX, XCount - startX);
-                RowBlocks.push_back({ startX, YInLayer, LayerNum, len, 1, 1, first });
+                RowBlocks.emplace_back(startX, YInLayer, LayerNum, len, 1, 1, first);
             }
             LayerBlocks.push_back(RowBlocks);
             ++YInLayer;
             continue;
         }
         
+        /*
+        if (uniform) {
+            int mergeCount = 1;
+            while (i + mergeCount < Lines.size() && 
+                !Lines[i + mergeCount].empty() && 
+                Lines[i + mergeCount] == Line) {
+                mergeCount++;
+            }
+
+            for (int startX = 0; startX < XCount; startX += ParentX) {
+                RowBlocks.push_back({ startX, YInLayer, LayerNum, ParentX, mergeCount, 1, first });
+            }
+            LayerBlocks.push_back(RowBlocks);
+
+            YInLayer += mergeCount;
+            i += mergeCount - 1;
+            continue;
+        }
+        */
         //split the line into XBlocks of size ParentX
         for (int startX = 0; startX < XCount; startX += ParentX) {
             int len = std::min(ParentX, XCount - startX);
@@ -90,7 +115,10 @@ Parse::Parse(std::vector<std::string> Lines) {
             uniform = true;
             first = XBlockString[0];
             for (size_t i = 1; i < len; i++) {
-                if (XBlockString[i] != first) uniform = false;
+                if (XBlockString[i] != first){
+                    uniform = false;
+                    break;
+                } 
             }
             if (uniform){
                 RowBlocks.push_back({ startX, YInLayer, LayerNum, len, 1, 1, first });
