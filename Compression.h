@@ -28,6 +28,7 @@ public:
   std::vector<std::string> WriteBlocksVectorStrings(const std::vector<Block> &Blocks, std::ostringstream &Output, const std::string * TagTable);
   bool TryRelaxedMerge(Block& prev, Block& curr, int ParentY, std::vector<Block>& BlockStack, std::vector<Block>& OutputStack);
   void MergeLayers(std::vector<Block> OutputBlocks, int ParentZ);
+  bool TryRelaxedLayer(Block& prev, Block& curr, int ParentZ);
   std::vector<Block> GetBlocks();
   std::vector<Block> GetFinalBlocks();
   void FormatSubmit(std::vector<Block> &OutputBlocks);

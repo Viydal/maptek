@@ -253,6 +253,8 @@ void Compression::MergeLayers(std::vector<Block> Blocks, int ParentZ) {
     FinalBlocks = Result;
 }
 
+
+
 void Compression::ProcessLayer(const std::vector<std::vector<Block>> &Rows, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable) {
   std::vector<Block> OutputBlocks; // merged blocks for Current ParentY group
   std::vector<Block> BlockStack;
