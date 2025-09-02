@@ -6,6 +6,7 @@ Parse::Parse(std::vector<std::string> Lines) {
     // Used for cahing RLE results
     std::unordered_map<std::string, std::vector<std::pair<int,char>>> DP;
     DP.reserve(4096);
+    DP.max_load_factor(0.7f);
     //robin_hood::unordered_flat_map<std::string, std::vector<std::pair<int,char>>> DP;
     //used for splitting input using string stream 
     char Delimeter;
@@ -43,6 +44,26 @@ Parse::Parse(std::vector<std::string> Lines) {
     std::vector<std::vector<Block>> LayerBlocks;
     LayerBlocks.reserve(YCount);
     XBlocks.reserve(ZCount);
+
+
+    std::vector<std::string> ParentBlock;
+    int startX = 0;
+    int startY = 0;
+    std::string StringBlock;
+    int NumXYParentBlocks = (NumXBlocks) * (NumYBlocks) * ZCount;
+
+    for (int i = 0; i < NumXYParentBlocks; i++){
+        for (int y = startY; y < startY + ParentY; y++){
+            StringBlock = Lines[y].substr(startX, startX + ParentX);
+            ParentBlock.push_back(StringBlock);
+            startY += ParentY;
+        }
+        startX += ParentX;
+    }
+    
+    
+    
+
 
     int LayerNum = 0, YInLayer = 0;
     std::string Line;
