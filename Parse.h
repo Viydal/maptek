@@ -7,6 +7,7 @@
 #include <vector>
 #include "Block.h"
 #include "robin_hood.h"
+#include "Compression.h"
 
 class Parse {
 public:

@@ -32,6 +32,8 @@ public:
   std::vector<Block> GetBlocks();
   std::vector<Block> GetFinalBlocks();
   void FormatSubmit(std::vector<Block> &OutputBlocks);
+
+  void ProcessBlock(std::vector<Block> &Rows, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable);
 };
 
 #endif

@@ -279,6 +279,23 @@ void Compression::ProcessLayer(const std::vector<std::vector<Block>> &Rows, int 
   }
 }
 
+void Compression::ProcessBlock(std::vector<Block> &Rows, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable) {
+  std::vector<Block> OutputBlocks; // merged blocks for Current ParentY group
+  std::vector<Block> BlockStack;
+  int Height = ParentY;
+
+  // Iterate bottom -> top
+  
+    MergeRows(OutputBlocks, Rows, BlockStack, ParentY);
+
+    //std::cout << "\n Clearing Blockstack and writing output\n\n";
+    AllLayerBlocks.insert(AllLayerBlocks.end(), OutputBlocks.begin(), OutputBlocks.end());
+      AllLayerBlocks.insert(AllLayerBlocks.end(), BlockStack.begin(), BlockStack.end());
+
+      OutputBlocks.clear();
+      BlockStack.clear();
+}
+
 std::string Compression::FormatOutputStrings(std::ostringstream &Output, int XPos, int RowNum, int LayerNum, int NumX, int NumY, int NumZ, char Ch, const std::string* TagTable) {
   Output << XPos << "," << RowNum << "," << LayerNum << "," << NumX << "," << NumY << "," << NumZ << "," << TagTable[Ch] << "\n";
   return Output.str();
