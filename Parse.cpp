@@ -55,6 +55,7 @@ Parse::Parse(std::vector<std::string> Lines) {
                 LayerBlocks.clear();
                 DP.clear();
                 DP.reserve(4096);
+                DP.rehash(4096);
             }
             YInLayer = 0;
             LayerNum++;
@@ -172,8 +173,22 @@ void Parse::RLERow(char* XBlockString, std::vector<Block> *RowBlocks, std::unord
         }
         return;
     }
-    std::vector<std::pair<int,char>> Runs;
     
+    /*
+    std::string key(XBlockString, ParentX);
+    std::unordered_map<std::string, std::vector<std::pair<int,char>>>::iterator it = DP->find(key);
+    if (it != DP->end()) {
+        std::vector<std::pair<int,char>>& Runs = it->second;
+        for (int i = 0; i < Runs.size(); i++){
+            int Length = Runs[i].first;
+            char Character = Runs[i].second;
+            RowBlocks->push_back({ StartX, RowNum, LayerNum, Length, 1, 1, Character});
+            StartX += Length;
+        }
+        return;
+    }
+    */
+    std::vector<std::pair<int,char>> Runs;
 
     int Counter = 1;
     char CurrChar;
@@ -198,7 +213,8 @@ void Parse::RLERow(char* XBlockString, std::vector<Block> *RowBlocks, std::unord
     if (DP->size() > 4096){
         DP->clear();
         DP->reserve(4096);
+        DP->rehash(4096);
     }
     DP->insert({XBlockString, Runs});
-    
 }
+
