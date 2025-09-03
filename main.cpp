@@ -27,12 +27,14 @@ int main() {
         Compressor.ProcessLayer(XBlocks[z], Parser.ParentX, Parser.ParentY, Parser.ParentZ, z, Output, AllMappings);
     }
     // If the blocks can e greater than 1 layer in depth
+    /*
     if (Parser.ParentZ != 1) {
         Compressor.MergeLayers(Compressor.GetBlocks(), Parser.ParentZ);
         Compressor.WriteBlocks(Compressor.GetFinalBlocks(), Output, AllMappings);
     } else { // Otherwise print the blocks
         Compressor.WriteBlocks(Compressor.GetBlocks(), Output, AllMappings);
     }
-
+    */
+    Compressor.WriteBlocks(Compressor.GetBlocks(), Output, AllMappings);
     std::cout << Output.str();
 }

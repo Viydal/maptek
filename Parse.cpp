@@ -37,69 +37,127 @@ Parse::Parse(std::vector<std::string> Lines) {
         Iterator++;
     }
     int saveIterator = Iterator;
+
+
+     /*
+     std::unordered_map<std::string, std::vector<Block>> CompressionCache;
+    CompressionCache.reserve(4096 * 2);
+    std::string MapKey;
+
+            if (CompressionCache.size() > 4096){
+                CompressionCache.clear();
+                CompressionCache.reserve(4096);
+                CompressionCache.rehash(4096);
+            }
+            CompressionCache.insert({MapKey, ParentBlock});
+            */
+    /*
+            if (CompressionCache.count(MapKey)) {
+                auto& Blocks = CompressionCache.at(MapKey);
+                for (int k = 0; k < Blocks.size(); k++) {
+                    Blocks[i].XPos = j % NumXBlocks * ParentY + Blocks[i].YPos;
+                    Blocks[i].YPos = j / NumXBlocks * ParentY + Blocks[i].YPos;
+                    Blocks[i].ZPos = k;
+
+                    ParentBlock.push_back(Blocks[i]);
+                }
+                std::cout<<"Cache hit"<<std::endl;
+                LayerParentBlocks.push_back(ParentBlock);
+                std::cout<<LayerParentBlocks.size()<<std::endl;
+                for (int f = 0;f < LayerParentBlocks.size(); f++){
+                    for (int g = 0;g< LayerParentBlocks[f].size(); g++){
+                        std::cout<<LayerParentBlocks[f][g].Ch<<"\n";
+                    }
+                }
+                if (startX + 2 * ParentX <= XCount){
+                    startX += ParentX;
+                }else{
+                    startX = 0;
+                    startY += ParentY;
+                }
+                ParentBlock.clear();
+                continue;
+            }
+            */
+
     // Read the map information, separating layers by blank lines
     std::vector<std::vector<std::vector<Block>>> AllParentBlocks;
     std::vector<std::vector<Block>> LayerParentBlocks;
     std::vector<Block> ParentBlock;
-    std::vector<std::vector<std::string>> StringParentBlocks;
+    std::vector<std::vector<std::string>> LayerStringParentBlocks;
     std::vector<std::string> StringParentBlock;
     
-    /**/
+    //trick process layer
+    std::vector<std::vector<Block>> TrickProcessLayer;
+
     int startX = 0;
     int startY = 0;
     std::string StringBlock;
     int NumXYParentBlocks = (NumXBlocks) * (NumYBlocks);
 
-
-    std::unordered_map<std::string, std::vector<std::pair<int,char>>> CompressionCache;
-    CompressionCache.reserve(4096 * 2);
-    std::string MapKey;
+    Compression Compressor = Compression();
+    std::ostringstream Output;
 
     for (int i = 0; i < ZCount; i++){
         for (int j = 0; j < NumXYParentBlocks; j++){
-            MapKey = "";
+            //std::cout<<"j = "<< j <<"Should be less than "<<NumXYParentBlocks<<std::endl;
+
+            //MapKey = "";
             //create stringparent block
+            
             for (int y = Iterator + startY; y < Iterator + startY + ParentY; y++){
+                //std::cout<<"Line number:"<<y<<"\n";
+                //std::cout<<Lines[y]<<"\n";
                 StringBlock = Lines[y].substr(startX, ParentX);
                 StringParentBlock.push_back(StringBlock);
             }
-            for (int k = 0; k < StringParentBlock.size(); k++) {
-                MapKey += StringParentBlock[k];
-            }
             
-            if (CompressionCache.count(MapKey)) {
-                auto& Runs = CompressionCache.at(MapKey);
-                for (int k = 0; k < Runs.size(); k++) {
-                    int Length  = Runs[i].first;
-                    char Character = Runs[i].second;
-                    ParentBlock.push_back({ startX, Iterator + j / NumYBlocks, k, Length, 1, 1, Character });
-                }
-                LayerParentBlocks.push_back(ParentBlock);
-                ParentBlock.clear();
-                continue;
-            }
 
+            //for (int k = 0; k < StringParentBlock.size(); k++) {
+            //    MapKey += StringParentBlock[k].first;
+            //}
+            //std::cout<<"Layer: "<<i<<" Block: "<< j <<"\n"<< MapKey <<std::endl;
+            
             //create parentblock
-            for (int k = 0; k < StringParentBlock.size(); k++) {
-                RLERow(&StringParentBlock[k][0], &ParentBlock, &RleCache, startX, Iterator + k, i);
+            std::cout<<"Parent Block no Merge \n";
+            for (size_t xx = 0; xx < StringParentBlock.size(); xx++){
+                std::cout<<StringParentBlock[xx]<<"\n";
             }
 
-            Compression Compressor = Compression();
+            for (int k = 0; k < StringParentBlock.size(); k++) {
+                RLERow(&StringParentBlock[k][0], &ParentBlock, &RleCache, 0, k, i);
+            }
 
-            std::string* AllMappings = TagTable;
+            std::cout<<"\nParent Block X Merge \n";
+            for (size_t xx = 0; xx < ParentBlock.size(); xx++){
+                
+                std::cout<<ParentBlock[xx].XPos<<",";
+                std::cout<<ParentBlock[xx].YPos<<",";
+                std::cout<<ParentBlock[xx].ZPos<<",";
+                std::cout<<ParentBlock[xx].XSize<<",";
+                std::cout<<ParentBlock[xx].YSize<<",";
+                std::cout<<ParentBlock[xx].ZSize<<",";
+                std::cout<<ParentBlock[xx].Ch<<"\n";
+            }
+            TrickProcessLayer.push_back(ParentBlock);
+            Compressor.ProcessLayer(TrickProcessLayer, ParentX, ParentY, ParentZ, i, Output, TagTable);
+            TrickProcessLayer.clear();
+            std::cout<<"\n""Parent Block XY Merge "<<"\n";
+            for (size_t xx = 0; xx < ParentBlock.size(); xx++){
+                std::cout<<ParentBlock[xx].XPos<<",";
+                std::cout<<ParentBlock[xx].YPos<<",";
+                std::cout<<ParentBlock[xx].ZPos<<",";
+                std::cout<<ParentBlock[xx].XSize<<",";
+                std::cout<<ParentBlock[xx].YSize<<",";
+                std::cout<<ParentBlock[xx].ZSize<<",";
+                std::cout<<ParentBlock[xx].Ch<<"\n";
+            }
 
-            std::ostringstream Output;
 
-            // Go through each block 
-            
-            Compressor.ProcessBlock(ParentBlock, ParentX, ParentY, ParentZ, i, Output, AllMappings);
-            
-            // If the blocks can e greater than 1 layer in depth
-            Compressor.WriteBlocks(Compressor.GetBlocks(), Output, AllMappings);
-            std::cout << Output.str();
-            
+           
+
             LayerParentBlocks.push_back(ParentBlock);
-            StringParentBlocks.push_back(StringParentBlock);
+            //LayerStringParentBlocks.push_back(StringParentBlock);
             ParentBlock.clear();
             StringParentBlock.clear();
 
@@ -113,27 +171,21 @@ Parse::Parse(std::vector<std::string> Lines) {
         }
         AllParentBlocks.push_back(LayerParentBlocks);
         LayerParentBlocks.clear();
-        Iterator++;
+        startY++;
     }
-    /*
-    for (int i = 0; i < LayerParentBlocks.size(); i++){
-        std::cout<<"BLOCK"<<std::endl;
-        for (int k = 0; k < LayerParentBlocks[i].size(); k++) {
-            std::cout<<ParentBlock[k].XPos;
-            std::cout<<","<<ParentBlock[k].YPos;
-            std::cout<<","<<ParentBlock[k].ZPos;
-            std::cout<<","<<ParentBlock[k].XSize;
-            std::cout<<","<<ParentBlock[k].YSize;
-            std::cout<<","<<ParentBlock[k].ZSize;
-            std::cout<<","<<ParentBlock[k].Ch;
-            std::cout<<std::endl;
-        }
-    }
-    std::cout<<std::endl;
-    std::cout<<std::endl;
-    std::cout<<std::endl;
-    */
+    
+    std::cout << "WHAT IS GOING ON"<<std::endl;
+    Compressor.WriteBlocks(Compressor.GetBlocks(), Output, TagTable);
+    std::cout << Output.str();
+    std::cout << "WHAT IS GOING ON"<<std::endl;
+    
    
+    
+    std::cout<<std::endl;
+    std::cout<<std::endl;
+    std::cout<<std::endl;
+    
+   /*
     Iterator = saveIterator;
     
 // Read the map information, separating layers by blank lines
@@ -269,6 +321,7 @@ void Parse::RLERow(char* XBlockString, std::vector<Block> *RowBlocks, std::unord
         return;
     }
     */
+   /*
     std::vector<std::pair<int,char>> Runs;
 
     int Counter = 1;
@@ -297,5 +350,6 @@ void Parse::RLERow(char* XBlockString, std::vector<Block> *RowBlocks, std::unord
         RleCache->rehash(4096);
     }
     RleCache->insert({XBlockString, Runs});
+    */
 }
 
