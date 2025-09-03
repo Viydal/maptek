@@ -3,10 +3,26 @@
 
 Compression::Compression() {}
 
+/**
+ * FormatOutput
+ * ------------
+ * Writes a block's information as a CSV row into the output stream.
+ * 
+ * Format: XPos, YPos, ZPos, XSize, YSize, ZSize, Tag
+ */
+
 void Compression::FormatOutput(std::ostringstream &Output, int XPos, int RowNum, int LayerNum, int NumX, int NumY, int NumZ, char Ch, const std::string* TagTable) {
   Output << XPos << "," << RowNum << "," << LayerNum << "," << NumX << "," << NumY << "," << NumZ << "," << TagTable[Ch] << "\n";
   return;
 }
+
+/**
+ * SingleLineCompress
+ * ------------------
+ * Takes a run-length encoded string (Row), decodes it into block segments,
+ * and breaks runs into ParentX-aligned chunks.
+ * Returns the CSV string representation of the compressed row.
+ */
 
 std::string Compression::SingleLineCompress(const std::string Row, std::string* TagTable, int ParentX, int ParentY, int ParentZ, int RowNum, int LayerNum) {
   size_t Count = 0;
@@ -42,6 +58,14 @@ std::string Compression::SingleLineCompress(const std::string Row, std::string* 
   return Output.str();
 }
 
+
+/**
+ * SingleLineBlocks
+ * ----------------
+ * Like SingleLineCompress, but instead of writing strings,
+ * this produces a vector of Block objects for further merging.
+ */
+
 std::vector<Block> Compression::SingleLineBlocks(const std::string Row, int ParentX, int ParentY, int ParentZ, int RowNum, int LayerNum) {
   size_t Count = 0;
   int XPos = 0;
@@ -70,6 +94,19 @@ std::vector<Block> Compression::SingleLineBlocks(const std::string Row, int Pare
   }
   return Blocks;
 }
+
+/**
+ * TryRelaxedMerge
+ * ---------------
+ * Attempts to merge two blocks (prev and curr) that overlap horizontally
+ * but are not perfectly aligned. Allows "relaxed merging" if:
+ *  - Both blocks share the same character, Z, and ParentY group
+ *  - They overlap by at least half of prev's width
+ *  - Only one "side trimming" occurs (no double trims)
+ * 
+ * Leftover pieces are pushed either to OutputStack (prev leftovers)
+ * or BlockStack (curr leftovers).
+ */
 
 bool Compression::TryRelaxedMerge(Block& prev, Block& curr, int ParentY, std::vector<Block>& BlockStack, std::vector<Block>& OutputStack) {
     // Rule 0: must be same "row group"
@@ -131,24 +168,40 @@ bool Compression::TryRelaxedMerge(Block& prev, Block& curr, int ParentY, std::ve
     return true;
 }
 
+/**
+ * MergeRows
+ * ---------
+ * Attempts to merge blocks across rows (vertical merging).
+ * 
+ * Rules:
+ *  1. Perfect merge: same X range, same label, same Z, directly stacked
+ *  2. Relaxed merge: allow partial X overlap with TryRelaxedMerge
+ * 
+ * Blocks that cannot merge are flushed to OutputStack.
+ */
+
 void Compression::MergeRows(std::vector<Block> &OutputStack, std::vector<Block> &Cr, std::vector<Block> &BlockStack, int ParentY) {
   bool MergedFlag = false;
   Block EBlock;
   int StackPointer = 0;
+
+  // If BlockStack is empty, just load current row
   if (BlockStack.size() == 0) {
     BlockStack = Cr;
     return;
   }
+
+  // Iterate existing stack blocks
   while (StackPointer < BlockStack.size()){
     EBlock = BlockStack[StackPointer];
     MergedFlag = false;
     
+    // Compare against each new row block
     for (size_t NewBPos = 0; NewBPos < Cr.size(); NewBPos++) {
       
       Block NewB = Cr[NewBPos];
       if (EBlock.Ch == NewB.Ch){
-      // same x range, same label, same z, same ParentY block
-      // and C is directly above P
+      // Case 1: Perfect merge
       if (EBlock.XPos == NewB.XPos && EBlock.XSize == NewB.XSize &&
           EBlock.ZPos == NewB.ZPos && ((EBlock.YPos / ParentY) == (NewB.YPos / ParentY)) &&
           (NewB.YPos == EBlock.YPos + EBlock.YSize)) 
@@ -163,6 +216,8 @@ void Compression::MergeRows(std::vector<Block> &OutputStack, std::vector<Block> 
         Cr.erase(Cr.begin()+NewBPos);
         NewBPos--;
         goto NEXTBLOCK;
+
+        // Case 2: Relaxed merge
       } else if (TryRelaxedMerge(EBlock, NewB, ParentY, Cr, OutputStack)) {
               //std::cout << "Relaxed merging block at (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
               BlockStack[StackPointer] = EBlock;
@@ -177,6 +232,7 @@ void Compression::MergeRows(std::vector<Block> &OutputStack, std::vector<Block> 
     }
     NEXTBLOCK:
     if (!MergedFlag) {
+      // Couldn’t merge → flush to output
       //std::cout << "Adding most recent block to Output\n"; 
       OutputStack.push_back(EBlock);
       BlockStack.erase(BlockStack.begin()+StackPointer);
@@ -185,10 +241,17 @@ void Compression::MergeRows(std::vector<Block> &OutputStack, std::vector<Block> 
       
 
   }
+  // Push remaining new row blocks onto stack
   for(Block block : Cr) {
     BlockStack.push_back(block);
   }
 }
+
+/**
+ * WriteBlocks
+ * -----------
+ * Converts final merged blocks into formatted output strings.
+ */
 
 void Compression::WriteBlocks(std::vector<Block> Blocks, std::ostringstream &Output, const std::string* TagTable) {
   FormatSubmit(Blocks);
@@ -197,6 +260,12 @@ void Compression::WriteBlocks(std::vector<Block> Blocks, std::ostringstream &Out
   }
 }
 
+/**
+ * FormatSubmit
+ * ------------
+ * Sorts blocks in canonical order: Z first, then Y, then X.
+ */
+
 void Compression::FormatSubmit(std::vector<Block> &OutputBlocks) {
   std::sort(OutputBlocks.begin(), OutputBlocks.end(), [](const Block& a, const Block& b) {
     if (a.ZPos != b.ZPos) return a.ZPos < b.ZPos;  // Sort Z axis (first)
@@ -204,6 +273,16 @@ void Compression::FormatSubmit(std::vector<Block> &OutputBlocks) {
     return a.XPos < b.XPos;  // Sort X axis (third)
   });
 }
+
+/**
+ * MergeLayers
+ * -----------
+ * Attempts to merge blocks vertically along the Z axis.
+ * Blocks can merge if they:
+ *   - Have identical X, Y, size, and Ch
+ *   - Are adjacent in Z
+ *   - Do not exceed ParentZ boundaries
+ */
 
 void Compression::MergeLayers(std::vector<Block> Blocks, int ParentZ) {
     if (Blocks.empty()) return;
@@ -253,6 +332,14 @@ void Compression::MergeLayers(std::vector<Block> Blocks, int ParentZ) {
     FinalBlocks = Result;
 }
 
+/**
+ * ProcessLayer
+ * ------------
+ * Processes a full 2D layer (vector of rows).
+ * Merges rows into vertical ParentY-aligned blocks,
+ * then flushes completed groups into AllLayerBlocks.
+ */
+
 void Compression::ProcessLayer(const std::vector<std::vector<Block>> &Rows, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable) {
   std::vector<Block> OutputBlocks; // merged blocks for Current ParentY group
   std::vector<Block> BlockStack;
@@ -277,10 +364,22 @@ void Compression::ProcessLayer(const std::vector<std::vector<Block>> &Rows, int 
   }
 }
 
+/**
+ * FormatOutputStrings
+ * -------------------
+ * Like FormatOutput but returns the string directly.
+ */
+
 std::string Compression::FormatOutputStrings(std::ostringstream &Output, int XPos, int RowNum, int LayerNum, int NumX, int NumY, int NumZ, char Ch, const std::string* TagTable) {
   Output << XPos << "," << RowNum << "," << LayerNum << "," << NumX << "," << NumY << "," << NumZ << "," << TagTable[Ch] << "\n";
   return Output.str();
 }
+
+/**
+ * WriteBlocksVectorStrings
+ * ------------------------
+ * Converts blocks to a vector of CSV strings (instead of directly writing).
+ */
 
 std::vector<std::string> Compression::WriteBlocksVectorStrings(const std::vector<Block> &Blocks, std::ostringstream &Output, const std::string* TagTable) {
   std::vector<std::string> Result;
@@ -290,9 +389,21 @@ std::vector<std::string> Compression::WriteBlocksVectorStrings(const std::vector
   return Result;
 }
 
+/**
+ * GetBlocks
+ * ---------
+ * Returns all intermediate blocks accumulated across layers.
+ */
+
 std::vector<Block> Compression::GetBlocks(){
   return AllLayerBlocks;
 }
+
+/**
+ * GetFinalBlocks
+ * --------------
+ * Returns the final merged blocks after Z-layer merging.
+ */
 
 std::vector<Block> Compression::GetFinalBlocks(){
   return FinalBlocks;
