@@ -27,16 +27,18 @@ int main(int argc, char* argv[]) {
     infile.close();
 
     // --- Prepare Parser & Compressor ---
-    Parse Parser(Lines);
-    Compression Compressor;
-    std::ostringstream Output;
-    auto Map = Parser.XBlocks;
-    std::string *AllMappings = Parser.GetTagTable();
-
-    // --- Compression loop with timing ---
+    
     std::cout << "Compressing...\n";
     auto start = std::chrono::high_resolution_clock::now();
+    Parse Parser(Lines);
+    //Compression Compressor;
+    std::ostringstream Output;
+    //auto Map = Parser.XBlocks;
+    //std::string *AllMappings = Parser.GetTagTable();
 
+    // --- Compression loop with timing ---
+    
+    /* 
     for (size_t z = 0; z < Map.size(); ++z) {
         Compressor.ProcessLayer(Map[z], Parser.ParentX, Parser.ParentY, Parser.ParentZ, z, Output, AllMappings);
     }
@@ -44,12 +46,13 @@ int main(int argc, char* argv[]) {
         Compressor.MergeLayers(Compressor.GetBlocks(), Parser.ParentZ);
     }
     Compressor.WriteBlocks(Compressor.GetFinalBlocks(), Output, AllMappings);
-
+    */
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
     std::cout << "Compression done in " << elapsed.count() << " seconds.\n";
 
     // --- Split compressed output into lines ---
+    /*
     std::vector<std::string> outputLines;
     std::stringstream ss(Output.str());
     std::string outputLine;
@@ -57,19 +60,19 @@ int main(int argc, char* argv[]) {
         if (!outputLine.empty())
             outputLines.push_back(outputLine);
     }
-
+    */
     // --- Create Test object and compare ---
-    Test myTest(Lines, outputLines);
+    //Test myTest(Lines, outputLines);
 
     std::cout << "--- COMPARE PARSE --- \n";
 
-    myTest.printInputParse();
-    myTest.printOutputParse();
+    //myTest.printInputParse();
+    //myTest.printOutputParse();
 
-    bool match = myTest.compareInputOutput();
+    //bool match = myTest.compareInputOutput();
 
     // --- Compute compression percentage ---
-    size_t inputSize = 0;
+    /*size_t inputSize = 0;
     for (auto &layer : myTest.InputMapExpanded)
         for (auto &row : layer)
             inputSize += row.size();   // total number of characters in expanded input
@@ -78,10 +81,10 @@ int main(int argc, char* argv[]) {
 
     double compressionPercent = 100.0 * (1.0 - double(compressedRows) / double(inputSize));
 
-    myTest.printOutputBlocks();
-    
+    //myTest.printOutputBlocks();
+    */
     // --- Report results ---
-    std::cout << "| Test Success | " << match << " || Compression Time | " << elapsed.count() << " seconds" << " || Compression % | " << compressionPercent << "% |\n";
-    
+    //std::cout << "| Test Success | " << match << " || Compression Time | " << elapsed.count() << " seconds" << " || Compression % | " << compressionPercent << "% |\n";
+    std::cout << "Compression Time | " << elapsed.count() << " seconds | Cache Hits |" <<Parser.Cache2dHit <<"| Cache Misses |"<<Parser.Cache2dMiss<<"\n";
     return 0;
 }

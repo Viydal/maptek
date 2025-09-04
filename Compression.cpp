@@ -8,69 +8,6 @@ void Compression::FormatOutput(std::ostringstream &Output, int XPos, int RowNum,
   return;
 }
 
-std::string Compression::SingleLineCompress(const std::string Row, std::string* TagTable, int ParentX, int ParentY, int ParentZ, int RowNum, int LayerNum) {
-  size_t Count = 0;
-  int XPos = 0; // track where each run starts
-  std::ostringstream Output;
-
-  // parse through the string
-  while (Count < Row.size()) {
-    // read number
-    int Num = 0;
-    while (Count < Row.size() && isdigit(Row[Count])) {
-      Num = Num * 10 + (Row[Count] - '0');
-      Count++;
-    }
-
-    // read character (label)
-    char Ch = Row[Count];
-    Count++;
-
-    // break the run into ParentX-sized chunks
-    while (Num > 0) {
-      int Remaining = ParentX - (XPos % ParentX); // space left in this block
-      int Chunk = std::min(Num, Remaining);
-      // append line in the format:
-      // XPosition, YPosition, ZPosition, Xsize, Ysize, Zsize, label
-      FormatOutput(Output, XPos, RowNum, LayerNum, Chunk, 1, 1, Ch, TagTable);
-      // advance x position
-      XPos += Chunk;
-      Num -= Chunk;
-    }
-  }
-
-  return Output.str();
-}
-
-std::vector<Block> Compression::SingleLineBlocks(const std::string Row, int ParentX, int ParentY, int ParentZ, int RowNum, int LayerNum) {
-  size_t Count = 0;
-  int XPos = 0;
-  std::vector<Block> Blocks;
-
-  while (Count < Row.size()) {
-    // read number
-    int Num = 0;
-    while (Count < Row.size() && isdigit(Row[Count])) {
-      Num = Num * 10 + (Row[Count] - '0');
-      Count++;
-    }
-
-    char Ch = Row[Count];
-    Count++;
-
-    while (Num > 0) {
-      int Remaining = ParentX - (XPos % ParentX);
-      int Chunk = std::min(Num, Remaining);
-
-      Blocks.push_back({XPos, RowNum, LayerNum, Chunk, 1, 1, Ch});
-
-      XPos += Chunk;
-      Num -= Chunk;
-    }
-  }
-  return Blocks;
-}
-
 bool Compression::TryRelaxedMerge(Block& prev, Block& curr, int ParentY, std::vector<Block>& BlockStack, std::vector<Block>& OutputStack) {
     // Rule 0: must be same "row group"
     if ((prev.YPos / ParentY) != (curr.YPos / ParentY)) return false;
@@ -136,6 +73,7 @@ void Compression::MergeRows(std::vector<Block> &OutputStack, std::vector<Block> 
   Block EBlock;
   int StackPointer = 0;
   if (BlockStack.size() == 0) {
+    //std::cout<<"BlockStack size == 0 \n";
     BlockStack = Cr;
     return;
   }
@@ -150,10 +88,10 @@ void Compression::MergeRows(std::vector<Block> &OutputStack, std::vector<Block> 
       ///same x range, same label, same z, same ParentY block
       // and C is directly above P
       if (EBlock.XPos == NewB.XPos && EBlock.XSize == NewB.XSize &&
-          EBlock.ZPos == NewB.ZPos && ((EBlock.YPos / ParentY) == (NewB.YPos / ParentY)) &&
+          EBlock.ZPos == NewB.ZPos &&
           (NewB.YPos == EBlock.YPos + EBlock.YSize)) 
       {
-        std::cout << "Perfect Merging at (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
+        //std::cout << "Perfect Merging at (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
         // extend vertically
         EBlock.YSize += NewB.YSize;
         // always set YPos to the *lowest index row*    
@@ -164,16 +102,17 @@ void Compression::MergeRows(std::vector<Block> &OutputStack, std::vector<Block> 
         NewBPos--;
         goto NEXTBLOCK;
       } else if (TryRelaxedMerge(EBlock, NewB, ParentY, Cr, OutputStack)) {
-              std::cout << "Relaxed merging block at (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
+              //std::cout << "Relaxed merging block at (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
               BlockStack[StackPointer] = EBlock;
               MergedFlag = true;
               Cr.erase(Cr.begin()+NewBPos);
               NewBPos--;
               goto NEXTBLOCK;
           } else {
-            std::cout << "No Merging (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
+            //std::cout << "No Merging (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
           }
-    } else {std::cout << "No Merging (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";}
+    } else {//std::cout << "No Merging (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
+    }
     }
     NEXTBLOCK:
     if (!MergedFlag) {
@@ -190,8 +129,8 @@ void Compression::MergeRows(std::vector<Block> &OutputStack, std::vector<Block> 
   }
 }
 
-void Compression::WriteBlocks(std::vector<Block> Blocks, std::ostringstream &Output, const std::string* TagTable) {
-  FormatSubmit(Blocks);
+void Compression::WriteBlocks(std::vector<Block>& Blocks, std::ostringstream &Output, const std::string* TagTable) {
+  //FormatSubmit(Blocks);
   for (const auto &B : Blocks) {
     FormatOutput(Output, B.XPos, B.YPos, B.ZPos, B.XSize, B.YSize, B.ZSize, B.Ch, TagTable);
   }
@@ -264,9 +203,9 @@ void Compression::ProcessLayer(const std::vector<std::vector<Block>> &Rows, int 
   for (int RowNum = 0; RowNum < Height; RowNum++) {
     int YPos = RowNum; // bottom = 0
     std::vector<Block> CurrRow = Rows[YPos];
-
+    //std::cout<<"Merging Rows... \n";
     MergeRows(OutputBlocks, CurrRow, BlockStack, ParentY);
-
+    
     // If we've completed a ParentY block or hit the last row, flush
     if ((RowNum + 1) % ParentY == 0 || RowNum == Height - 1) {
       //std::cout << "\n Clearing Blockstack and writing output\n\n";
@@ -279,41 +218,14 @@ void Compression::ProcessLayer(const std::vector<std::vector<Block>> &Rows, int 
   }
 }
 
-void Compression::ProcessBlock(std::vector<Block> &Rows, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable) {
-  std::vector<Block> OutputBlocks; // merged blocks for Current ParentY group
-  std::vector<Block> BlockStack;
-  int Height = ParentY;
-
-  // Iterate bottom -> top
-  
-    MergeRows(OutputBlocks, Rows, BlockStack, ParentY);
-
-    //std::cout << "\n Clearing Blockstack and writing output\n\n";
-    AllLayerBlocks.insert(AllLayerBlocks.end(), OutputBlocks.begin(), OutputBlocks.end());
-    AllLayerBlocks.insert(AllLayerBlocks.end(), BlockStack.begin(), BlockStack.end());
-
-    Rows = OutputBlocks;
-    OutputBlocks.clear();
-    BlockStack.clear();
-}
-
-std::string Compression::FormatOutputStrings(std::ostringstream &Output, int XPos, int RowNum, int LayerNum, int NumX, int NumY, int NumZ, char Ch, const std::string* TagTable) {
-  Output << XPos << "," << RowNum << "," << LayerNum << "," << NumX << "," << NumY << "," << NumZ << "," << TagTable[Ch] << "\n";
-  return Output.str();
-}
-
-std::vector<std::string> Compression::WriteBlocksVectorStrings(const std::vector<Block> &Blocks, std::ostringstream &Output, const std::string* TagTable) {
-  std::vector<std::string> Result;
-  for (const auto &B : Blocks) {
-    Result.push_back(FormatOutputStrings(Output, B.XPos, B.YPos, B.ZPos, B.XSize, B.YSize, B.ZSize, B.Ch, TagTable));
-  }
-  return Result;
-}
-
-std::vector<Block> Compression::GetBlocks(){
+std::vector<Block>& Compression::GetBlocks(){
   return AllLayerBlocks;
 }
 
-std::vector<Block> Compression::GetFinalBlocks(){
+size_t Compression::GetBlocksSize(){
+  return AllLayerBlocks.size();
+}
+
+std::vector<Block>& Compression::GetFinalBlocks(){
   return FinalBlocks;
 }

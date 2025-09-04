@@ -16,7 +16,7 @@ public:
   std::vector<std::vector<std::vector<Block>>> XBlocks;
   std::vector<std::vector<std::string>> MapInformation;
   int NumXBlocks, NumYBlocks, NumZBlocks;
-
+  int Cache2dHit, Cache2dMiss; 
 public:
   Parse();
   Parse(std::vector<std::string> Line);
