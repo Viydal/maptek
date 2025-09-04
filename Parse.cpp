@@ -63,7 +63,7 @@ Parse::Parse(std::vector<std::string> Lines) {
             for (int y = Iterator + startY; y < Iterator + startY + ParentY; y++){
                 MapKey += Lines[y].substr(startX, ParentX);
             }
-            MapKey = TestRLERow(MapKey);
+            //MapKey = TestRLERow(MapKey);
 
 
             if (CompressionCache.count(MapKey)) {
@@ -103,8 +103,6 @@ Parse::Parse(std::vector<std::string> Lines) {
                 mergedRows.push_back(merged);
                 CompressionCache.insert({MapKey, mergedRows});
                 
-                //need to update so that it saves the 2d compressed blocks in a useable format
-                
                 for (int k = 0; k < merged.size(); k++){
                     Block NewBlock = merged[k];
                     NewBlock.XPos += startX;
@@ -119,13 +117,16 @@ Parse::Parse(std::vector<std::string> Lines) {
 
         Iterator += YCount + 1;
     }
-    std::vector<Block>* OutputPtr;
+    std::vector<Block> OutputZMerge;
+
     //std::cout<<"\n \n Ouput: \n";
     Compressor.MergeLayers(OutputBlocks, ParentZ);
-    OutputBlocks = Compressor.GetFinalBlocks();
-    Compressor.WriteBlocks(OutputBlocks, Output, TagTable);
+    std::cout << "Z-merge: in=" << OutputBlocks.size()
+          << " out=" << Compressor.GetFinalBlocks().size() << "\n";
+    //Compressor.WriteBlocks(Compressor.GetFinalBlocks(), Output, TagTable);
     std::cout << Output.str();
 }
+
 
 std::string Parse::TestRLERow(std::string Row) {
     std::string RLEString;

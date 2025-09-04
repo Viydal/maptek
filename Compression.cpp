@@ -144,54 +144,76 @@ void Compression::FormatSubmit(std::vector<Block> &OutputBlocks) {
   });
 }
 
-void Compression::MergeLayers(std::vector<Block> Blocks, int ParentZ) {
-    if (Blocks.empty()) return;
-    
-    // Sort all blocks by position (X, Y, then Z)
-    std::sort(Blocks.begin(), Blocks.end(), [](const Block& a, const Block& b) {
-        if (a.XPos != b.XPos) return a.XPos < b.XPos;
-        if (a.YPos != b.YPos) return a.YPos < b.YPos;
-        if (a.Ch != b.Ch) return a.Ch < b.Ch;
-        return a.ZPos < b.ZPos;
-    });
-    
-    std::vector<Block> Result;
-    Result.reserve(Blocks.size());
-    
-    for (size_t i = 0; i < Blocks.size(); i++) {
-        Block Current = Blocks[i];
-        
-        // Try to merge with blocks that have same X, Y, Size, and Ch
-        while (i + 1 < Blocks.size()) {
-            const Block& Next = Blocks[i + 1];
-            
-            // Can the blocks be merged?
-            bool canMerge = (Current.XPos == Next.XPos && 
-                           Current.YPos == Next.YPos &&
-                           Current.XSize == Next.XSize && 
-                           Current.YSize == Next.YSize &&
-                           Current.Ch == Next.Ch &&
-                           Current.ZPos + Current.ZSize == Next.ZPos);
-            
-            if (!canMerge) break;
+void Compression::MergeLayers(std::vector<Block>& Blocks, int ParentZ) {
+  if (Blocks.empty()) return;
+  
+  // Sort all Blocks by position (X, Y, then Z)
+  std::sort(Blocks.begin(), Blocks.end(), [](const Block& a, const Block& b) {
+    if (a.Ch != b.Ch) return a.Ch < b.Ch;
+    if (a.XPos != b.XPos) return a.XPos < b.XPos;
+    if (a.YPos != b.YPos) return a.YPos < b.YPos;
+    return a.ZPos < b.ZPos;
+  });
+  
+  FinalBlocks.clear();
+  FinalBlocks.reserve(Blocks.size());
+  std::vector<bool> used(Blocks.size(), false);
+  std::vector<Block> LeftOvers;
+  
+  for (size_t i = 0; i < Blocks.size(); i++) {
+    if (used[i]) continue;
+      Block Current = Blocks[i];
 
-            int TotalZSize = Current.ZSize + Next.ZSize;
-            int MergedEndZ = (Current.ZPos % ParentZ) + TotalZSize;
+      // std::cout << i << std::endl;
+      
+      // Try to merge with Blocks that have same X, Y, Size, and Ch
+    for (size_t j = i + 1; j < Blocks.size(); j++) {
+      if (used[j]) continue;
+      Block& Next = Blocks[j];
+      // Early catches
+      if (Current.Ch != Next.Ch) break;
+      if (Next.ZPos < Current.ZPos + Current.ZSize) break;
+      
+      // Can the Blocks be merged?
+      bool canMerge = (Current.XPos == Next.XPos && 
+                      Current.YPos == Next.YPos &&
+                      Current.XSize == Next.XSize && 
+                      Current.YSize == Next.YSize &&
+                      Current.Ch == Next.Ch &&
+                      Current.ZPos + Current.ZSize == Next.ZPos);
 
-            // Check if merged size fits within parent
-            if (MergedEndZ <= ParentZ) {
-                // Merge blocks
-                Current.ZSize = TotalZSize;
-                i++; // Skip the merged block
-            } else {
-                break; // Can't merge without exceeding parent size
-            }
+      if (Current.ZPos + Current.ZSize == Next.ZPos){
+        if (canMerge) {
+          int TotalZSize = Current.ZSize + Next.ZSize;
+          int MergedEndZ = (Current.ZPos % ParentZ) + TotalZSize;
+
+          // Check if merged size fits within parent
+          if (MergedEndZ <= ParentZ) {
+            // Merge Blocks
+            Current.ZSize = TotalZSize;
+            used[j] = true;
+          } else {
+            break; // Can't merge without exceeding parent size
+          }
+        } else { 
+          // LeftOvers.clear();
+          // if (TryRelaxedLayerMerge(Current, Next, ParentZ, LeftOvers)) {
+          //   // std::cout << "change made" << std::endl;
+          //   Blocks[i] = Current;
+          //   used[j] = true;
+          //   AllLayerBlocks.insert(AllLayerBlocks.end(), LeftOvers.begin(), LeftOvers.end());
+          // } else {
+          //   break; // Can't merge, move to next Current block
+          // }
+          break;
         }
-        Result.push_back(Current);
+      } else {
+        // break;
+      }
     }
-    FinalBlocks = Result;
+    FinalBlocks.push_back(Current);
+  }
 }
-
 
 
 void Compression::ProcessLayer(const std::vector<std::vector<Block>> &Rows, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable) {
