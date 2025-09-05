@@ -130,7 +130,7 @@ int main(int argc, char* argv[]) {
             cout << "Writing blocks now\n";
             start = std::chrono::high_resolution_clock::now();
         }
-    Compressor.WriteBlocks(Compressor.GetFinalBlocks(), Output, AllMappings);
+    Compressor.WriteBlocks(Compressor.GetBlocks(), Output, AllMappings);
         if (Args.verbose) {
             end = std::chrono::high_resolution_clock::now();
             elapsed = end - start;

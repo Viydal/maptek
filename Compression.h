@@ -30,7 +30,6 @@ public:
   void MergeLayers(std::vector<Block> OutputBlocks, int ParentZ);
   bool TryRelaxedLayer(Block& prev, Block& curr, int ParentZ);
   std::vector<Block> GetBlocks();
-  std::vector<Block> GetFinalBlocks();
   void FormatSubmit(std::vector<Block> &OutputBlocks);
 };
 

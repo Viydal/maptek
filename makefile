@@ -4,7 +4,7 @@ main:
 
 # For wsl to compile main
 submit:
-	x86_64-w64-mingw32-g++ -std=c++11 -O3 -DNDEBUG -march=haswell -static -flto Compression.cpp Parse.cpp Test.cpp main.cpp -o chill.exe
+	x86_64-w64-mingw32-g++ -std=c++11 -O3 -DNDEBUG -march=native -flto -fno-exceptions -fno-rtti -static Compression.cpp Parse.cpp main.cpp -o chill.exe
 
 # To compile the testing main
 test:

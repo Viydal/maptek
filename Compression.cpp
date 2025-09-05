@@ -285,51 +285,49 @@ void Compression::FormatSubmit(std::vector<Block> &OutputBlocks) {
  */
 
 void Compression::MergeLayers(std::vector<Block> Blocks, int ParentZ) {
-    if (Blocks.empty()) return;
-    
-    // Sort all blocks by position (X, Y, then Z)
-    std::sort(Blocks.begin(), Blocks.end(), [](const Block& a, const Block& b) {
-        if (a.XPos != b.XPos) return a.XPos < b.XPos;
-        if (a.YPos != b.YPos) return a.YPos < b.YPos;
-        if (a.Ch != b.Ch) return a.Ch < b.Ch;
-        return a.ZPos < b.ZPos;
-    });
-    
-    std::vector<Block> Result;
-    Result.reserve(Blocks.size());
-    
-    for (size_t i = 0; i < Blocks.size(); i++) {
-        Block Current = Blocks[i];
-        
-        // Try to merge with blocks that have same X, Y, Size, and Ch
-        while (i + 1 < Blocks.size()) {
-            const Block& Next = Blocks[i + 1];
-            
-            // Can the blocks be merged?
-            bool canMerge = (Current.XPos == Next.XPos && 
-                           Current.YPos == Next.YPos &&
-                           Current.XSize == Next.XSize && 
-                           Current.YSize == Next.YSize &&
-                           Current.Ch == Next.Ch &&
-                           Current.ZPos + Current.ZSize == Next.ZPos);
-            
-            if (!canMerge) break;
+  if (Blocks.empty()) return;
+  
+  // Sort all blocks by position (X, Y, then Z)
+  std::sort(Blocks.begin(), Blocks.end(), [](const Block& a, const Block& b) {
+    if (a.XPos != b.XPos) return a.XPos < b.XPos;
+    if (a.YPos != b.YPos) return a.YPos < b.YPos;
+    if (a.Ch != b.Ch) return a.Ch < b.Ch;
+    return a.ZPos < b.ZPos;
+  });
 
-            int TotalZSize = Current.ZSize + Next.ZSize;
-            int MergedEndZ = (Current.ZPos % ParentZ) + TotalZSize;
+  AllLayerBlocks = {};
+  
+  for (size_t i = 0; i < Blocks.size(); i++) {
+    Block Current = Blocks[i];
+    
+    // Try to merge with blocks that have same X, Y, Size, and Ch
+    while (i + 1 < Blocks.size()) {
+      const Block& Next = Blocks[i + 1];
+      
+      // Can the blocks be merged?
+      bool canMerge = (Current.XPos == Next.XPos && 
+                      Current.YPos == Next.YPos &&
+                      Current.XSize == Next.XSize && 
+                      Current.YSize == Next.YSize &&
+                      Current.Ch == Next.Ch &&
+                      Current.ZPos + Current.ZSize == Next.ZPos);
+      
+      if (!canMerge) break;
 
-            // Check if merged size fits within parent
-            if (MergedEndZ <= ParentZ) {
-                // Merge blocks
-                Current.ZSize = TotalZSize;
-                i++; // Skip the merged block
-            } else {
-                break; // Can't merge without exceeding parent size
-            }
-        }
-        Result.push_back(Current);
+      int TotalZSize = Current.ZSize + Next.ZSize;
+      int MergedEndZ = (Current.ZPos % ParentZ) + TotalZSize;
+
+      // Check if merged size fits within parent
+      if (MergedEndZ <= ParentZ) {
+        // Merge blocks
+        Current.ZSize = TotalZSize;
+        i++; // Skip the merged block
+      } else {
+        break; // Can't merge without exceeding parent size
+      }
     }
-    FinalBlocks = Result;
+    AllLayerBlocks.push_back(Current);
+  }
 }
 
 /**
@@ -397,14 +395,4 @@ std::vector<std::string> Compression::WriteBlocksVectorStrings(const std::vector
 
 std::vector<Block> Compression::GetBlocks(){
   return AllLayerBlocks;
-}
-
-/**
- * GetFinalBlocks
- * --------------
- * Returns the final merged blocks after Z-layer merging.
- */
-
-std::vector<Block> Compression::GetFinalBlocks(){
-  return FinalBlocks;
 }
