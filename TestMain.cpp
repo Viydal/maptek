@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
     if (Parser.ParentZ != 1) {
         Compressor.MergeLayers(Compressor.GetBlocks(), Parser.ParentZ);
     }
-    Compressor.WriteBlocks(Compressor.GetFinalBlocks(), Output, AllMappings);
+    Compressor.WriteBlocks(Compressor.GetBlocks(), Output, AllMappings);
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
