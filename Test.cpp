@@ -156,10 +156,10 @@ void Test::MakeTest() {
     int x, y, z, X, Y, Z;
     ss >> x >> comma >> y >> comma >> z >> comma >> X >> comma >> Y >> comma >> Z;
 
-    if (x*y*z > 10000000) {
-        std::cout << "Fuck off im not doing that \n";
-        exit(0);
-    }
+    //if (x*y*z > 10000000) {
+    //    std::cout << "Fuck off im not doing that \n";
+    //    exit(0);
+    //}
     
     // Fixed labels
     std::vector<std::pair<char, std::string>> labels = {

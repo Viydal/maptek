@@ -3,7 +3,7 @@
 
 int main() {
     // Create Test object with just dimensions
-    Test t("500,200,5,4,3,2" );
+    Test t("50000,2000,5,500,20,1" );
 
     // Generate the randomized test case
     t.MakeTest();

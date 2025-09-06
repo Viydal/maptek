@@ -6,7 +6,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "Block.h"
+#include "Helpers.h"
 
 class Compression {
 public:

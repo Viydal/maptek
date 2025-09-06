@@ -12,15 +12,19 @@
 
 namespace fs = std::filesystem;
 
-bool Tester::RunTest(const std::string &filePath, bool verbose, int verboseLevel) {
-    std::ifstream infile("TestCases/" + filePath);
+bool Tester::RunTest(Args args) {
+    std::ifstream infile("TestCases/" + args.filePath);
     if (!infile) {
-        std::cerr << "Error: could not open " << filePath << "\n";
+        std::cerr << "Error: could not open " << args.filePath << "\n";
         return false;
     }
 
     std::vector<std::string> InitLines;
     std::string line;
+    auto TotalStart = chrono::high_resolution_clock::now();
+    auto start = chrono::high_resolution_clock::now();
+    auto end = chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed;
     while (std::getline(infile, line)) {
         if (!line.empty() && line.back() == '\r') line.pop_back();
         InitLines.push_back(line);
@@ -31,15 +35,21 @@ bool Tester::RunTest(const std::string &filePath, bool verbose, int verboseLevel
     Compression Compressor;
     std::ostringstream Output;
 
-    auto TotalStart = std::chrono::high_resolution_clock::now();
-
+    if (args.verbose){
+            elapsed = chrono::high_resolution_clock::now() - TotalStart;
+            cout << "Parsing done in " << elapsed.count() << " seconds.\n";
+            cout << "\n--- COMPRESSING --- \n";
+        }
+    std::ostringstream LayerCompressionTimes;
     size_t totalLayers = Parser.XBlocks.size();
     for (size_t z = 0; z < totalLayers; ++z) {
+            if (args.verbose) { start = std::chrono::high_resolution_clock::now();}
         Compressor.ProcessLayer(Parser.XBlocks[z], Parser.ParentX, Parser.ParentY, Parser.ParentZ,
                                 z, Output, Parser.TagTable);
+            
 
         // Show per-test progress bar for verbose level 0 and above
-        if (verbose && verboseLevel >= 0) {
+        if (args.verbose && args.verboseLevel >= 0) {
             int barWidth = 50;
             int progress = static_cast<int>((z + 1) * barWidth / totalLayers);
             std::cout << "\r[";
@@ -47,19 +57,42 @@ bool Tester::RunTest(const std::string &filePath, bool verbose, int verboseLevel
                 std::cout << (i < progress ? '#' : ' ');
             std::cout << "] " << (z + 1) * 100 / totalLayers << "% completed" << std::flush;
         }
+        if (args.verbose) {
+                end = std::chrono::high_resolution_clock::now();
+                elapsed = end - start;
+                LayerCompressionTimes << "Layer " << z << " processed in " << elapsed.count() << " seconds.\n";
+        }
     }
-
+    std::cout << std::endl << LayerCompressionTimes.str();
     if (Parser.ParentZ != 1) {
+            if (args.verbose) {
+                cout << "Merging layers now\n";
+                start = std::chrono::high_resolution_clock::now();
+            }
         Compressor.MergeLayers(Compressor.GetBlocks(), Parser.ParentZ);
+            if (args.verbose) {
+                end = std::chrono::high_resolution_clock::now();
+                elapsed = end - start;
+                std::cout << "Merging Z axis done in " << elapsed.count() << " seconds.\n";
+            }
     }
+        if (args.verbose) {
+            cout << "Writing blocks now\n";
+            start = std::chrono::high_resolution_clock::now();
+        }
     Compressor.WriteBlocks(Compressor.GetBlocks(), Output, Parser.TagTable);
+        if (args.verbose) {
+            end = std::chrono::high_resolution_clock::now();
+            elapsed = end - start;
+            cout << "Writing blocks done in " << elapsed.count() << " seconds.\n";
+        }
 
-    if (verbose && verboseLevel == 0)
+    if (args.verbose && args.verboseLevel == 0)
         std::cout << "\n"; // move to new line after status bar
 
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = end - TotalStart;
-
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - TotalStart;
+    std::cout << "Program done in " << elapsed.count() << " seconds.\n";
     // Collect output lines
     std::vector<std::string> outputLines;
     std::stringstream ss(Output.str());
@@ -82,21 +115,21 @@ bool Tester::RunTest(const std::string &filePath, bool verbose, int verboseLevel
     double compressionPercent = 100.0 * (1.0 - double(compressedRows) / double(inputSize));
 
     // Verbose level 1: show full per-test output
-    if (verbose && verboseLevel >= 1) {
-        std::cout << "\n--- TEST: " << filePath << " ---\n";
+    if (args.verbose && args.verboseLevel >= 2) {
+        std::cout << "\n--- TEST: " << args.filePath << " ---\n";
         myTest.printInputParse();
         myTest.printOutputParse();
         myTest.printOutputBlocks();
 
-        std::cout << "| Test Success | " << match
-                  << " || Time | " << elapsed.count() << "s"
-                  << " || Compression % | " << compressionPercent << "% |\n";
+        
     }
-
+    std::cout << "| Test Success | " << match
+                << " || Time | " << elapsed.count() << "s"
+                << " || Compression % | " << compressionPercent << "% |\n";
     return match;
 }
 
-void Tester::RunAllTests(bool verbose, int verboseLevel) {
+void Tester::RunAllTests(Args args) {
     std::vector<std::string> testFiles;
     std::vector<std::string> failedFiles;
 
@@ -118,20 +151,21 @@ void Tester::RunAllTests(bool verbose, int verboseLevel) {
     int passed = 0;
 
     for (size_t i = 0; i < testFiles.size(); ++i) {
+        std::cout << "----------------------------------------\n\n";
         std::string filename = testFiles[i];
         std::string filepath = "TestCases/" + filename;
-
+        args.filePath = filename;
         // Verbose 0+: print which test is running
-        if (verbose) {
+        if (args.verbose) {
             std::cout << "Running test file: " << filepath << " [" << i + 1 << "/" << total << "]" << std::endl;
         }
 
-        bool ok = RunTest(filename, verbose, verboseLevel);
+        bool ok = RunTest(args);
         if (ok) passed++;
         else failedFiles.push_back(filename);
 
         // Overall batch progress bar (optional for verbose 0)
-        if (verbose && verboseLevel == 0) {
+        if (args.verbose && args.verboseLevel == 0) {
             int barWidth = 50;
             int progress = static_cast<int>((i + 1) * barWidth / total);
             std::cout << "[";

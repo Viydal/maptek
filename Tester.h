@@ -7,12 +7,13 @@
 #include "Parse.h"
 #include "Compression.h"
 #include "Test.h"
+#include "Helpers.h"
 #include <string>
 
 class Tester {
 public:
-    static bool RunTest(const std::string& filePath, bool verbose = false, int verboseLevel = 1);
-    static void RunAllTests(bool verbose = false, int verboseLevel = 1);
+    static bool RunTest(Args args);
+    static void RunAllTests(Args args);
 };
 
 #endif
