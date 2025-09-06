@@ -58,16 +58,24 @@ Parse::Parse(std::vector<std::string> Lines) {
         for (int j = 0; j < NumXYParentBlocks; j++){
             startX = (j % NumXBlocks) * ParentX;
             startY = (j / NumXBlocks) * ParentY;
-
+            
+            
+            
             std::string MapKey;
+            MapKey.reserve(ParentX * ParentY);
             for (int y = Iterator + startY; y < Iterator + startY + ParentY; y++){
                 MapKey += Lines[y].substr(startX, ParentX);
             }
-            //MapKey = TestRLERow(MapKey);
+            //uniform check
+            char FirstChar = Lines[Iterator + startY][startX];
+            if (MapKey.find_first_not_of(FirstChar) == std::string::npos){
+                OutputBlocks.push_back({0 + startX, 0 + startY, i, ParentX, ParentY, 1, FirstChar});
+                continue;
+            }
 
 
             if (CompressionCache.count(MapKey)) {
-                Cache2dHit ++;
+                Cache2dHit++;
                 auto& Blocks = CompressionCache.at(MapKey);
                 for (int k = 0; k < Blocks.size(); k++){
                     for (int l = 0; l < Blocks[k].size(); l++) {
@@ -121,10 +129,12 @@ Parse::Parse(std::vector<std::string> Lines) {
 
     //std::cout<<"\n \n Ouput: \n";
     Compressor.MergeLayers(OutputBlocks, ParentZ);
-    std::cout << "Z-merge: in=" << OutputBlocks.size()
-          << " out=" << Compressor.GetFinalBlocks().size() << "\n";
-    //Compressor.WriteBlocks(Compressor.GetFinalBlocks(), Output, TagTable);
-    std::cout << Output.str();
+     //std::cout << "Z-merge: in=" << OutputBlocks.size()
+           //<< " out=" << Compressor.GetFinalBlocks().size() << "\n";
+    float hitPercent =  (Cache2dHit/(Cache2dHit + Cache2dMiss)) *100;
+    
+    Compressor.WriteBlocksString(Compressor.GetFinalBlocks(), Output, TagTable);
+    //std::cout << Output.str();
 }
 
 

@@ -23,10 +23,12 @@ public:
   std::vector<Block> SingleLineBlocks(const std::string Row, int ParentX, int ParentY, int ParentZ, int RowNum, int LayerNum);
   void MergeRows(std::vector<Block> &Output, std::vector<Block> &CurrRow, std::vector<Block> &BlockStack, int ParentY);
   void WriteBlocks(std::vector<Block>& Blocks, std::ostringstream &Output, const std::string*TagTable);
+  void WriteBlocksString(std::vector<Block>& Blocks, std::ostringstream &Output, const std::string*TagTable);
   void ProcessLayer(const std::vector<std::vector<Block>> &Rows, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable);
   std::string FormatOutputStrings(std::ostringstream &Output, int XPos, int RowNum, int LayerNum, int NumX, int NumY, int NumZ, char Ch, const std::string* TagTable);
   std::vector<std::string> WriteBlocksVectorStrings(const std::vector<Block> &Blocks, std::ostringstream &Output, const std::string * TagTable);
   bool TryRelaxedMerge(Block& prev, Block& curr, int ParentY, std::vector<Block>& BlockStack, std::vector<Block>& OutputStack);
+  bool TryRelaxedLayerMerge(Block& Current, Block& Next, int ParentZ, std::vector<Block>& LeftOvers);
   void MergeLayers(std::vector<Block>& Blocks, int ParentZ);
   bool TryRelaxedLayer(Block& prev, Block& curr, int ParentZ);
   std::vector<Block>& GetBlocks();

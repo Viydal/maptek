@@ -8,7 +8,7 @@ submit:
 
 # To compile the testing main
 test:
-	g++ -std=c++11 -O3 -DNDEBUG -march=native -flto -fno-exceptions -fno-rtti  -static Compression.cpp Parse.cpp Test.cpp TestMain.cpp -o testmain.exe
+	g++ -std=c++11 -O3 -g -static Compression.cpp Parse.cpp Test.cpp TestMain.cpp -o testmain.exe
 
 clean: # Remove made files
 	rm *.o *.exe main callgrind.*
