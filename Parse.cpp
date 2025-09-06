@@ -134,7 +134,7 @@ Parse::Parse(std::vector<std::string> Lines) {
     float hitPercent =  (Cache2dHit/(Cache2dHit + Cache2dMiss)) *100;
     
     Compressor.WriteBlocksString(Compressor.GetFinalBlocks(), Output, TagTable);
-    //std::cout << Output.str();
+    std::cout << Output.str();
 }
 
 

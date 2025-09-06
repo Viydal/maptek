@@ -21,7 +21,7 @@ public:
   std::string SingleLineCompress(std::string Row, std::string* TagTable, int ParentX = 0, int ParentY = 0, int ParentZ = 0, int RowNum = 0, int LayerNum = 0);
   void FormatOutput(std::ostringstream &Output, int XPos, int RowNum,int LayerNum, int NumX, int NumY, int NumZ, char Ch, const std::string* TagTable);
   std::vector<Block> SingleLineBlocks(const std::string Row, int ParentX, int ParentY, int ParentZ, int RowNum, int LayerNum);
-  void MergeRows(std::vector<Block> &Output, std::vector<Block> &CurrRow, std::vector<Block> &BlockStack, int ParentY);
+  void MergeRows(std::vector<Block> &OutputStack, std::vector<Block> &Cr, std::vector<Block> &BlockStack, int ParentY);
   void WriteBlocks(std::vector<Block>& Blocks, std::ostringstream &Output, const std::string*TagTable);
   void WriteBlocksString(std::vector<Block>& Blocks, std::ostringstream &Output, const std::string*TagTable);
   void ProcessLayer(const std::vector<std::vector<Block>> &Rows, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable);
