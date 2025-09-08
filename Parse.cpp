@@ -82,17 +82,17 @@ Parse::Parse(std::vector<std::string> Lines) {
             continue;
         }
 
-        // auto it = CompressionCache3d.find(MapKey3d);
-        // if (it != CompressionCache3d.end()) {
-        //     cacheHit3d++;
-        //     for (Block CacheBlock : it->second) {
-        //         CacheBlock.XPos += startX;
-        //         CacheBlock.YPos += startY;
-        //         CacheBlock.ZPos += startZ;
-        //         OutputBlocks.push_back(CacheBlock);
-        //     }
-        // continue;
-        // }
+        auto it = CompressionCache3d.find(MapKey3d);
+        if (it != CompressionCache3d.end()) {
+            //cacheHit3d++;
+            for (Block CacheBlock : it->second) {
+                CacheBlock.XPos += startX;
+                CacheBlock.YPos += startY;
+                CacheBlock.ZPos += startZ;
+                OutputBlocks.push_back(CacheBlock);
+            }
+        continue;
+        }
         //cacheMiss3d++;
     // Otherwise compute from 2D slices
         IndividualParentBlock.Blocks.clear();
@@ -148,7 +148,7 @@ Parse::Parse(std::vector<std::string> Lines) {
         Compressor.MergeLayers(IndividualParentBlock.Blocks, ParentZ);
         std::vector<Block> FinalLocal = Compressor.GetFinalBlocks();
 
-        //CompressionCache3d.insert({MapKey3d, FinalLocal});
+        CompressionCache3d.insert({MapKey3d, FinalLocal});
         Block NewBlock;
         for (int k = 0; k < FinalLocal.size(); k++) {
                 NewBlock = FinalLocal[k];
