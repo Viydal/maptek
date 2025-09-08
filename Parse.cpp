@@ -1,5 +1,5 @@
 #include "Parse.h"
-
+#include "ParentBlock.h"
 Parse::Parse() { XCount = YCount = ZCount = ParentX = ParentY = ParentZ = 0; }
 
 Parse::Parse(std::vector<std::string> Lines) {
@@ -36,7 +36,6 @@ Parse::Parse(std::vector<std::string> Lines) {
         TagTable[static_cast<int>(Symbol)] = Location;
         Iterator++;
     }
-   
     std::unordered_map<std::string, std::vector<std::vector<Block>>> CompressionCache;
     CompressionCache.reserve(4096);
     
@@ -47,94 +46,97 @@ Parse::Parse(std::vector<std::string> Lines) {
 
     int startX = 0;
     int startY = 0;
-    int NumXYParentBlocks = (NumXBlocks) * (NumYBlocks);
+    int startZ = 0;
+    int NumParentBlocks = NumXBlocks * NumYBlocks * NumZBlocks;
+    int NumXYParentBlocks = NumXBlocks * NumYBlocks;
 
     Compression Compressor = Compression();
     std::ostringstream Output;
 
-    Cache2dHit = 0, Cache2dMiss = 0;
 
-    for (int i = 0; i < ZCount; i++){
-        for (int j = 0; j < NumXYParentBlocks; j++){
-            startX = (j % NumXBlocks) * ParentX;
-            startY = (j / NumXBlocks) * ParentY;
-            
-            
-            
+    
+   
+    std::vector<ParentBlock> ParentBlocks;
+    ParentBlock IndividualParentBlock;
+    
+    for (int i = 0; i < NumZBlocks; i++) {
+    for (int j = 0; j < NumXYParentBlocks; j++) {
+        int startX = (j % NumXBlocks) * ParentX;
+        int startY = (j / NumXBlocks) * ParentY;
+        int startZ = i * ParentZ;
+
+        for (int localZ = 0; localZ < ParentZ; ++localZ) {
+
             std::string MapKey;
             MapKey.reserve(ParentX * ParentY);
-            for (int y = Iterator + startY; y < Iterator + startY + ParentY; y++){
-                MapKey += Lines[y].substr(startX, ParentX);
+
+            for (int y = 0; y < ParentY; ++y) {
+                const int lineIdx =  Iterator + (startZ + localZ) * (YCount + 1) + startY + y;
+                MapKey += Lines[lineIdx].substr(startX, ParentX);
             }
-            //uniform check
-            char FirstChar = Lines[Iterator + startY][startX];
-            if (MapKey.find_first_not_of(FirstChar) == std::string::npos){
-                OutputBlocks.push_back({0 + startX, 0 + startY, i, ParentX, ParentY, 1, FirstChar});
+
+            const char first = MapKey[0];
+            if (MapKey.find_first_not_of(first) == std::string::npos) {
+                IndividualParentBlock.Blocks.push_back({ startX, startY, startZ + localZ, ParentX, ParentY, 1, first});
                 continue;
             }
 
-
-            if (CompressionCache.count(MapKey)) {
-                Cache2dHit++;
-                auto& Blocks = CompressionCache.at(MapKey);
-                for (int k = 0; k < Blocks.size(); k++){
-                    for (int l = 0; l < Blocks[k].size(); l++) {
-                        Block NewBlock = Blocks[k][l];
-                        NewBlock.XPos += startX;
-                        NewBlock.YPos += startY;
-                        NewBlock.ZPos = i;
-                        OutputBlocks.push_back(NewBlock);
+            auto it = CompressionCache.find(MapKey);
+            if (it != CompressionCache.end()) {
+                auto Rows = it->second;
+                for (auto& Row : Rows) {
+                    for (Block Block : Row) {
+                        Block.XPos += startX;
+                        Block.YPos += startY;
+                        Block.ZPos = startZ + localZ;
+                        IndividualParentBlock.Blocks.push_back(Block);
                     }
                 }
-            }else{
-                Cache2dMiss++;
-                std::vector<std::vector<Block>> ParentBlock(ParentY);
-                for (int y = Iterator + startY; y < Iterator + startY + ParentY; y++){
-                    int LocalY = y - Iterator - startY;
-                    std::string StringRow = Lines[y].substr(startX, ParentX);
-                    RLERow(&StringRow[0], &ParentBlock[LocalY], &RleCache, 0, LocalY, i);
-
-                }
-
-                // this method of getting the ProcessLayer results is shameleslly copied from chatgpt
-                size_t prevSize = Compressor.GetBlocksSize();
-                Compressor.ProcessLayer(ParentBlock, ParentX, ParentY, ParentZ, i, Output, TagTable);
-                const auto& all = Compressor.GetBlocks();
-                std::vector<Block> merged(all.begin() + prevSize, all.end()); // merged, RELATIVE blocks
-                
-                if (CompressionCache.size() > 4096){
-                    CompressionCache.clear();
-                    CompressionCache.reserve(4096);
-                    CompressionCache.rehash(4096);
-                }
-                std::vector<std::vector<Block>> mergedRows;
-                mergedRows.push_back(merged);
-                CompressionCache.insert({MapKey, mergedRows});
-                
-                for (int k = 0; k < merged.size(); k++){
-                    Block NewBlock = merged[k];
-                    NewBlock.XPos += startX;
-                    NewBlock.YPos += startY;
-                    NewBlock.ZPos = i;
-
-                    OutputBlocks.push_back(NewBlock);
-                }
-                
+                continue;
             }
-    }
 
-        Iterator += YCount + 1;
+            std::vector<std::vector<Block>> ParentSlice(ParentY);
+            for (int y = 0; y < ParentY; ++y) {
+                const int lineIndex = Iterator + (startZ + localZ) * (YCount + 1) + startY + y;
+                std::string row = Lines[lineIndex].substr(startX, ParentX);
+                RLERow(&row[0],&ParentSlice[y], &RleCache,0, y, localZ);
+            }
+
+            const size_t prev = Compressor.GetBlocksSize();
+            Compressor.ProcessLayer(ParentSlice, ParentX, ParentY, ParentZ, i, Output, TagTable);
+            auto& all = Compressor.GetBlocks();
+            std::vector<Block> merged(all.begin() + prev, all.end());
+            
+            
+
+            
+            std::vector<std::vector<Block>> mergedRows;
+            mergedRows.push_back(merged);
+
+            CompressionCache.insert({MapKey, mergedRows});
+            
+            Block NewBlock;
+            for (int k = 0; k < merged.size(); k++) {
+                NewBlock = merged[k];
+                NewBlock.XPos += startX;
+                NewBlock.YPos += startY;
+                NewBlock.ZPos += startZ;
+                IndividualParentBlock.Blocks.push_back(NewBlock);
+            }
+            
+        } 
+        Compressor.MergeLayers(IndividualParentBlock.Blocks, ParentZ);
+        OutputBlocks.insert(OutputBlocks.end(), Compressor.GetFinalBlocks().begin(), Compressor.GetFinalBlocks().end());
+        IndividualParentBlock.Blocks.clear();
     }
-    std::vector<Block> OutputZMerge;
+    Compressor.WriteBlocksString(OutputBlocks, Output, TagTable);
+    OutputBlocks.clear();
+}
 
     //std::cout<<"\n \n Ouput: \n";
-    Compressor.MergeLayers(OutputBlocks, ParentZ);
-     //std::cout << "Z-merge: in=" << OutputBlocks.size()
-           //<< " out=" << Compressor.GetFinalBlocks().size() << "\n";
-    float hitPercent =  (Cache2dHit/(Cache2dHit + Cache2dMiss)) *100;
     
-    Compressor.WriteBlocksString(Compressor.GetFinalBlocks(), Output, TagTable);
-    std::cout << Output.str();
+     //std::cout << "Z-merge: in=" << OutputBlocks.size()
+          // << " out=" << Compressor.GetFinalBlocks().size() << "\n";
 }
 
 
@@ -174,21 +176,6 @@ void Parse::RLERow(char* XBlockString, std::vector<Block> *RowBlocks, std::unord
         }
         return;
     }
-    
-    /*
-    std::string key(XBlockString, ParentX);
-    std::unordered_map<std::string, std::vector<std::pair<int,char>>>::iterator it = RleCache->find(key);
-    if (it != RleCache->end()) {
-        std::vector<std::pair<int,char>>& Runs = it->second;
-        for (int i = 0; i < Runs.size(); i++){
-            int Length = Runs[i].first;
-            char Character = Runs[i].second;
-            RowBlocks->push_back({ StartX, RowNum, LayerNum, Length, 1, 1, Character});
-            StartX += Length;
-        }
-        return;
-    }
-    */
 
     std::vector<std::pair<int,char>> Runs;
 

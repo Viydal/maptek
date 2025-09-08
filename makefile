@@ -1,6 +1,6 @@
  # To compile main
 main:
-	g++ -std=c++11 Compression.cpp Parse.cpp main.cpp -o main.exe
+	g++ -std=c++11 -g Compression.cpp Parse.cpp main.cpp -o main.exe
 
 # For wsl to compile main
 submit:

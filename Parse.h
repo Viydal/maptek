@@ -8,6 +8,7 @@
 #include "Block.h"
 #include "robin_hood.h"
 #include "Compression.h"
+#include "ParentBlock.h"
 //#include <omp.h>
 
 class Parse {
@@ -17,10 +18,12 @@ public:
   std::vector<std::vector<std::vector<Block>>> XBlocks;
   std::vector<std::vector<std::string>> MapInformation;
   int NumXBlocks, NumYBlocks, NumZBlocks;
-  float Cache2dHit, Cache2dMiss; 
+
 public:
   Parse();
   Parse(std::vector<std::string> Line);
+  
+  bool CheckCache();
   std::string * GetTagTable() {return TagTable;};
   std::string TestRLERow(std::string Row);
   void RLERow(char* XBlockString, std::vector<Block> *RowBlocks,std::unordered_map<std::string, std::vector<std::pair<int,char>>> *DP,int StartX, int RowNum, int LayerNum);

@@ -147,7 +147,9 @@ void Compression::WriteBlocksString(std::vector<Block>& Blocks, std::ostringstre
   FormatSubmit(Blocks);
   
   std::string out;
-  for (const auto &B : Blocks) {  
+  Block B;
+  for (int i = 0; i < Blocks.size(); i++) { 
+    B = Blocks[i];
     out += std::to_string(B.XPos);
     out += ',';
     out += std::to_string(B.YPos);
