@@ -65,7 +65,7 @@ Parse::Parse(std::vector<std::string> Lines) {
         int startY = (j / NumXBlocks) * ParentY;
         int startZ = i * ParentZ;
 
-        for (int localZ = 0; localZ < ParentZ; ++localZ) {
+        for (int localZ = 0; localZ < ParentZ; localZ++) {
 
             std::string MapKey;
             MapKey.reserve(ParentX * ParentY);
