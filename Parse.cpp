@@ -127,16 +127,18 @@ Parse::Parse(std::vector<std::string> Lines) {
         } 
         Compressor.MergeLayers(IndividualParentBlock.Blocks, ParentZ);
         OutputBlocks.insert(OutputBlocks.end(), Compressor.GetFinalBlocks().begin(), Compressor.GetFinalBlocks().end());
+        
         IndividualParentBlock.Blocks.clear();
     }
-    Compressor.WriteBlocksString(OutputBlocks, Output, TagTable);
-    OutputBlocks.clear();
+    
 }
 
     //std::cout<<"\n \n Ouput: \n";
     
      //std::cout << "Z-merge: in=" << OutputBlocks.size()
           // << " out=" << Compressor.GetFinalBlocks().size() << "\n";
+    Compressor.WriteBlocksString(OutputBlocks, Output, TagTable);
+    OutputBlocks.clear();
 }
 
 

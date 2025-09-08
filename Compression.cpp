@@ -144,7 +144,6 @@ void Compression::WriteBlocks(std::vector<Block>& Blocks, std::ostringstream &Ou
 }
 
 void Compression::WriteBlocksString(std::vector<Block>& Blocks, std::ostringstream &Output, const std::string* TagTable) {
-  FormatSubmit(Blocks);
   
   std::string out;
   Block B;
