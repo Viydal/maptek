@@ -4,8 +4,7 @@ Parse::Parse() { XCount = YCount = ZCount = ParentX = ParentY = ParentZ = 0; }
 
 Parse::Parse(std::vector<std::string> Lines) {
     // Used for cahing RLE results
-    std::unordered_map<std::string, std::vector<std::pair<int,char>>> RleCache;
-    RleCache.reserve(4096);
+    
     //robin_hood::unordered_flat_map<std::string, std::vector<std::pair<int,char>>> RleCache;
     //used for splitting input using string stream 
     char Delimeter;
@@ -36,25 +35,26 @@ Parse::Parse(std::vector<std::string> Lines) {
         TagTable[static_cast<int>(Symbol)] = Location;
         Iterator++;
     }
-    std::unordered_map<std::string, std::vector<std::vector<Block>>> CompressionCache;
-    CompressionCache.reserve(4096);
-    
+
+    std::unordered_map<std::string, std::vector<Block>> CompressionCache2d;
+    CompressionCache2d.reserve(4096);
+    std::unordered_map<std::string, std::vector<Block>> CompressionCache3d;
+    CompressionCache3d.reserve(4096);
+    std::unordered_map<std::string, std::vector<std::pair<int,char>>> RleCache;
+    RleCache.reserve(4096);
 
     // Read the map information, separating layers by blank lines
     
     std::vector<Block> OutputBlocks;
 
-    int startX = 0;
-    int startY = 0;
-    int startZ = 0;
-    int NumParentBlocks = NumXBlocks * NumYBlocks * NumZBlocks;
+    int startX = 0, startY = 0, startZ = 0;
     int NumXYParentBlocks = NumXBlocks * NumYBlocks;
 
     Compression Compressor = Compression();
     std::ostringstream Output;
 
 
-    
+    cacheHit2d = 0, cacheHit3d = 0, cacheMiss2d = 0, cacheMiss3d = 0;
    
     std::vector<ParentBlock> ParentBlocks;
     ParentBlock IndividualParentBlock;
@@ -65,36 +65,64 @@ Parse::Parse(std::vector<std::string> Lines) {
         int startY = (j / NumXBlocks) * ParentY;
         int startZ = i * ParentZ;
 
+        // 3d cachce check
+        std::string MapKey3d;
+        MapKey3d.reserve(ParentX * ParentY * ParentZ);
+        for (int z = 0; z < ParentZ; z++){
+            for (int y = 0; y < ParentY; y++) {
+                int lineIdx =  Iterator + ((startZ + z) * (YCount + 1)) + startY + y;
+                MapKey3d += Lines[lineIdx].substr(startX, ParentX);
+            }
+        }
+
+        //std::cout<<MapKey3d<<"\n";
+        char first = MapKey3d[0];
+        if (MapKey3d.find_first_not_of(first) == std::string::npos) {
+            OutputBlocks.push_back({ startX, startY, startZ, ParentX, ParentY, ParentZ, first});
+            continue;
+        }
+
+        // auto it = CompressionCache3d.find(MapKey3d);
+        // if (it != CompressionCache3d.end()) {
+        //     cacheHit3d++;
+        //     for (Block CacheBlock : it->second) {
+        //         CacheBlock.XPos += startX;
+        //         CacheBlock.YPos += startY;
+        //         CacheBlock.ZPos += startZ;
+        //         OutputBlocks.push_back(CacheBlock);
+        //     }
+        // continue;
+        // }
+        //cacheMiss3d++;
+    // Otherwise compute from 2D slices
+        IndividualParentBlock.Blocks.clear();
         for (int localZ = 0; localZ < ParentZ; localZ++) {
-
-            std::string MapKey;
-            MapKey.reserve(ParentX * ParentY);
-
-            for (int y = 0; y < ParentY; ++y) {
-                const int lineIdx =  Iterator + (startZ + localZ) * (YCount + 1) + startY + y;
-                MapKey += Lines[lineIdx].substr(startX, ParentX);
+            std::string MapKey2d;
+            MapKey2d.reserve(ParentX * ParentY);
+            //2d cache check
+            //MapKey.reserve(ParentX * ParentY);
+            for (int y = 0; y < ParentY; y++) {
+                int lineIdx =  Iterator + (startZ + localZ) * (YCount + 1) + startY + y;
+                MapKey2d += Lines[lineIdx].substr(startX, ParentX);
             }
 
-            const char first = MapKey[0];
-            if (MapKey.find_first_not_of(first) == std::string::npos) {
-                IndividualParentBlock.Blocks.push_back({ startX, startY, startZ + localZ, ParentX, ParentY, 1, first});
+            char first = MapKey2d[0];
+            if (MapKey2d.find_first_not_of(first) == std::string::npos) {
+                IndividualParentBlock.Blocks.push_back({ 0, 0, localZ, ParentX, ParentY, 1, first });
                 continue;
             }
 
-            auto it = CompressionCache.find(MapKey);
-            if (it != CompressionCache.end()) {
-                auto Rows = it->second;
-                for (auto& Row : Rows) {
-                    for (Block Block : Row) {
-                        Block.XPos += startX;
-                        Block.YPos += startY;
-                        Block.ZPos = startZ + localZ;
-                        IndividualParentBlock.Blocks.push_back(Block);
-                    }
+            auto it = CompressionCache2d.find(MapKey2d);
+            if (it != CompressionCache2d.end()) {
+                //cacheHit2d++;
+                auto Blocks = it->second;
+                for (auto& Block : Blocks) {
+                    Block.ZPos = localZ;
+                    IndividualParentBlock.Blocks.push_back(Block);
                 }
                 continue;
             }
-
+            //cacheMiss2d++;
             std::vector<std::vector<Block>> ParentSlice(ParentY);
             for (int y = 0; y < ParentY; ++y) {
                 const int lineIndex = Iterator + (startZ + localZ) * (YCount + 1) + startY + y;
@@ -108,37 +136,36 @@ Parse::Parse(std::vector<std::string> Lines) {
             std::vector<Block> merged(all.begin() + prev, all.end());
             
             
-
-            
-            std::vector<std::vector<Block>> mergedRows;
-            mergedRows.push_back(merged);
-
-            CompressionCache.insert({MapKey, mergedRows});
+            CompressionCache2d.insert({MapKey2d, merged});
             
             Block NewBlock;
             for (int k = 0; k < merged.size(); k++) {
                 NewBlock = merged[k];
+                NewBlock.ZPos = localZ;
+                IndividualParentBlock.Blocks.push_back(NewBlock);
+            }
+        }
+        Compressor.MergeLayers(IndividualParentBlock.Blocks, ParentZ);
+        std::vector<Block> FinalLocal = Compressor.GetFinalBlocks();
+
+        //CompressionCache3d.insert({MapKey3d, FinalLocal});
+        Block NewBlock;
+        for (int k = 0; k < FinalLocal.size(); k++) {
+                NewBlock = FinalLocal[k];
                 NewBlock.XPos += startX;
                 NewBlock.YPos += startY;
                 NewBlock.ZPos += startZ;
-                IndividualParentBlock.Blocks.push_back(NewBlock);
+                OutputBlocks.push_back(NewBlock);
             }
-            
-        } 
-        Compressor.MergeLayers(IndividualParentBlock.Blocks, ParentZ);
-        OutputBlocks.insert(OutputBlocks.end(), Compressor.GetFinalBlocks().begin(), Compressor.GetFinalBlocks().end());
-        
-        IndividualParentBlock.Blocks.clear();
     }
     
 }
 
-    //std::cout<<"\n \n Ouput: \n";
+    // std::cout<<"\n \n Ouput: \n";
     
-     //std::cout << "Z-merge: in=" << OutputBlocks.size()
-          // << " out=" << Compressor.GetFinalBlocks().size() << "\n";
+    //  std::cout << "Z-merge: in=" << OutputBlocks.size()
+    //       << " out=" << Compressor.GetFinalBlocks().size() << "\n";
     Compressor.WriteBlocksString(OutputBlocks, Output, TagTable);
-    OutputBlocks.clear();
 }
 
 
@@ -201,11 +228,11 @@ void Parse::RLERow(char* XBlockString, std::vector<Block> *RowBlocks, std::unord
     RowBlocks->push_back({StartX, RowNum, LayerNum, Counter, 1, 1, PrevChar});
     Runs.push_back({Counter, PrevChar});
     
-    if (RleCache->size() > 4096){
-        RleCache->clear();
-        RleCache->reserve(4096);
-        RleCache->rehash(4096);
-    }
+    // if (RleCache->size() > 4096){
+    //     RleCache->clear();
+    //     RleCache->reserve(4096);
+    //     RleCache->rehash(4096);
+    // }
     RleCache->insert({XBlockString, Runs});
     
 }

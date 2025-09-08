@@ -103,7 +103,8 @@ void Compression::MergeRows(std::vector<Block> &OutputStack, std::vector<Block> 
         goto NEXTBLOCK;
 
         // Case 2: Relaxed merge
-      } else if (TryRelaxedMerge(EBlock, NewB, ParentY, Cr, OutputStack)) {
+      } 
+      else if (TryRelaxedMerge(EBlock, NewB, ParentY, Cr, OutputStack)) {
               //std::cout << "Relaxed merging block at (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
               BlockStack[StackPointer] = EBlock;
               MergedFlag = true;
@@ -111,8 +112,8 @@ void Compression::MergeRows(std::vector<Block> &OutputStack, std::vector<Block> 
               NewBPos--;
               goto NEXTBLOCK;
           } else {
-            //std::cout << "No Merging (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
-          }
+         //std::cout << "No Merging (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
+      }
     } //else {std::cout << "No Merging (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";}
     }
     NEXTBLOCK:
@@ -177,7 +178,6 @@ void Compression::FormatSubmit(std::vector<Block> &OutputBlocks) {
 }
 
 void Compression::MergeLayers(std::vector<Block>& Blocks, int ParentZ) {
-  if (Blocks.empty()) return;
   
   // Sort all blocks by position (X, Y, then Z)
   std::sort(Blocks.begin(), Blocks.end(), [](const Block& a, const Block& b) {
@@ -210,14 +210,8 @@ void Compression::MergeLayers(std::vector<Block>& Blocks, int ParentZ) {
       int TotalZSize = Current.ZSize + Next.ZSize;
       int MergedEndZ = (Current.ZPos % ParentZ) + TotalZSize;
 
-      // Check if merged size fits within parent
-      if (MergedEndZ <= ParentZ) {
-        // Merge blocks
-        Current.ZSize = TotalZSize;
-        i++; // Skip the merged block
-      } else {
-        break; // Can't merge without exceeding parent size
-      }
+      Current.ZSize = TotalZSize;
+      i++;
     }
     FinalBlocks.push_back(Current);
   }

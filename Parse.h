@@ -9,7 +9,7 @@
 #include "robin_hood.h"
 #include "Compression.h"
 #include "ParentBlock.h"
-//#include <omp.h>
+#include <omp.h>
 
 class Parse {
 public:
@@ -18,7 +18,7 @@ public:
   std::vector<std::vector<std::vector<Block>>> XBlocks;
   std::vector<std::vector<std::string>> MapInformation;
   int NumXBlocks, NumYBlocks, NumZBlocks;
-
+  int cacheHit2d, cacheMiss2d, cacheHit3d, cacheMiss3d;
 public:
   Parse();
   Parse(std::vector<std::string> Line);
