@@ -24,16 +24,14 @@ void Test::reconstructOutputParse() {
             for (int yy = y; yy < y + h; ++yy) {
                 for (int xx = x; xx < x + w; ++xx) {
                     if(OutputMapExpanded[zz][yy][xx] != ' ') {
-                        std::cout << "Error: overlapping blocks at (" << xx << "," << yy << "," << zz << ")\n";
-                        std::cout << line << "\n";
-                        exit(0);
+                        std::cout << "Error: overlapping blocks at (" << xx << "," << yy << "," << zz << ")" << std::endl;
+                        std::cout << line << std::endl << OutputMapExpanded[zz][yy][xx] << std::endl;
                     }
                     OutputMapExpanded[zz][yy][xx] = codeChar;
                 }
             }
         }
     }
-
     // Convert expanded rows back into RLE for OutputParse
     OutputParse.MapInformation.resize(InputParse.ZCount);
     for (size_t z = 0; z < InputParse.ZCount; ++z) {

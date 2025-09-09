@@ -1,45 +1,112 @@
+#include "Tester.h"
 #include "Compression.h"
 #include "Parse.h"
 #include <iostream>
-#include <string>
+#include <fstream>
+#include <sstream>
+#include <vector>
+#include <chrono>
 
-int main() {
-
-    std::ios::sync_with_stdio(false);
+int main(int argc, char* argv[]) {
+std::ios::sync_with_stdio(false);
     std::cin.tie(nullptr);
-    std::string Line;
-    std::vector<std::string> Lines;
 
-    while(std::getline(std::cin, Line)) {
-        Lines.push_back(Line);
+    Args Args;
+    // --- Parse args ---
+    for (int i = 1; i < argc; ++i) {
+        std::string arg = argv[i];
+        if (arg == "-f" && i + 1 < argc) {
+            Args.readFile = true;
+            Args.filePath = argv[++i];
+        } else if (arg == "-t" || arg == "-ta") {
+            Args.TestingMode = true;
+            Args.TestAll = (arg == "-ta");
+        } else if (arg == "-v"){
+            if(i + 1 < argc && isdigit(argv[i + 1][0])) {
+                Args.verboseLevel = std::stoi(argv[++i]);
+                Args.verbose = true;
+            } else {
+                Args.verbose = true;
+                Args.verboseLevel = 1;
+            }
+        } else {
+            std::cerr << "Unknown or invalid argument: " << arg << "\n";
+            return 1;
+        }
     }
-
-    Parse Parser = Parse(Lines);
-    int Iterator;
-    Parser.ParseHeader();
-    Parser.ParseMap();
-
-    /*
-    Compression Compressor = Compression();
-
-    std::string* AllMappings = Parser.TagTable;
-
-    std::vector<std::vector<std::vector<Block>>> XBlocks = Parser.XBlocks;
-    std::ostringstream Output;
-
-    // Go through each block 
-    for (size_t z = 0; z < XBlocks.size(); z++) {
-        Compressor.ProcessLayer(XBlocks[z], Parser.ParentX, Parser.ParentY, Parser.ParentZ, z, Output, AllMappings);
+    if (Args.TestingMode) {
+        cout << "Testing mode enabled." << endl;
+        if (Args.TestAll) {
+            std::cout << "Running all tests in TestCases/ directory.\n";
+        }
+    // Implement testing mode logic here
     }
-    // If the blocks can e greater than 1 layer in depth
+    if (Args.readFile) {
+        cout << "Reading file: " << Args.filePath << endl;
+    // Implement file reading logic here
+    }
+    if (Args.verbose) {
+        cout << "Verbose output enabled." << endl;
+    // Implement verbose output logic here
+    }
     
-    if (Parser.ParentZ != 1) {
-        Compressor.MergeLayers(Compressor.GetBlocks(), Parser.ParentZ);
-        Compressor.WriteBlocks(Compressor.GetFinalBlocks(), Output, AllMappings);
-    } else { // Otherwise print the blocks
-        Compressor.WriteBlocks(Compressor.GetBlocks(), Output, AllMappings);
+    // --- TESTING MODE ---
+    if (Args.TestingMode) {
+        if (Args.TestAll) {
+            Tester::RunAllTests(Args);
+        } else {
+            
+            if (!Args.readFile) {
+                std::cerr << "Error: -t requires a file (-f <file>) or use -ta\n";
+                return 1;
+            }
+            Tester::RunTest(Args);
+        }
+        return 0;
     }
-    */
-    //Compressor.WriteBlocks(Compressor.GetBlocks(), Output, AllMappings);
-    //std::cout << Output.str();
+
+    // --- NORMAL MODE ---
+    std::vector<std::string> InitLines;
+    std::string line;
+
+    if (Args.readFile) {
+        std::ifstream infile("TestCases/" + Args.filePath);
+        if (!infile) {
+            std::cerr << "Error: could not open " << Args.filePath << "\n";
+            return 1;
+        }
+        while (std::getline(infile, line)) {
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            InitLines.push_back(line);
+        }
+        infile.close();
+    } else {
+        // No flags: read from stdin
+        while (std::getline(std::cin, line)) {
+            if (!line.empty() && line.back() == '\r') line.pop_back();
+            InitLines.push_back(line);
+        }
+    }
+    auto start = std::chrono::high_resolution_clock::now();
+
+    Parse Parser = Parse(InitLines);
+
+    std::vector<ParentBlock> ParentBlocks = Parser.OutputBlocks;
+    
+
+    Compression Compressor = Compression();
+    std::string* AllMappings = Parser.TagTable;
+    for (ParentBlock &PB : ParentBlocks){
+        Compressor.CompressParentBlock(PB);
+    }
+
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+
+    if (Args.verbose) {
+        std::cout << "Compression done in " << elapsed.count() << " seconds.\n";
+    }
+
+    std::cout << Parser.CollectOutput(ParentBlocks);
+
 }

@@ -1,8 +1,10 @@
 #include "Parse.h"
-#include "ParentBlock.h"
  
-Parse::Parse(std::vector<std::string>& Lines) {
-    Parse::Lines = Lines;
+Parse::Parse(const std::vector<std::string>& Lines) {
+    this->Lines = Lines;
+    ParseHeader();
+    ParseMap();
+
 }
 
 
@@ -52,38 +54,38 @@ void Parse::ParseMap(){
     
     Compression Compressor = Compression();
     std::ostringstream Output;
-    std::vector<Block> OutputBlocks;
     OutputBlocks.reserve(NumXBlocks * NumYBlocks * NumZBlocks);
     startX = 0, startY = 0, startZ = 0;
     
     for (int i = 0; i < NumZBlocks; i++) {
-    for (int j = 0; j < NumXBlocks * NumYBlocks; j++) {
-        startX = (j % NumXBlocks) * ParentX;
-        startY = (j / NumXBlocks) * ParentY;
-        startZ = i * ParentZ;
+        for (int j = 0; j < NumXBlocks * NumYBlocks; j++) {
+            startX = (j % NumXBlocks) * ParentX;
+            startY = (j / NumXBlocks) * ParentY;
+            startZ = i * ParentZ;
 
-        ParentBlock IndividualParentBlock;
+        
         // Create a key for caching a parent block by concatenating its input lines into a large string
         std::string MapKey3d;
         Create3dKey(MapKey3d);
 
         // check if the entire string is uniform and skip compressing if so
         if (UniformCheck(MapKey3d)){
-            OutputBlocks.push_back({ startX, startY, startZ, ParentX, ParentY, ParentZ, MapKey3d[0]});
+            OutputBlocks.push_back({startX, startY, startZ, ParentX, ParentY, ParentZ, MapKey3d[0]});
             continue; // move onto next parent block
         }
 
         // check if the parent block is in the cache and skip compressing if so
         auto it = CompressionCache3d.find(MapKey3d);
         if (it != CompressionCache3d.end()) {
-            for (Block CacheBlock : it->second) {
-                CacheBlock.XPos += startX;
-                CacheBlock.YPos += startY;
-                CacheBlock.ZPos += startZ;
-                OutputBlocks.push_back(CacheBlock);
-            }
+            OutputBlocks.push_back(it->second);
+            OutputBlocks.back().StartX = startX;
+            OutputBlocks.back().StartY = startY;
+            OutputBlocks.back().StartZ = startZ;
             continue; //move onto next parent block
         }
+
+        ParentBlock IndividualParentBlock(startX, startY, startZ, ParentX, ParentY, ParentZ);
+
 
         // Try to compress the Parent X by Parent Y by 1 slices
         // There are ParentZ no. of slices in each parent block
@@ -94,9 +96,11 @@ void Parse::ParseMap(){
 
             // check if the entire string is uniform and skip compressing if so
             if (UniformCheck(MapKey2d)){
-                IndividualParentBlock.Blocks.push_back({ 0, 0, localZ, ParentX, ParentY, 1, MapKey2d[0]});
+                IndividualParentBlock.Blocks.push_back({0, 0, localZ, ParentX, ParentY, 1, MapKey2d[0]});
                 continue;// move onto next slice
             }
+
+
 
             // check if the slice is in the cache and 2d skip compressing if so
             auto it = CompressionCache2d.find(MapKey2d);
@@ -111,55 +115,75 @@ void Parse::ParseMap(){
 
             //None of the shortcuts have worked, X then XY then XYZ compression will take place
             //Perfrom X compression on the slice using rle
-            std::vector<std::vector<Block>> ParentSlice(ParentY);
+            std::vector<Block> ParentSlice;
             for (int Y = 0; Y < ParentY; Y++) {
                 int XBlockStart = Y * ParentX;
                 std::string Row = MapKey2d.substr(XBlockStart, ParentX);
                 if (UniformCheck(Row)){
-                    ParentSlice[Y].push_back({0, Y, localZ, ParentX, 1, 1, Row[0]});
+                    ParentSlice.push_back({0, Y, localZ, ParentX, 1, 1, Row[0]});
                     continue;
                 }
-                
-                RLERow(&Row[0],&ParentSlice[Y], &RleCache,0, Y, localZ);
+                RLERow(&Row[0],&ParentSlice, &RleCache,0, Y, localZ);
             }
-
-            // Perform 2d Compression on the newly X compressed Parent Slice
-            // Silly code with getblocks() is to retrieve the answer as
-            // process layer was not built to return the answer per block
-            const size_t Prev = Compressor.GetBlocksSize();
-            Compressor.ProcessLayer(ParentSlice, ParentX, ParentY, ParentZ, localZ, Output, TagTable);
-            std::vector<Block>& All = Compressor.GetBlocks();
-            std::vector<Block> Merged(All.begin() + Prev, All.end());
+            IndividualParentBlock.Blocks.insert(IndividualParentBlock.Blocks.end(), ParentSlice.begin(), ParentSlice.end());
 
             // Add newly computed Parent Slice compression to the cache
-            CompressionCache2d.insert({MapKey2d, Merged});
+            CompressionCache2d.insert({MapKey2d, ParentSlice});
 
-            IndividualParentBlock.Blocks.reserve(IndividualParentBlock.Blocks.size() + Merged.size());
-            IndividualParentBlock.Blocks.insert(IndividualParentBlock.Blocks.end(), Merged.begin(), Merged.end());
-        }
+            }
+            // the saved answer is stored in the cache
+            CompressionCache3d.insert({MapKey3d, IndividualParentBlock.Blocks});
 
-        // The merged slices are sent to 3d compression and there answer is saved
-        Compressor.MergeLayers(IndividualParentBlock.Blocks, ParentZ);
-        std::vector<Block> FinalLocal = Compressor.GetFinalBlocks();
-        IndividualParentBlock.Blocks.clear();
-        // the saved answer is stored in the cache
-        //CompressionCache3d.insert({MapKey3d, FinalLocal});
-
-        //Block coordinates are updated from relative to absolute
-        Block NewBlock;
-        for (int k = 0; k < FinalLocal.size(); k++) {
-                NewBlock = FinalLocal[k];
-                NewBlock.XPos += startX;
-                NewBlock.YPos += startY;
-                NewBlock.ZPos += startZ;
-                OutputBlocks.push_back(NewBlock); //blocks placed in output
-        }
-        // The process will now repeat
-    }
+            OutputBlocks.push_back(IndividualParentBlock);
+            // The process will now repeat
+            }
 }
-    Compressor.WriteBlocksString(OutputBlocks, TagTable);
+    
     return;
 }
+
+
+std::string Parse::CollectOutput(std::vector<ParentBlock> ParentBlocks) {
+    std::string Output;
+    for (ParentBlock &PB : ParentBlocks){
+        Output += PB.WriteBlock(TagTable);
+    }
+    return Output;
+}
+
+
+/*
+// Perform 2d Compression on the newly X compressed Parent Slice
+// Silly code with getblocks() is to retrieve the answer as
+// process layer was not built to return the answer per block
+const size_t Prev = Compressor.GetBlocksSize();
+Compressor.ProcessLayer(ParentSlice, ParentX, ParentY, ParentZ, localZ, Output, TagTable);
+std::vector<Block>& All = Compressor.GetBlocks();
+std::vector<Block> Merged(All.begin() + Prev, All.end());
+
+
+
+IndividualParentBlock.Blocks.reserve(IndividualParentBlock.Blocks.size() + Merged.size());
+IndividualParentBlock.Blocks.insert(IndividualParentBlock.Blocks.end(), Merged.begin(), Merged.end());
+}
+
+// The merged slices are sent to 3d compression and there answer is saved
+Compressor.MergeLayers(IndividualParentBlock.Blocks, ParentZ);
+std::vector<Block> FinalLocal = Compressor.GetFinalBlocks();
+IndividualParentBlock.Blocks.clear();
+// the saved answer is stored in the cache
+//CompressionCache3d.insert({MapKey3d, FinalLocal});
+
+//Block coordinates are updated from relative to absolute
+Block NewBlock;
+for (int k = 0; k < FinalLocal.size(); k++) {
+NewBlock = FinalLocal[k];
+NewBlock.XPos += startX;
+NewBlock.YPos += startY;
+NewBlock.ZPos += startZ;
+OutputBlocks.push_back(NewBlock); //blocks placed in output
+*/
+
 
 void Parse::Create3dKey(std::string& Key3d){
     Key3d.reserve(ParentX * ParentY * ParentZ);
@@ -230,9 +254,8 @@ void Parse::RLERow(char* BlockString, std::vector<Block> *RowBlocks, std::unorde
     int Counter = 1;
     char CurrChar;
     char PrevChar = BlockString[0];
-    int len = std::min(ParentX, XCount - StartX);
 
-    for (size_t i = 1; i < len; i++) {
+    for (size_t i = 1; i < ParentX; i++) {
         CurrChar = BlockString[i];
         if (CurrChar == PrevChar) {
             Counter++;

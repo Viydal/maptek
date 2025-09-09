@@ -6,7 +6,7 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "Block.h"
+#include "Helpers.h"
 
 class Compression {
 public:
@@ -15,9 +15,9 @@ public:
   std::vector<Block> FinalBlocks;
 
   Compression();
-  
+  void CompressParentBlock(ParentBlock &ParentBlock);
   void ProcessLayer(std::vector<std::vector<Block>> &Rows, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable);
-  void ProcessLayerSort(std::vector<Block> &Blocks, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable);
+  void ProcessLayerSort(std::vector<Block> &Blocks, int ParentX, int ParentY, int ParentZ);
   void MergeRows(std::vector<Block> &OutputStack, std::vector<Block> &Cr, std::vector<Block> &BlockStack, int ParentY);
   bool TryRelaxedMerge(Block& prev, Block& curr, int ParentY, std::vector<Block>& BlockStack, std::vector<Block>& OutputStack);
 
@@ -25,7 +25,6 @@ public:
   void MergeLayers(std::vector<Block>& Blocks, int ParentZ);
   bool TryRelaxedLayer(Block& prev, Block& curr, int ParentZ);
 
-  void WriteBlocksString(std::vector<Block>& Blocks, const std::string*TagTable);
   std::vector<Block>& GetBlocks();
   size_t GetBlocksSize();
   std::vector<Block>& GetFinalBlocks();

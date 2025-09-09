@@ -5,10 +5,8 @@
 #include <string>
 #include <unordered_map>
 #include <vector>
-#include "Block.h"
-#include "robin_hood.h"
+#include "Helpers.h"
 #include "Compression.h"
-#include "ParentBlock.h"
 //#include <omp.h>
 
 class Parse {
@@ -20,8 +18,10 @@ public:
   std::string TagTable[256];
   std::vector<std::string> Lines;
   std::vector<std::vector<std::string>> MapInformation;
+  std::vector<ParentBlock> OutputBlocks;
 public:
-  Parse(std::vector<std::string>& Lines);
+  Parse() {};
+  Parse(const std::vector<std::string>& Lines);
   
   
   int ParseHeader();
@@ -36,6 +36,7 @@ public:
 
   std::vector<std::vector<std::string>> GetMap() {return MapInformation;};
   std::string * GetTagTable() {return TagTable;};
+  std::string CollectOutput(std::vector<ParentBlock> ParentBlocks);
 };
 
 #endif
