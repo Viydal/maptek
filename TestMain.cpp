@@ -85,7 +85,6 @@ int main(int argc, char* argv[]) {
     */
     // --- Report results ---
     //std::cout << "| Test Success | " << match << " || Compression Time | " << elapsed.count() << " seconds" << " || Compression % | " << compressionPercent << "% |\n";
-    std::cout << "Compression Time | " << elapsed.count() << " seconds \n" << " 3d Cache hit " << Parser.cacheHit3d << " 3d Cache Miss " << Parser.cacheMiss3d << " 2d Cache hit " << 
-    Parser.cacheHit2d << " 2d Cache Miss " << Parser.cacheMiss2d <<"\n";
+    std::cout << "Compression Time | " << elapsed.count() << " seconds \n" ;
     return 0;
 }

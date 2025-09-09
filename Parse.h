@@ -14,20 +14,28 @@
 class Parse {
 public:
   int XCount, YCount, ZCount, ParentX, ParentY, ParentZ;
-  std::string TagTable[256];
-  std::vector<std::vector<std::vector<Block>>> XBlocks;
-  std::vector<std::vector<std::string>> MapInformation;
+  int startX, startY, startZ;
+  int Iterator;
   int NumXBlocks, NumYBlocks, NumZBlocks;
-  int cacheHit2d, cacheMiss2d, cacheHit3d, cacheMiss3d;
+  std::string TagTable[256];
+  std::vector<std::string> Lines;
+  std::vector<std::vector<std::string>> MapInformation;
 public:
-  Parse();
-  Parse(std::vector<std::string> Line);
+  Parse(std::vector<std::string>& Lines);
   
-  bool CheckCache();
-  std::string * GetTagTable() {return TagTable;};
+  
+  int ParseHeader();
+  void ParseMap();
+
   std::string TestRLERow(std::string Row);
-  void RLERow(char* XBlockString, std::vector<Block> *RowBlocks,std::unordered_map<std::string, std::vector<std::pair<int,char>>> *DP,int StartX, int RowNum, int LayerNum);
+  void RLERow(char* XBlockString, std::vector<Block> *RowBlocks, std::unordered_map<std::string, std::vector<std::pair<int,char>>> *DP,int StartX, int RowNum, int LayerNum);
+
+  void Create3dKey(std::string& Key3d);
+  void Create2dKey(std::string& Key2d, int localZ);
+  bool UniformKeyCheck(std::string& Key);
+
   std::vector<std::vector<std::string>> GetMap() {return MapInformation;};
+  std::string * GetTagTable() {return TagTable;};
 };
 
 #endif

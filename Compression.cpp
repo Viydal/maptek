@@ -132,19 +132,8 @@ void Compression::MergeRows(std::vector<Block> &OutputStack, std::vector<Block> 
     BlockStack.push_back(block);
   }
 }
-void Compression::FormatOutput(std::ostringstream &Output, int XPos, int RowNum, int LayerNum, int NumX, int NumY, int NumZ, char Ch, const std::string* TagTable) {
-  Output << XPos << "," << RowNum << "," << LayerNum << "," << NumX << "," << NumY << "," << NumZ << "," << TagTable[Ch] << "\n";
-  return;
-}
 
-void Compression::WriteBlocks(std::vector<Block>& Blocks, std::ostringstream &Output, const std::string* TagTable) {
-  FormatSubmit(Blocks);
-  for (const auto &B : Blocks) {
-    FormatOutput(Output, B.XPos, B.YPos, B.ZPos, B.XSize, B.YSize, B.ZSize, B.Ch, TagTable);
-  }
-}
-
-void Compression::WriteBlocksString(std::vector<Block>& Blocks, std::ostringstream &Output, const std::string* TagTable) {
+void Compression::WriteBlocksString(std::vector<Block>& Blocks, const std::string* TagTable) {
   
   std::string out;
   Block B;
@@ -167,14 +156,6 @@ void Compression::WriteBlocksString(std::vector<Block>& Blocks, std::ostringstre
     //FormatOutput(Output, B.XPos, B.YPos, B.ZPos, B.XSize, B.YSize, B.ZSize, B.Ch, TagTable);
   }
   std::cout<<out;
-}
-
-void Compression::FormatSubmit(std::vector<Block> &OutputBlocks) {
-  std::sort(OutputBlocks.begin(), OutputBlocks.end(), [](const Block& a, const Block& b) {
-    if (a.ZPos != b.ZPos) return a.ZPos < b.ZPos;  // Sort Z axis (first)
-    if (a.YPos != b.YPos) return a.YPos < b.YPos;  // Sort Y axis (second)
-    return a.XPos < b.XPos;  // Sort X axis (third)
-  });
 }
 
 void Compression::MergeLayers(std::vector<Block>& Blocks, int ParentZ) {
@@ -290,19 +271,17 @@ bool Compression::TryRelaxedLayerMerge(Block& Current, Block& Next, int ParentZ,
   return true;
 }
 
-
-void Compression::ProcessLayer(const std::vector<std::vector<Block>> &Rows, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable) {
+void Compression::ProcessLayer(std::vector<std::vector<Block>> &Rows, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable) {
   std::vector<Block> OutputBlocks; // merged blocks for Current ParentY group
   std::vector<Block> BlockStack;
   int Height = (int)Rows.size();
-
   // Iterate bottom -> top
   for (int RowNum = 0; RowNum < Height; RowNum++) {
     int YPos = RowNum; // bottom = 0
     std::vector<Block> CurrRow = Rows[YPos];
-    //std::cout<<"Merging Rows... \n";
+
     MergeRows(OutputBlocks, CurrRow, BlockStack, ParentY);
-    
+
     // If we've completed a ParentY block or hit the last row, flush
     if ((RowNum + 1) % ParentY == 0 || RowNum == Height - 1) {
       //std::cout << "\n Clearing Blockstack and writing output\n\n";
@@ -313,6 +292,42 @@ void Compression::ProcessLayer(const std::vector<std::vector<Block>> &Rows, int 
       BlockStack.clear();
     }
   }
+}
+
+void Compression::ProcessLayerSort(std::vector<Block> &Blocks, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable) {
+
+    std::sort(Blocks.begin(), Blocks.end(),[](const Block& a, const Block& b) {
+      if (a.XPos  != b.XPos)  return a.XPos  < b.XPos;
+      if (a.ZPos  != b.ZPos)  return a.ZPos  < b.ZPos;
+      if (a.Ch    != b.Ch)    return a.Ch    < b.Ch;
+      return a.YPos < b.YPos;
+    });
+    std::vector<Block> Result;
+    for (size_t i = 0; i < Blocks.size(); i++) {
+        Block Current = Blocks[i];
+   
+        while (i + 1 < Blocks.size()) {
+          const Block& Next = Blocks[i + 1];
+          bool canMerge = Current.Ch == Next.Ch && Current.XPos == Next.XPos && 
+          Current.XSize == Next.XSize && Current.ZPos == Next.ZPos && 
+          ((Current.YPos / ParentY) == (Next.YPos / ParentY)) && (Next.YPos == Current.YPos + Current.YSize);
+
+          if (!canMerge) break;
+
+          int TotalYSize = Current.YSize + Next.YSize;
+          int MergedEndY = (Current.YPos % ParentY) + TotalYSize;
+
+          if (MergedEndY <= ParentY) {
+              Current.YSize = TotalYSize;
+              i++;
+          } else {
+            std::cout<<"HOW IS THIS POSSIBLE \n";
+              break;
+          }
+        }
+        Result.push_back(Current);
+    }
+    Blocks = Result;
 }
 
 std::vector<Block>& Compression::GetBlocks(){

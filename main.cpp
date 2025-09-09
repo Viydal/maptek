@@ -15,6 +15,10 @@ int main() {
     }
 
     Parse Parser = Parse(Lines);
+    int Iterator;
+    Parser.ParseHeader();
+    Parser.ParseMap();
+
     /*
     Compression Compressor = Compression();
 
