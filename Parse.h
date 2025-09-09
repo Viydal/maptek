@@ -9,7 +9,7 @@
 #include "robin_hood.h"
 #include "Compression.h"
 #include "ParentBlock.h"
-#include <omp.h>
+//#include <omp.h>
 
 class Parse {
 public:
@@ -32,7 +32,7 @@ public:
 
   void Create3dKey(std::string& Key3d);
   void Create2dKey(std::string& Key2d, int localZ);
-  bool UniformKeyCheck(std::string& Key);
+  bool UniformCheck(std::string& Key);
 
   std::vector<std::vector<std::string>> GetMap() {return MapInformation;};
   std::string * GetTagTable() {return TagTable;};

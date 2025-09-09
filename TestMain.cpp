@@ -31,6 +31,9 @@ int main(int argc, char* argv[]) {
     std::cout << "Compressing...\n";
     auto start = std::chrono::high_resolution_clock::now();
     Parse Parser(Lines);
+    Parser.ParseHeader();
+    Parser.ParseMap();
+
     //Compression Compressor;
     std::ostringstream Output;
     //auto Map = Parser.XBlocks;
