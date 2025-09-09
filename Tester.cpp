@@ -117,9 +117,14 @@ bool Tester::RunTest(Args args) {
     // Verbose level 1: show full per-test output
     if (args.verbose && args.verboseLevel >= 2) {
         std::cout << "\n--- TEST: " << args.filePath << " ---\n";
-        myTest.printInputParse();
-        myTest.printOutputParse();
-        myTest.printOutputBlocks();
+        
+        myTest.printOutputLines();
+        
+        if(args.verbose && args.verboseLevel >= 3) {
+            std::cout << "-----INPUT V OUTPUT----- \n";
+            myTest.printInputParse();
+            myTest.printOutputParse();
+        }
 
         
     }
