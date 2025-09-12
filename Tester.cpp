@@ -99,7 +99,7 @@ bool Tester::RunTest(Args args) {
 
         
     }
-    std::cout << "| Test Success | " << match
+    std::cout << "| Test Outcome: | " << (match ? "Sucess" : "Failure")
                 << " || Time | " << elapsed.count() << "s"
                 << " || Compression % | " << compressionPercent << "% |\n";
     return match;
