@@ -1,6 +1,6 @@
 # To compile main
 main:
-	g++ -std=c++17 -O3 -march=native -flto -static -fno-exceptions -fno-rtti Compression.cpp Parse.cpp Test.cpp main.cpp Tester.cpp -o main.exe
+	g++ -std=c++17 -O3 -march=native -flto -static -fno-exceptions -fno-rtti Compression.cpp Parse.cpp Test.cpp main.cpp Tester.cpp -o main.exe -g
 
 # For wsl to compile main
 submit:

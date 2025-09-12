@@ -77,6 +77,9 @@ public:
         reconstructOutputParse();
     }
 
+    // Constructor for generation-only
+    Test(const std::string &dimsLine);
+
     // Convert output lines (rectangles) into a Parse object
     void reconstructOutputParse();
 
@@ -94,6 +97,10 @@ public:
     void printOutputLines();
 
     void printOutputBlocks();
+
+    void MakeTest();
+
+    void saveTestCase();
 };
 
 #endif
