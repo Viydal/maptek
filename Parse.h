@@ -9,6 +9,7 @@
 #include "Compression.h"
 //#include <omp.h>
 
+
 class Parse {
 public:
   int XCount, YCount, ZCount, ParentX, ParentY, ParentZ;

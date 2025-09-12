@@ -9,6 +9,7 @@
 
 int main(int argc, char* argv[]) {
 std::ios::sync_with_stdio(false);
+
     std::cin.tie(nullptr);
 
     Args Args;
@@ -49,13 +50,13 @@ std::ios::sync_with_stdio(false);
         cout << "Verbose output enabled." << endl;
     // Implement verbose output logic here
     }
-    
+  
     // --- TESTING MODE ---
     if (Args.TestingMode) {
         if (Args.TestAll) {
             Tester::RunAllTests(Args);
         } else {
-            
+
             if (!Args.readFile) {
                 std::cerr << "Error: -t requires a file (-f <file>) or use -ta\n";
                 return 1;
@@ -110,3 +111,4 @@ std::ios::sync_with_stdio(false);
     std::cout << Parser.CollectOutput(ParentBlocks);
 
 }
+

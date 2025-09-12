@@ -18,6 +18,7 @@ bool Tester::RunTest(Args args) {
         std::cerr << "Error: could not open " << args.filePath << "\n";
         return false;
     }
+
     std::vector<std::string> InitLines;
     std::string line;
     auto TotalStart = chrono::high_resolution_clock::now();
@@ -36,6 +37,7 @@ bool Tester::RunTest(Args args) {
             elapsed = chrono::high_resolution_clock::now() - TotalStart;
             cout << "Parsing done in " << elapsed.count() << " seconds." << std::endl;
             cout << "\n--- COMPRESSING --- " << std::endl;
+            start = chrono::high_resolution_clock::now();
         }
 
     for(ParentBlock &PB : ParentBlocks){
@@ -69,6 +71,7 @@ bool Tester::RunTest(Args args) {
         if (!line.empty())
             outputLines.push_back(line);
     }
+
     // Compare input/output
     Test myTest(InitLines, outputLines);
     bool match = myTest.compareInputOutput();
@@ -161,3 +164,4 @@ void Tester::RunAllTests(Args args) {
         }
     }
 }
+

@@ -8,6 +8,19 @@ void Compression::CompressParentBlock(ParentBlock &ParentBlock) {
 	MergeLayers(ParentBlock.Blocks, ParentBlock.LimitZ);
 }
 
+/**
+ * TryRelaxedMerge
+ * ---------------
+ * Attempts to merge two blocks (prev and curr) that overlap horizontally
+ * but are not perfectly aligned. Allows "relaxed merging" if:
+ *  - Both blocks share the same character, Z, and ParentY group
+ *  - They overlap by at least half of prev's width
+ *  - Only one "side trimming" occurs (no double trims)
+ * 
+ * Leftover pieces are pushed either to OutputStack (prev leftovers)
+ * or BlockStack (curr leftovers).
+ */
+
 bool Compression::TryRelaxedMerge(Block& prev, Block& curr, int ParentY, std::vector<Block>& BlockStack, std::vector<Block>& OutputStack) {
     // Rule 0: must be same "row group"
     if ((prev.YPos / ParentY) != (curr.YPos / ParentY)) return false;
@@ -68,6 +81,18 @@ bool Compression::TryRelaxedMerge(Block& prev, Block& curr, int ParentY, std::ve
     return true;
 }
 
+/**
+ * MergeRows
+ * ---------
+ * Attempts to merge blocks across rows (vertical merging).
+ * 
+ * Rules:
+ *  1. Perfect merge: same X range, same label, same Z, directly stacked
+ *  2. Relaxed merge: allow partial X overlap with TryRelaxedMerge
+ * 
+ * Blocks that cannot merge are flushed to OutputStack.
+ */
+
 void Compression::MergeRows(std::vector<Block> &OutputStack, std::vector<Block> &Cr, std::vector<Block> &BlockStack, int ParentY) {
   bool MergedFlag = false;
   Block EBlock;
@@ -106,8 +131,7 @@ void Compression::MergeRows(std::vector<Block> &OutputStack, std::vector<Block> 
         goto NEXTBLOCK;
 
         // Case 2: Relaxed merge
-      } 
-      else if (TryRelaxedMerge(EBlock, NewB, ParentY, Cr, OutputStack)) {
+      } else if (TryRelaxedMerge(EBlock, NewB, ParentY, Cr, OutputStack)) {
               //std::cout << "Relaxed merging block at (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
               BlockStack[StackPointer] = EBlock;
               MergedFlag = true;
@@ -136,6 +160,15 @@ void Compression::MergeRows(std::vector<Block> &OutputStack, std::vector<Block> 
   }
 }
 
+/**
+ * MergeLayers
+ * -----------
+ * Attempts to merge blocks vertically along the Z axis.
+ * Blocks can merge if they:
+ *   - Have identical X, Y, size, and Ch
+ *   - Are adjacent in Z
+ *   - Do not exceed ParentZ boundaries
+ */
 void Compression::MergeLayers(std::vector<Block>& Blocks, int ParentZ) {
   
   // Sort all blocks by position (X, Y, then Z)
@@ -144,6 +177,7 @@ void Compression::MergeLayers(std::vector<Block>& Blocks, int ParentZ) {
     if (a.YPos != b.YPos) return a.YPos < b.YPos;
     if (a.Ch != b.Ch) return a.Ch < b.Ch;
     return a.ZPos < b.ZPos;
+
   });
   
   for (size_t i = 0; i < Blocks.size(); i++) {
@@ -162,7 +196,6 @@ void Compression::MergeLayers(std::vector<Block>& Blocks, int ParentZ) {
                       Current.ZPos + Current.ZSize == Next.ZPos);
       
       if (!canMerge) break;
-
       // int TotalZSize = Current.ZSize + Next.ZSize;
       Current.ZSize += Next.ZSize;
       ////Blocks.erase(Blocks.begin()+i+1);
@@ -244,6 +277,14 @@ bool Compression::TryRelaxedLayerMerge(Block& Current, Block& Next, int ParentZ,
   return true;
 }
 
+/**
+ * ProcessLayer
+ * ------------
+ * Processes a full 2D layer (vector of rows).
+ * Merges rows into vertical ParentY-aligned blocks,
+ * then flushes completed groups into AllLayerBlocks.
+ */
+
 void Compression::ProcessLayer(std::vector<std::vector<Block>> &Rows, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable) {
   std::vector<Block> OutputBlocks; // merged blocks for Current ParentY group
   std::vector<Block> BlockStack;
@@ -297,6 +338,12 @@ void Compression::ProcessLayerSort(std::vector<Block> &Blocks, int ParentX, int 
     }
 }
 
+
+/**
+ * GetBlocks
+ * ---------
+ * Returns all intermediate blocks accumulated across layers.
+ */
 std::vector<Block>& Compression::GetBlocks(){
   return AllLayerBlocks;
 }
@@ -307,4 +354,3 @@ size_t Compression::GetBlocksSize(){
 
 std::vector<Block>& Compression::GetFinalBlocks(){
   return FinalBlocks;
-}

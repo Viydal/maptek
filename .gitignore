@@ -2,6 +2,6 @@
 main
 *.o
 *.out*
-*.txt
 *.json
 callgrind.*
+*.txt

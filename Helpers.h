@@ -76,5 +76,4 @@ public:
         return out;
     }
 };
-
 #endif

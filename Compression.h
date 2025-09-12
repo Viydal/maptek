@@ -28,7 +28,6 @@ public:
   std::vector<Block>& GetBlocks();
   size_t GetBlocksSize();
   std::vector<Block>& GetFinalBlocks();
-
 };
 
 #endif

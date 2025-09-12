@@ -140,12 +140,13 @@ void Test::printOutputLines() {
     std::cout << "\n";
 }
 
+
+
 void Test::printOutputBlocks() {
     //TBD display blocks in map
 }
 
 void Test::MakeTest() {
-
 // Example dimension line: "16, 6, 2, 4, 3, 2"
     std::string dims = outputLines[0];
     std::stringstream ss(dims);
