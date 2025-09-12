@@ -3,96 +3,9 @@
 
 Compression::Compression() {}
 
-/**
- * FormatOutput
- * ------------
- * Writes a block's information as a CSV row into the output stream.
- * 
- * Format: XPos, YPos, ZPos, XSize, YSize, ZSize, Tag
- */
-
-void Compression::FormatOutput(std::ostringstream &Output, int XPos, int RowNum, int LayerNum, int NumX, int NumY, int NumZ, char Ch, const std::string* TagTable) {
-  Output << XPos << "," << RowNum << "," << LayerNum << "," << NumX << "," << NumY << "," << NumZ << "," << TagTable[Ch] << "\n";
-  return;
-}
-
-/**
- * SingleLineCompress
- * ------------------
- * Takes a run-length encoded string (Row), decodes it into block segments,
- * and breaks runs into ParentX-aligned chunks.
- * Returns the CSV string representation of the compressed row.
- */
-
-std::string Compression::SingleLineCompress(const std::string Row, std::string* TagTable, int ParentX, int ParentY, int ParentZ, int RowNum, int LayerNum) {
-  size_t Count = 0;
-  int XPos = 0; // track where each run starts
-  std::ostringstream Output;
-
-  // parse through the string
-  while (Count < Row.size()) {
-    // read number
-    int Num = 0;
-    while (Count < Row.size() && isdigit(Row[Count])) {
-      Num = Num * 10 + (Row[Count] - '0');
-      Count++;
-    }
-
-    // read character (label)
-    char Ch = Row[Count];
-    Count++;
-
-    // break the run into ParentX-sized chunks
-    while (Num > 0) {
-      int Remaining = ParentX - (XPos % ParentX); // space left in this block
-      int Chunk = std::min(Num, Remaining);
-      // append line in the format:
-      // XPosition, YPosition, ZPosition, Xsize, Ysize, Zsize, label
-      FormatOutput(Output, XPos, RowNum, LayerNum, Chunk, 1, 1, Ch, TagTable);
-      // advance x position
-      XPos += Chunk;
-      Num -= Chunk;
-    }
-  }
-
-  return Output.str();
-}
-
-
-/**
- * SingleLineBlocks
- * ----------------
- * Like SingleLineCompress, but instead of writing strings,
- * this produces a vector of Block objects for further merging.
- */
-
-std::vector<Block> Compression::SingleLineBlocks(const std::string Row, int ParentX, int ParentY, int ParentZ, int RowNum, int LayerNum) {
-  size_t Count = 0;
-  int XPos = 0;
-  std::vector<Block> Blocks;
-
-  while (Count < Row.size()) {
-    // read number
-    int Num = 0;
-    while (Count < Row.size() && isdigit(Row[Count])) {
-      Num = Num * 10 + (Row[Count] - '0');
-      Count++;
-    }
-
-    char Ch = Row[Count];
-    Count++;
-
-    while (Num > 0) {
-      int Remaining = ParentX - (XPos % ParentX);
-      int Chunk = std::min(Num, Remaining);
-
-      Blocks.push_back({XPos, RowNum, LayerNum, Chunk, 1, 1, Ch});
-
-      XPos += Chunk;
-      Num -= Chunk;
-    }
-  }
-  return Blocks;
+void Compression::CompressParentBlock(ParentBlock &ParentBlock) {
+	ProcessLayerSort(ParentBlock.Blocks, ParentBlock.LimitX, ParentBlock.LimitY, ParentBlock.LimitZ);
+	MergeLayers(ParentBlock.Blocks, ParentBlock.LimitZ);
 }
 
 /**
@@ -226,8 +139,8 @@ void Compression::MergeRows(std::vector<Block> &OutputStack, std::vector<Block> 
               NewBPos--;
               goto NEXTBLOCK;
           } else {
-            //std::cout << "No Merging (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
-          }
+         //std::cout << "No Merging (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
+      }
     } //else {std::cout << "No Merging (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";}
     }
     NEXTBLOCK:
@@ -248,33 +161,6 @@ void Compression::MergeRows(std::vector<Block> &OutputStack, std::vector<Block> 
 }
 
 /**
- * WriteBlocks
- * -----------
- * Converts final merged blocks into formatted output strings.
- */
-
-void Compression::WriteBlocks(std::vector<Block> Blocks, std::ostringstream &Output, const std::string* TagTable) {
-  FormatSubmit(Blocks);
-  for (const auto &B : Blocks) {
-    FormatOutput(Output, B.XPos, B.YPos, B.ZPos, B.XSize, B.YSize, B.ZSize, B.Ch, TagTable);
-  }
-}
-
-/**
- * FormatSubmit
- * ------------
- * Sorts blocks in canonical order: Z first, then Y, then X.
- */
-
-void Compression::FormatSubmit(std::vector<Block> &OutputBlocks) {
-  std::sort(OutputBlocks.begin(), OutputBlocks.end(), [](const Block& a, const Block& b) {
-    if (a.ZPos != b.ZPos) return a.ZPos < b.ZPos;  // Sort Z axis (first)
-    if (a.YPos != b.YPos) return a.YPos < b.YPos;  // Sort Y axis (second)
-    return a.XPos < b.XPos;  // Sort X axis (third)
-  });
-}
-
-/**
  * MergeLayers
  * -----------
  * Attempts to merge blocks vertically along the Z axis.
@@ -283,9 +169,7 @@ void Compression::FormatSubmit(std::vector<Block> &OutputBlocks) {
  *   - Are adjacent in Z
  *   - Do not exceed ParentZ boundaries
  */
-
-void Compression::MergeLayers(std::vector<Block> Blocks, int ParentZ) {
-  if (Blocks.empty()) return;
+void Compression::MergeLayers(std::vector<Block>& Blocks, int ParentZ) {
   
   // Sort all blocks by position (X, Y, then Z)
   std::sort(Blocks.begin(), Blocks.end(), [](const Block& a, const Block& b) {
@@ -293,17 +177,16 @@ void Compression::MergeLayers(std::vector<Block> Blocks, int ParentZ) {
     if (a.YPos != b.YPos) return a.YPos < b.YPos;
     if (a.Ch != b.Ch) return a.Ch < b.Ch;
     return a.ZPos < b.ZPos;
-  });
 
-  AllLayerBlocks = {};
+  });
   
   for (size_t i = 0; i < Blocks.size(); i++) {
-    Block Current = Blocks[i];
-    
+    Block& Current = Blocks[i];
+    if (Current.Merged) continue;
     // Try to merge with blocks that have same X, Y, Size, and Ch
     while (i + 1 < Blocks.size()) {
-      const Block& Next = Blocks[i + 1];
-      
+      const Block Next = Blocks[i + 1];
+      if (Next.Merged) {i++;continue;};
       // Can the blocks be merged?
       bool canMerge = (Current.XPos == Next.XPos && 
                       Current.YPos == Next.YPos &&
@@ -313,21 +196,85 @@ void Compression::MergeLayers(std::vector<Block> Blocks, int ParentZ) {
                       Current.ZPos + Current.ZSize == Next.ZPos);
       
       if (!canMerge) break;
-
-      int TotalZSize = Current.ZSize + Next.ZSize;
-      int MergedEndZ = (Current.ZPos % ParentZ) + TotalZSize;
-
-      // Check if merged size fits within parent
-      if (MergedEndZ <= ParentZ) {
-        // Merge blocks
-        Current.ZSize = TotalZSize;
-        i++; // Skip the merged block
-      } else {
-        break; // Can't merge without exceeding parent size
-      }
+      // int TotalZSize = Current.ZSize + Next.ZSize;
+      Current.ZSize += Next.ZSize;
+      ////Blocks.erase(Blocks.begin()+i+1);
+      Blocks[i+1].Merged = true;
+      i++;
     }
-    AllLayerBlocks.push_back(Current);
   }
+}
+
+bool Compression::TryRelaxedLayerMerge(Block& Current, Block& Next, int ParentZ, std::vector<Block>& LeftOvers) {
+  // Rule 0: two Blocks must be in the same parent block segment
+  if ((Current.ZPos / ParentZ) != (Next.ZPos / ParentZ)) return false;
+
+  // general check to ensure the Blocks are eligible for merging
+  if ((Current.ZPos % ParentZ) + (Current.ZSize + Next.ZSize) > ParentZ) return false;
+  if (Current.ZPos + Current.ZSize != Next.ZPos) return false;
+  if (Current.YPos != Next.YPos) return false;
+  if (Current.YSize != Next.YSize) return false;
+  if (Current.Ch != Next.Ch) return false;
+
+  // --- compute overlap in z layers based off their x coordinate
+  int StartMerge = std::max(Current.XPos, Next.XPos);
+  int EndMerge = std::min(Current.XPos + Current.XSize, Next.XPos + Next.XSize);
+  int overlap = EndMerge - StartMerge;
+  if (overlap <= 0) return false; // no horizontal overlap
+
+  // --- Rule 2: cannot shrink current block overlap too much
+  if (overlap <= Current.XSize / 2) {
+      return false;
+  }
+
+  // --- split current into (Left, overlap, Right)
+  int CurrentLeft = StartMerge - Current.XPos;
+  int CurrentRight = (Current.XPos + Current.XSize) - EndMerge;
+  // --- split next into (Left, overlap, Right)
+  int NextLeft = StartMerge - Next.XPos;
+  int NextRight = (Next.XPos + Next.XSize) - EndMerge;
+
+  // enforce Rule 1/3/4 by tracking "which side relaxed"
+  // Right now we only allow one side trimming for prev and curr
+  if (CurrentLeft > 0 && CurrentRight > 0) return false;
+  if (NextLeft > 0 && NextRight > 0) return false;
+  if ((CurrentLeft > 0 && NextRight > 0) || (CurrentRight > 0 && NextLeft > 0)) return false;
+
+  // making sure that relaxed z compression doesnt create more blocks
+  int CountBefore = 2;
+  int CountAfter = 1;
+  if (CurrentLeft > 0) CountAfter++;
+  if (CurrentRight > 0) CountAfter++;
+  if (NextLeft > 0) CountAfter++;
+  if (NextRight > 0) CountAfter++;
+
+  if (CountAfter >= CountBefore) return false;
+
+  // ALL TEST CASES PASSED - COMMENCE RELAXED MERGE
+
+  // --- LeftOvers from merge: must be flushed immediately
+  if (CurrentLeft > 0) {
+      Block Left = {Current.XPos, Current.YPos, Current.ZPos, CurrentLeft, Current.YSize, Current.ZSize, Current.Ch};
+      LeftOvers.push_back(Left);
+  } else if (CurrentRight > 0) {
+      Block Right = {EndMerge, Current.YPos, Current.ZPos, CurrentRight, Current.YSize, Current.ZSize, Current.Ch};
+      LeftOvers.push_back(Right);
+  }
+
+  // --- perform the merge using overlap region
+  Current.XPos = StartMerge;
+  Current.XSize = overlap;
+  Current.ZSize += Next.ZSize;
+
+  if (NextLeft > 0) {
+      Block Left = {Next.XPos, Next.YPos, Next.ZPos, NextLeft, Next.YSize, Next.ZSize, Next.Ch};
+      LeftOvers.push_back(Left);
+  } else if (NextRight > 0) {
+      Block Right = {EndMerge, Next.YPos, Next.ZPos, NextRight, Next.YSize, Next.ZSize, Next.Ch};
+      LeftOvers.push_back(Right);
+  }
+
+  return true;
 }
 
 /**
@@ -338,11 +285,10 @@ void Compression::MergeLayers(std::vector<Block> Blocks, int ParentZ) {
  * then flushes completed groups into AllLayerBlocks.
  */
 
-void Compression::ProcessLayer(const std::vector<std::vector<Block>> &Rows, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable) {
+void Compression::ProcessLayer(std::vector<std::vector<Block>> &Rows, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable) {
   std::vector<Block> OutputBlocks; // merged blocks for Current ParentY group
   std::vector<Block> BlockStack;
   int Height = (int)Rows.size();
-
   // Iterate bottom -> top
   for (int RowNum = 0; RowNum < Height; RowNum++) {
     int YPos = RowNum; // bottom = 0
@@ -362,37 +308,49 @@ void Compression::ProcessLayer(const std::vector<std::vector<Block>> &Rows, int 
   }
 }
 
-/**
- * FormatOutputStrings
- * -------------------
- * Like FormatOutput but returns the string directly.
- */
+void Compression::ProcessLayerSort(std::vector<Block> &Blocks, int ParentX, int ParentY, int ParentZ) {
 
-std::string Compression::FormatOutputStrings(std::ostringstream &Output, int XPos, int RowNum, int LayerNum, int NumX, int NumY, int NumZ, char Ch, const std::string* TagTable) {
-  Output << XPos << "," << RowNum << "," << LayerNum << "," << NumX << "," << NumY << "," << NumZ << "," << TagTable[Ch] << "\n";
-  return Output.str();
+    std::sort(Blocks.begin(), Blocks.end(),[](const Block& a, const Block& b) {
+      if (a.XPos  != b.XPos)  return a.XPos  < b.XPos;
+      if (a.ZPos  != b.ZPos)  return a.ZPos  < b.ZPos;
+      if (a.Ch    != b.Ch)    return a.Ch    < b.Ch;
+      return a.YPos < b.YPos;
+    });
+    
+    for (size_t i = 0; i < Blocks.size(); i++) {
+        Block& Current = Blocks[i];
+        while (i + 1 < Blocks.size()) {
+          const Block Next = Blocks[i + 1];
+          //std::cout << "testinA " << Next.YPos << " " << ParentY << std::endl;
+          //std::cout << "After Testing" << (Next.YPos / ParentY) << std::endl;
+          bool canMerge = Current.Ch == Next.Ch && Current.XPos == Next.XPos && 
+          Current.XSize == Next.XSize && Current.ZPos == Next.ZPos && 
+          (Next.YPos == Current.YPos + Current.YSize);
+          //std::cout << "After" << std::endl;
+          if (!canMerge) break;
+
+          int TotalYSize = Current.YSize + Next.YSize;
+          Current.YSize = TotalYSize;
+          Blocks[i+1].Merged = true;
+          i++;
+          
+        }
+    }
 }
 
-/**
- * WriteBlocksVectorStrings
- * ------------------------
- * Converts blocks to a vector of CSV strings (instead of directly writing).
- */
-
-std::vector<std::string> Compression::WriteBlocksVectorStrings(const std::vector<Block> &Blocks, std::ostringstream &Output, const std::string* TagTable) {
-  std::vector<std::string> Result;
-  for (const auto &B : Blocks) {
-    Result.push_back(FormatOutputStrings(Output, B.XPos, B.YPos, B.ZPos, B.XSize, B.YSize, B.ZSize, B.Ch, TagTable));
-  }
-  return Result;
-}
 
 /**
  * GetBlocks
  * ---------
  * Returns all intermediate blocks accumulated across layers.
  */
-
-std::vector<Block> Compression::GetBlocks(){
+std::vector<Block>& Compression::GetBlocks(){
   return AllLayerBlocks;
 }
+
+size_t Compression::GetBlocksSize(){
+  return AllLayerBlocks.size();
+}
+
+std::vector<Block>& Compression::GetFinalBlocks(){
+  return FinalBlocks;

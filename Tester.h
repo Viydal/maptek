@@ -15,5 +15,4 @@ public:
     static bool RunTest(Args args);
     static void RunAllTests(Args args);
 };
-
 #endif

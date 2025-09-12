@@ -30,73 +30,44 @@ bool Tester::RunTest(Args args) {
         InitLines.push_back(line);
     }
     infile.close();
-
     Parse Parser(InitLines);
     Compression Compressor;
-    std::ostringstream Output;
-
-    if (args.verbose){
+    std::vector<ParentBlock> ParentBlocks = Parser.OutputBlocks;
+        if (args.verbose){
             elapsed = chrono::high_resolution_clock::now() - TotalStart;
-            cout << "Parsing done in " << elapsed.count() << " seconds.\n";
-            cout << "\n--- COMPRESSING --- \n";
+            cout << "Parsing done in " << elapsed.count() << " seconds." << std::endl;
+            cout << "\n--- COMPRESSING --- " << std::endl;
+            start = chrono::high_resolution_clock::now();
         }
-    std::ostringstream LayerCompressionTimes;
-    size_t totalLayers = Parser.XBlocks.size();
-    for (size_t z = 0; z < totalLayers; ++z) {
-            if (args.verbose) { start = std::chrono::high_resolution_clock::now();}
-        Compressor.ProcessLayer(Parser.XBlocks[z], Parser.ParentX, Parser.ParentY, Parser.ParentZ,
-                                z, Output, Parser.TagTable);
-            
 
-        // Show per-test progress bar for verbose level 0 and above
-        if (args.verbose && args.verboseLevel >= 0) {
-            int barWidth = 50;
-            int progress = static_cast<int>((z + 1) * barWidth / totalLayers);
-            std::cout << "\r[";
-            for (int i = 0; i < barWidth; ++i)
-                std::cout << (i < progress ? '#' : ' ');
-            std::cout << "] " << (z + 1) * 100 / totalLayers << "% completed" << std::flush;
-        }
-        if (args.verbose) {
-                end = std::chrono::high_resolution_clock::now();
-                elapsed = end - start;
-                LayerCompressionTimes << "Layer " << z << " processed in " << elapsed.count() << " seconds.\n";
-        }
+    for(ParentBlock &PB : ParentBlocks){
+        Compressor.CompressParentBlock(PB);
     }
-    std::cout << std::endl << LayerCompressionTimes.str();
-    if (Parser.ParentZ != 1) {
-            if (args.verbose) {
-                cout << "Merging layers now\n";
-                start = std::chrono::high_resolution_clock::now();
-            }
-        Compressor.MergeLayers(Compressor.GetBlocks(), Parser.ParentZ);
-            if (args.verbose) {
-                end = std::chrono::high_resolution_clock::now();
-                elapsed = end - start;
-                std::cout << "Merging Z axis done in " << elapsed.count() << " seconds.\n";
-            }
-    }
+    end = std::chrono::high_resolution_clock::now();
+    elapsed = end - start;
         if (args.verbose) {
-            cout << "Writing blocks now\n";
-            start = std::chrono::high_resolution_clock::now();
+            std::cout << "Compression done in " << elapsed.count() << " seconds." << std::endl;
+            //cout << "Writing blocks now\n";
+            //start = std::chrono::high_resolution_clock::now();
         }
-    Compressor.WriteBlocks(Compressor.GetBlocks(), Output, Parser.TagTable);
-        if (args.verbose) {
-            end = std::chrono::high_resolution_clock::now();
-            elapsed = end - start;
-            cout << "Writing blocks done in " << elapsed.count() << " seconds.\n";
-        }
+    //Compressor.WriteBlocks(Compressor.GetBlocks(), Output, Parser.TagTable);
+    //    if (args.verbose) {
+    //        end = std::chrono::high_resolution_clock::now();
+    //        elapsed = end - start;
+    //        cout << "Writing blocks done in " << elapsed.count() << " seconds.\n";
+    //    }
 
-    if (args.verbose && args.verboseLevel == 0)
-        std::cout << "\n"; // move to new line after status bar
-
+    //if (args.verbose && args.verboseLevel == 0)
+    //    std::cout << "\n"; // move to new line after status bar
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - TotalStart;
-    std::cout << "Program done in " << elapsed.count() << " seconds.\n";
+    std::cout << "Program done in " << elapsed.count() << " seconds." << std::endl;
     // Collect output lines
+    std::string Output = Parser.CollectOutput(ParentBlocks);
     std::vector<std::string> outputLines;
-    std::stringstream ss(Output.str());
+    std::stringstream ss(Output);
     while (std::getline(ss, line)) {
+
         if (!line.empty())
             outputLines.push_back(line);
     }
@@ -193,5 +164,4 @@ void Tester::RunAllTests(Args args) {
         }
     }
 }
-
 

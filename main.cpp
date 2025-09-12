@@ -7,10 +7,9 @@
 #include <vector>
 #include <chrono>
 
-
-
 int main(int argc, char* argv[]) {
-    std::ios::sync_with_stdio(false);
+std::ios::sync_with_stdio(false);
+
     std::cin.tie(nullptr);
 
     Args Args;
@@ -51,11 +50,13 @@ int main(int argc, char* argv[]) {
         cout << "Verbose output enabled." << endl;
     // Implement verbose output logic here
     }
+  
     // --- TESTING MODE ---
     if (Args.TestingMode) {
         if (Args.TestAll) {
             Tester::RunAllTests(Args);
         } else {
+
             if (!Args.readFile) {
                 std::cerr << "Error: -t requires a file (-f <file>) or use -ta\n";
                 return 1;
@@ -87,24 +88,18 @@ int main(int argc, char* argv[]) {
             InitLines.push_back(line);
         }
     }
-
-    // --- Compression pipeline ---
-    Parse Parser(InitLines);
-    Compression Compressor;
-    std::ostringstream Output;
-
     auto start = std::chrono::high_resolution_clock::now();
 
-    for (size_t z = 0; z < Parser.XBlocks.size(); ++z) {
-        Compressor.ProcessLayer(Parser.XBlocks[z], Parser.ParentX, Parser.ParentY, Parser.ParentZ,
-                                z, Output, Parser.TagTable);
-    }
+    Parse Parser = Parse(InitLines);
 
-    if (Parser.ParentZ != 1) {
-        Compressor.MergeLayers(Compressor.GetBlocks(), Parser.ParentZ);
-    }
+    std::vector<ParentBlock> ParentBlocks = Parser.OutputBlocks;
+    
 
-    Compressor.WriteBlocks(Compressor.GetBlocks(), Output, Parser.TagTable);
+    Compression Compressor = Compression();
+    std::string* AllMappings = Parser.TagTable;
+    for (ParentBlock &PB : ParentBlocks){
+        Compressor.CompressParentBlock(PB);
+    }
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
@@ -113,8 +108,7 @@ int main(int argc, char* argv[]) {
         std::cout << "Compression done in " << elapsed.count() << " seconds.\n";
     }
 
-    // Print compressed output
-    std::cout << Output.str();
+    std::cout << Parser.CollectOutput(ParentBlocks);
 
-    return 0;
 }
+

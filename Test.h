@@ -13,7 +13,6 @@
 #include <fstream>
 #include <algorithm>
 
-
 class Test {
 public:
     // Original parsed input
@@ -74,7 +73,6 @@ public:
                 InputParse.MapInformation[z].push_back(rleRow);
             }
         }
-
         // Reconstruct output Parse and expanded map
         reconstructOutputParse();
     }

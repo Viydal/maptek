@@ -24,16 +24,14 @@ void Test::reconstructOutputParse() {
             for (int yy = y; yy < y + h; ++yy) {
                 for (int xx = x; xx < x + w; ++xx) {
                     if(OutputMapExpanded[zz][yy][xx] != ' ') {
-                        std::cout << "Error: overlapping blocks at (" << xx << "," << yy << "," << zz << ")\n";
-                        std::cout << line << "\n";
-                        exit(0);
+                        std::cout << "Error: overlapping blocks at (" << xx << "," << yy << "," << zz << ")" << std::endl;
+                        std::cout << line << std::endl << OutputMapExpanded[zz][yy][xx] << std::endl;
                     }
                     OutputMapExpanded[zz][yy][xx] = codeChar;
                 }
             }
         }
     }
-
     // Convert expanded rows back into RLE for OutputParse
     OutputParse.MapInformation.resize(InputParse.ZCount);
     for (size_t z = 0; z < InputParse.ZCount; ++z) {
@@ -149,17 +147,17 @@ void Test::printOutputBlocks() {
 }
 
 void Test::MakeTest() {
-    // Example dimension line: "16, 6, 2, 4, 3, 2"
+// Example dimension line: "16, 6, 2, 4, 3, 2"
     std::string dims = outputLines[0];
     std::stringstream ss(dims);
     char comma;
     int x, y, z, X, Y, Z;
     ss >> x >> comma >> y >> comma >> z >> comma >> X >> comma >> Y >> comma >> Z;
 
-    //if (x*y*z > 10000000) {
-    //    std::cout << "Fuck off im not doing that \n";
-    //    exit(0);
-    //}
+    if (x*y*z > 10000000) {
+        std::cout << "Fuck off im not doing that \n";
+        exit(0);
+    }
     
     // Fixed labels
     std::vector<std::pair<char, std::string>> labels = {
