@@ -1,7 +1,8 @@
-#include <string>
-
 #ifndef HELPERS_H
 #define HELPERS_H
+
+#include <string>
+#include <iostream>
 
 using namespace std;
 
@@ -22,6 +23,7 @@ struct Block {
     int XSize, YSize, ZSize;
     char Ch;
     bool Merged = false;
+    void printBlock() {std::cout << "(" << XPos << "," << YPos << "," << ZPos << ", " << XSize << "," << YSize << "," << ZSize << ") " << Ch <<std::endl;}
 };
 
 #include <vector>

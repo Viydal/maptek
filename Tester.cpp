@@ -40,9 +40,13 @@ bool Tester::RunTest(Args args) {
             start = chrono::high_resolution_clock::now();
         }
 
+    ofstream myfile;
+    myfile.open ("SaveCases/" + args.filePath);
     for(ParentBlock &PB : ParentBlocks){
         Compressor.CompressParentBlock(PB);
+        myfile << PB.WriteBlock(Parser.TagTable);
     }
+    myfile.close();
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
         if (args.verbose) {
@@ -99,7 +103,7 @@ bool Tester::RunTest(Args args) {
 
         
     }
-    std::cout << "| Test Outcome: | " << (match ? "Sucess" : "Failure")
+    std::cout << "| Test Outcome: | " << (match ? "Success" : "Failure")
                 << " || Time | " << elapsed.count() << "s"
                 << " || Compression % | " << compressionPercent << "% |\n";
     return match;

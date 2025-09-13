@@ -5,3 +5,4 @@ main
 *.json
 callgrind.*
 *.txt
+*.csv
