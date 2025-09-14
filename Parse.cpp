@@ -232,8 +232,6 @@ std::string Parse::TestRLERow(std::string Row) {
     return RLEString;
 }
 
-
-
 void Parse::RLERow(char* BlockString, std::vector<Block> *RowBlocks, std::unordered_map<std::string, std::vector<std::pair<int,char>>> *RleCache,int StartX, int RowNum, int LayerNum) {
     //dynamic programming / caching approach to caching previously computed RLE results
     //commented out for now as it doesn't seem to improve performance

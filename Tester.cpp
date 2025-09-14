@@ -9,6 +9,7 @@
 #include <vector>
 #include <chrono>
 #include <filesystem>
+#include <thread>
 
 namespace fs = std::filesystem;
 
@@ -30,9 +31,21 @@ bool Tester::RunTest(Args args) {
         InitLines.push_back(line);
     }
     infile.close();
+
+    std::thread Thread1, Thread2, Thread3, Thread4;
+
     Parse Parser(InitLines);
     Compression Compressor;
     std::vector<ParentBlock> ParentBlocks = Parser.OutputBlocks;
+
+    size_t TotalBlocks = ParentBlocks.size();
+    size_t Quarter = TotalBlocks / 4;
+    size_t Remainder = TotalBlocks % 4;
+
+    size_t Split1 = Quarter + (Remainder > 0 ? 1 : 0);
+    size_t Split2 = Split1 + Quarter + (Remainder > 1 ? 1 : 0);
+    size_t Split3 = Split2 + Quarter + (Remainder > 2 ? 1 : 0);
+
         if (args.verbose){
             elapsed = chrono::high_resolution_clock::now() - TotalStart;
             cout << "Parsing done in " << elapsed.count() << " seconds." << std::endl;
@@ -42,10 +55,39 @@ bool Tester::RunTest(Args args) {
 
     ofstream myfile;
     myfile.open ("SaveCases/" + args.filePath);
-    for(ParentBlock &PB : ParentBlocks){
-        Compressor.CompressParentBlock(PB);
-        myfile << PB.WriteBlock(Parser.TagTable);
-    }
+    Thread1 = std::thread([&]() {
+        Compression LocalCompressor;
+        for (size_t i = 0; i < Split1; i++) {
+            LocalCompressor.CompressParentBlock(ParentBlocks[i]);
+        }
+    });
+
+    Thread2 = std::thread([&]() {
+        Compression LocalCompressor;
+        for (size_t i = Split1; i < Split2; i++) {
+            LocalCompressor.CompressParentBlock(ParentBlocks[i]);
+        }
+    });
+
+    Thread3 = std::thread([&]() {
+        Compression LocalCompressor;
+        for (size_t i = Split2; i < Split3; i++) {
+            LocalCompressor.CompressParentBlock(ParentBlocks[i]);
+        }
+    });
+
+    Thread4 = std::thread([&]() {
+        Compression LocalCompressor;
+        for (size_t i = Split3; i < TotalBlocks; i++) {
+            LocalCompressor.CompressParentBlock(ParentBlocks[i]);
+        }
+    });
+
+    Thread1.join();
+    Thread2.join();
+    Thread3.join();
+    Thread4.join();
+
     myfile.close();
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - start;
@@ -168,4 +210,3 @@ void Tester::RunAllTests(Args args) {
         }
     }
 }
-
