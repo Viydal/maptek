@@ -7,6 +7,11 @@
 #include <sstream>
 #include <unordered_map>
 #include <iostream>
+#include <random>
+#include <ctime>
+#include <filesystem>
+#include <fstream>
+#include <algorithm>
 
 class Test {
 public:
@@ -22,6 +27,10 @@ public:
     std::vector<std::vector<std::string>> InputMapExpanded;
     std::vector<std::vector<std::string>> OutputMapExpanded;
     std::unordered_map<std::string, char> reverseMap;
+
+    //save a full generated test case:
+    std::vector<std::string> testCase;
+
 public:
     // Constructor: takes the input lines and output lines
     Test(const std::vector<std::string> &inputLines, const std::vector<std::string> &compressedLines)
@@ -64,10 +73,12 @@ public:
                 InputParse.MapInformation[z].push_back(rleRow);
             }
         }
-
         // Reconstruct output Parse and expanded map
         reconstructOutputParse();
     }
+
+    // Constructor for generation-only
+    Test(const std::string &dimsLine);
 
     // Convert output lines (rectangles) into a Parse object
     void reconstructOutputParse();
@@ -86,6 +97,10 @@ public:
     void printOutputLines();
 
     void printOutputBlocks();
+
+    void MakeTest();
+
+    void saveTestCase();
 };
 
 #endif

@@ -1,4 +1,4 @@
-8,4,2,4,2,2
+8,4,4,4,2,2
 o, sea
 w, WA
 n, NT
@@ -7,6 +7,16 @@ q, QLD
 e, NSW
 v, VIC
 t, TAS
+
+oooooooo
+oooooooo
+oooooooo
+oooooooo
+
+oooooooo
+oooooooo
+oooooooo
+oooooooo
 
 oooooooo
 oooooooo
