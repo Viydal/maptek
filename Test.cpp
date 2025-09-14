@@ -23,9 +23,13 @@ void Test::reconstructOutputParse() {
         for (int zz = z; zz < z + d; ++zz) {
             for (int yy = y; yy < y + h; ++yy) {
                 for (int xx = x; xx < x + w; ++xx) {
+                    if (xx==12 && yy==4 && zz==1) {
+                        std::cout << "TESTING: " << line << std::endl;
+                    }
                     if(OutputMapExpanded[zz][yy][xx] != ' ') {
                         std::cout << "Error: overlapping blocks at (" << xx << "," << yy << "," << zz << ")" << std::endl;
                         std::cout << line << std::endl << OutputMapExpanded[zz][yy][xx] << std::endl;
+                        codeChar = ' ';
                     }
                     OutputMapExpanded[zz][yy][xx] = codeChar;
                 }
@@ -68,13 +72,13 @@ bool Test::compareInputOutput() {
                 char inChar = inputMap[layer][row][col];
                 char outChar = (col < outputMap[layer][row].size()) ? outputMap[layer][row][col] : '-';
                 if (inChar != outChar) {
-                    std::cout << "Mismatch at layer " << layer
-                              << ", row " << row
-                              << ", col " << col
-                              << ": input='" << inChar
+                    std::cout << "Mismatch at: (" << col
+                              << ", " << row
+                              << ", " << layer
+                              << "): input='" << inChar
                               << "' output='" << outChar << "'\n";
                     allMatch = false;
-                    break; // stop at first mismatch in this row
+                    //break; // stop at first mismatch in this row
                 }
             }
         }
