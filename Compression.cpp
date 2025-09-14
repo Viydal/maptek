@@ -67,7 +67,6 @@ void Compression::RelaxedXY(std::vector<Block> &Blocks) {
 					//Next.printBlock();
 					//std::cout << std::endl;
 					Current.YSize += Next.YSize;
-					Current.XSize = overlap;
 					Next.Merged = true;
 				} else if (Next.XSize == overlap){
 					//std::cout << "Curr Merge A" << std::endl;
@@ -82,7 +81,6 @@ void Compression::RelaxedXY(std::vector<Block> &Blocks) {
 					Current.XSize = overlap;
 					Next = NewBlock;
 				} else {
-					Block NewBlock(EndMerge, Next.YPos, Next.ZPos, Next.XSize - overlap, Next.YSize, Next.ZSize, Next.Ch);
 					//std::cout << "Next Merge A" << std::endl;
 					//std::cout << "I: " << i << std::endl;
 					//std::cout << "Current: ";
@@ -90,14 +88,15 @@ void Compression::RelaxedXY(std::vector<Block> &Blocks) {
 					//std::cout << "Next: ";
 					//Next.printBlock();
 					//std::cout << std::endl;
-					RecheckI.push_back(i);
+					Block NewBlock(EndMerge, Next.YPos, Next.ZPos, Next.XSize - overlap, Next.YSize, Next.ZSize, Next.Ch);
+					RecheckI.push_back(i+1);
 					Current.YSize += Next.YSize;
 					Next = NewBlock;
 				}
 				i++;
 				continue;
 			} else if (EndMerge == Current.XPos + Current.XSize && EndMerge == Next.XPos + Next.XSize) {
-				if (Next.XSize == overlap && Current.XSize == overlap) {
+				if (Next.XSize == overlap && Current.XSize == overlap) { 
 					//std::cout << "Reduce B" << std::endl;
 					//std::cout << "I: " << i << std::endl;
 					//std::cout << "Current: ";
@@ -106,11 +105,7 @@ void Compression::RelaxedXY(std::vector<Block> &Blocks) {
 					//Next.printBlock();
 					//std::cout << std::endl;
 					Current.YSize += Next.YSize;
-					Current.XPos = startMerge;
-					Current.XSize = overlap;
 					Next.Merged = true;
-					i++;
-					continue;
 				}else if (Next.XSize == overlap){
 					//std::cout << "Curr Merge B" << std::endl;
 					//std::cout << "I: " << i << std::endl;
@@ -125,7 +120,6 @@ void Compression::RelaxedXY(std::vector<Block> &Blocks) {
 					Current.XSize = overlap;
 					Next = NewBlock;
 				} else {
-					Block NewBlock(Next.XPos, Next.YPos, Next.ZPos, startMerge - Next.XPos, Next.YSize, Next.ZSize, Next.Ch);
 					//std::cout << "Next Merge B" << std::endl;
 					//std::cout << "I: " << i << std::endl;
 					//std::cout << "Current: ";
@@ -133,6 +127,7 @@ void Compression::RelaxedXY(std::vector<Block> &Blocks) {
 					//std::cout << "Next: ";
 					//Next.printBlock();
 					//std::cout << std::endl;
+					Block NewBlock(Next.XPos, Next.YPos, Next.ZPos, startMerge - Next.XPos, Next.YSize, Next.ZSize, Next.Ch);
 					RecheckI.push_back(i+1);
 					Current.YSize += Next.YSize;
 					Next = NewBlock;
@@ -145,12 +140,15 @@ void Compression::RelaxedXY(std::vector<Block> &Blocks) {
 	//std::cout << "Checking. Size: " << RecheckI.size() << std::endl;
 	for (size_t pos : RecheckI) {
 		Block & Current = Blocks[pos];
+		if (Current.Merged) continue;
 		for (size_t i = 0; i < Size; i++) {
 			if (i == pos) continue;
 			Block & Next = Blocks[i];
-			bool canMerge = Current.Ch == Next.Ch && Current.XPos == Next.XPos && 
-					Current.XSize == Next.XSize && Current.ZPos == Next.ZPos && 
-					(Next.YPos == Current.YPos + Current.YSize);
+			if (Next.Merged) continue;
+			bool canMerge = (Current.Ch == Next.Ch && Current.XPos == Next.XPos && 
+					Current.XSize == Next.XSize && Current.ZPos == Next.ZPos &&
+					Current.ZSize == Next.ZSize &&
+					(Next.YPos == Current.YPos + Current.YSize));
 			//Current.printBlock();
 			//Next.printBlock();
 			//std::cout << canMerge << std::endl;
