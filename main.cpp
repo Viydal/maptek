@@ -6,6 +6,7 @@
 #include <sstream>
 #include <vector>
 #include <chrono>
+#include <thread>
 
 int main(int argc, char* argv[]) {
 std::ios::sync_with_stdio(false);
@@ -90,16 +91,57 @@ std::ios::sync_with_stdio(false);
     }
     auto start = std::chrono::high_resolution_clock::now();
 
+    // Compression logic
+    std::thread Thread1, Thread2, Thread3, Thread4;
+
     Parse Parser = Parse(InitLines);
 
     std::vector<ParentBlock> ParentBlocks = Parser.OutputBlocks;
     
+    size_t TotalBlocks = ParentBlocks.size();
+    size_t Quarter = TotalBlocks / 4;
+    size_t Remainder = TotalBlocks % 4;
+
+    // Find even splits for threads
+    size_t Split1 = Quarter + (Remainder > 0 ? 1 : 0);
+    size_t Split2 = Split1 + Quarter + (Remainder > 1 ? 1 : 0);
+    size_t Split3 = Split2 + Quarter + (Remainder > 2 ? 1 : 0);
 
     Compression Compressor = Compression();
     std::string* AllMappings = Parser.TagTable;
-    for (ParentBlock &PB : ParentBlocks){
-        Compressor.CompressParentBlock(PB);
-    }
+
+    Thread1 = std::thread([&]() {
+        Compression LocalCompressor;
+        for (size_t i = 0; i < Split1; i++) {
+            LocalCompressor.CompressParentBlock(ParentBlocks[i]);
+        }
+    });
+
+    Thread2 = std::thread([&]() {
+        Compression LocalCompressor;
+        for (size_t i = Split1; i < Split2; i++) {
+            LocalCompressor.CompressParentBlock(ParentBlocks[i]);
+        }
+    });
+
+    Thread3 = std::thread([&]() {
+        Compression LocalCompressor;
+        for (size_t i = Split2; i < Split3; i++) {
+            LocalCompressor.CompressParentBlock(ParentBlocks[i]);
+        }
+    });
+
+    Thread4 = std::thread([&]() {
+        Compression LocalCompressor;
+        for (size_t i = Split3; i < TotalBlocks; i++) {
+            LocalCompressor.CompressParentBlock(ParentBlocks[i]);
+        }
+    });
+
+    Thread1.join();
+    Thread2.join();
+    Thread3.join();
+    Thread4.join();
 
     auto end = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed = end - start;
@@ -111,4 +153,3 @@ std::ios::sync_with_stdio(false);
     std::cout << Parser.CollectOutput(ParentBlocks);
 
 }
-
