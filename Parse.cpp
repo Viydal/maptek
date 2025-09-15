@@ -276,4 +276,3 @@ void Parse::RLERow(char* BlockString, std::vector<Block> *RowBlocks, std::unorde
     RleCache->insert({BlockString, Runs});
     
 }
-

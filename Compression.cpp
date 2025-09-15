@@ -9,12 +9,13 @@ void Compression::CompressParentBlock(ParentBlock &ParentBlock) {
 	//printf("ParentBlock Start: %d %d %d\n", ParentBlock.StartX,ParentBlock.StartY, ParentBlock.StartZ);
 	
 	RelaxedXY(ParentBlock.Blocks);
-	std::sort(ParentBlock.Blocks.begin(), ParentBlock.Blocks.end(),[](const Block& a, const Block& b) {
-		if (a.ZPos  != b.ZPos)  return a.ZPos  < b.ZPos;
-		if (a.YPos  != b.YPos)  return a.YPos  < b.YPos;
-		if (a.XPos  != b.XPos)  return a.XPos  < b.XPos;
-		return a.YPos < b.YPos;
-	});
+	MergeLayers(ParentBlock.Blocks, ParentBlock.LimitZ);
+	// std::sort(ParentBlock.Blocks.begin(), ParentBlock.Blocks.end(),[](const Block& a, const Block& b) {
+	// 	if (a.ZPos  != b.ZPos)  return a.ZPos  < b.ZPos;
+	// 	if (a.YPos  != b.YPos)  return a.YPos  < b.YPos;
+	// 	if (a.XPos  != b.XPos)  return a.XPos  < b.XPos;
+	// 	return a.YPos < b.YPos;
+	// });
 	//if (ParentBlock.StartX == 8 && ParentBlock.StartY == 32) {
 	//	exit(0);
 	//}
