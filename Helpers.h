@@ -36,7 +36,7 @@ public:
     int LimitX; 
     int LimitY; 
     int LimitZ;
-    bool IsUniform;
+    bool IsUniform = false;
     ParentBlock(){};
     ParentBlock(std::vector<Block> Blocks) { this->Blocks = Blocks;}
     ParentBlock(int startX, int startY, int startZ, int ParentX, int ParentY, int ParentZ, char Key) 
