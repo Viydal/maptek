@@ -7,6 +7,7 @@
 #include <vector>
 #include "Helpers.h"
 #include "Compression.h"
+#include <cstring>
 //#include <omp.h>
 
 
@@ -31,13 +32,15 @@ public:
   std::string TestRLERow(std::string Row);
   void RLERow(char* XBlockString, std::vector<Block> *RowBlocks, std::unordered_map<std::string, std::vector<std::pair<int,char>>> *DP,int StartX, int RowNum, int LayerNum);
 
-  void Create3dKey(std::string& Key3d);
+  void Create3dKey(char * Key3d);
   void Create2dKey(std::string& Key2d, int localZ);
+  void Create2dKey(char * Key2d, int localZ);
+  bool UniformCheck(char * Key);
   bool UniformCheck(std::string& Key);
 
   std::vector<std::vector<std::string>> GetMap() {return MapInformation;};
   std::string * GetTagTable() {return TagTable;};
-  std::string CollectOutput(std::vector<ParentBlock> ParentBlocks);
+  std::string CollectOutput(std::vector<ParentBlock>& ParentBlocks);
 };
 
 #endif

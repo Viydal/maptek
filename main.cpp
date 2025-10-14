@@ -69,6 +69,7 @@ std::ios::sync_with_stdio(false);
 
     // --- NORMAL MODE ---
     std::vector<std::string> InitLines;
+    InitLines.reserve(1000000); // Reserve space for 1 million lines to minimize reallocations
     std::string line;
 
     if (Args.readFile) {
@@ -97,7 +98,7 @@ std::ios::sync_with_stdio(false);
 
     Parse Parser = Parse(InitLines);
 
-    std::vector<ParentBlock> ParentBlocks = Parser.OutputBlocks;
+    std::vector<ParentBlock>& ParentBlocks = Parser.OutputBlocks;
     
     size_t TotalBlocks = ParentBlocks.size();
     size_t Quarter = TotalBlocks / 4;
@@ -144,13 +145,15 @@ std::ios::sync_with_stdio(false);
     Thread3.join();
     Thread4.join();
 
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = end - start;
+    // auto end = std::chrono::high_resolution_clock::now();
+    // std::chrono::duration<double> elapsed = end - start;
 
     if (Args.verbose) {
-        std::cout << "Compression done in " << elapsed.count() << " seconds.\n";
+        // std::cout << "Compression done in " << elapsed.count() << " seconds.\n";
     }
 
     std::cout << Parser.CollectOutput(ParentBlocks);
-
+    auto end = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double> elapsed = end - start;
+    std::cout << "Compression done in " << elapsed.count() << " seconds.\n";
 }

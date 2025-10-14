@@ -54,18 +54,19 @@ void Parse::ParseMap(){
     
     Compression Compressor = Compression();
     std::ostringstream Output;
-    OutputBlocks.reserve(NumXBlocks * NumYBlocks * NumZBlocks);
+    OutputBlocks.reserve((XCount * YCount * ZCount) * 0.8);
     startX = 0, startY = 0, startZ = 0;
     
-    for (int i = 0; i < NumZBlocks; i++) {
-        for (int j = 0; j < NumXBlocks * NumYBlocks; j++) {
-            startX = (j % NumXBlocks) * ParentX;
-            startY = (j / NumXBlocks) * ParentY;
-            startZ = i * ParentZ;
+    for (int z = 0; z < NumZBlocks; z++) {
+        for (int y = 0; y < NumYBlocks; y++) {
+            for (int x = 0; x < NumXBlocks; x++) {
+            startX = x * ParentX;
+            startY = y * ParentY;
+            startZ = z * ParentZ;
 
         
         // Create a key for caching a parent block by concatenating its input lines into a large string
-        std::string MapKey3d;
+        char MapKey3d[ParentX * ParentY * ParentZ];
         Create3dKey(MapKey3d);
 
         // check if the entire string is uniform and skip compressing if so
@@ -91,7 +92,7 @@ void Parse::ParseMap(){
         // There are ParentZ no. of slices in each parent block
         for (int localZ = 0; localZ < ParentZ; localZ++) {
             // Create a key for caching the slice by concatenating its input lines into a large string
-            std::string MapKey2d;
+            char MapKey2d[ParentX * ParentY];
             Create2dKey(MapKey2d, localZ); 
 
             // check if the entire string is uniform and skip compressing if so
@@ -116,9 +117,14 @@ void Parse::ParseMap(){
             //None of the shortcuts have worked, X then XY then XYZ compression will take place
             //Perfrom X compression on the slice using rle
             std::vector<Block> ParentSlice;
+            ParentSlice.reserve(ParentX * ParentY);
             for (int Y = 0; Y < ParentY; Y++) {
                 int XBlockStart = Y * ParentX;
-                std::string Row = MapKey2d.substr(XBlockStart, ParentX);
+
+                char Row[ParentX];
+                for (int j = 0; j < ParentX; j++){
+                    Row[j] = MapKey2d[XBlockStart + j];
+                }
                 if (UniformCheck(Row)){
                     ParentSlice.push_back({0, Y, localZ, ParentX, 1, 1, Row[0]});
                     continue;
@@ -137,13 +143,14 @@ void Parse::ParseMap(){
             OutputBlocks.push_back(IndividualParentBlock);
             // The process will now repeat
             }
+        }
 }
     
     return;
 }
 
 
-std::string Parse::CollectOutput(std::vector<ParentBlock> ParentBlocks) {
+std::string Parse::CollectOutput(std::vector<ParentBlock>& ParentBlocks) {
     std::string Output;
     for (ParentBlock &PB : ParentBlocks){
         Output += PB.WriteBlock(TagTable);
@@ -152,47 +159,49 @@ std::string Parse::CollectOutput(std::vector<ParentBlock> ParentBlocks) {
 }
 
 
-/*
-// Perform 2d Compression on the newly X compressed Parent Slice
-// Silly code with getblocks() is to retrieve the answer as
-// process layer was not built to return the answer per block
-const size_t Prev = Compressor.GetBlocksSize();
-Compressor.ProcessLayer(ParentSlice, ParentX, ParentY, ParentZ, localZ, Output, TagTable);
-std::vector<Block>& All = Compressor.GetBlocks();
-std::vector<Block> Merged(All.begin() + Prev, All.end());
+void Parse::Create3dKey(char* key3d) {
+    size_t writePos = 0;
+    const size_t stridePerLayer = YCount + 1; // if you truly have a blank line between layers
+    const size_t total = static_cast<size_t>(ParentX) * ParentY * ParentZ;
 
+    // (Optional) sanity checks
+    // assert(key3d != nullptr);
+    // assert(startX >= 0 && startY >= 0 && startZ >= 0);
+    // assert(startX + ParentX <= XCount);
+    // assert(startY + ParentY <= YCount);
+    // assert(startZ + ParentZ <= NumZBlocks /* or ZCount, as appropriate */);
 
+    for (int z = 0; z < ParentZ; ++z) {
+        const int base = Iterator + (startZ + z) * static_cast<int>(stridePerLayer);
+        for (int y = 0; y < ParentY; ++y) {
+            const int lineIdx = base + (startY + y);
+            const std::string& line = Lines[lineIdx];
 
-IndividualParentBlock.Blocks.reserve(IndividualParentBlock.Blocks.size() + Merged.size());
-IndividualParentBlock.Blocks.insert(IndividualParentBlock.Blocks.end(), Merged.begin(), Merged.end());
-}
-
-// The merged slices are sent to 3d compression and there answer is saved
-Compressor.MergeLayers(IndividualParentBlock.Blocks, ParentZ);
-std::vector<Block> FinalLocal = Compressor.GetFinalBlocks();
-IndividualParentBlock.Blocks.clear();
-// the saved answer is stored in the cache
-//CompressionCache3d.insert({MapKey3d, FinalLocal});
-
-//Block coordinates are updated from relative to absolute
-Block NewBlock;
-for (int k = 0; k < FinalLocal.size(); k++) {
-NewBlock = FinalLocal[k];
-NewBlock.XPos += startX;
-NewBlock.YPos += startY;
-NewBlock.ZPos += startZ;
-OutputBlocks.push_back(NewBlock); //blocks placed in output
-*/
-
-
-void Parse::Create3dKey(std::string& Key3d){
-    Key3d.reserve(ParentX * ParentY * ParentZ);
-    for (int z = 0; z < ParentZ; z++){
-        for (int y = 0; y < ParentY; y++) {
-            int lineIdx =  Iterator + ((startZ + z) * (YCount + 1)) + startY + y;
-            Key3d.append(Lines[lineIdx], startX, ParentX);
+            std::memcpy(key3d + writePos, line.data() + startX, ParentX);
+            writePos += ParentX;
         }
     }
+}
+
+void Parse::Create2dKey(char * Key2d, int localZ){
+    size_t writePos = 0;
+    const size_t base = Iterator + (startZ + localZ) * (YCount + 1);
+        for (int y = 0; y < ParentY; ++y) {
+            const int lineIdx = base + (startY + y);
+            const std::string& line = Lines[lineIdx];
+
+            std::memcpy(Key2d + writePos, line.data() + startX, ParentX);
+            writePos += ParentX;
+        }
+}
+
+bool Parse::UniformCheck(char * Key){
+    char first = Key[0];
+    for (int i = 1; i < ParentX * ParentY * ParentZ; i++){
+        if (Key[i] != first)
+        return false;
+    }
+    return true;
 }
 
 void Parse::Create2dKey(std::string& Key2d, int localZ){
@@ -202,7 +211,6 @@ void Parse::Create2dKey(std::string& Key2d, int localZ){
         Key2d.append(Lines[lineIdx], startX, ParentX);
     }
 }
-
 bool Parse::UniformCheck(std::string& Key){
     char first = Key[0];
     for (int i = 1; i < Key.size(); i++){

@@ -6,21 +6,8 @@ Compression::Compression() {}
 void Compression::CompressParentBlock(ParentBlock &ParentBlock) {
 	ProcessLayerSort(ParentBlock.Blocks, ParentBlock.LimitX, ParentBlock.LimitY, ParentBlock.LimitZ);
 	MergeLayers(ParentBlock.Blocks, ParentBlock.LimitZ);
-	//printf("ParentBlock Start: %d %d %d\n", ParentBlock.StartX,ParentBlock.StartY, ParentBlock.StartZ);
-	
 	RelaxedXY(ParentBlock.Blocks);
 	MergeLayers(ParentBlock.Blocks, ParentBlock.LimitZ);
-	// std::sort(ParentBlock.Blocks.begin(), ParentBlock.Blocks.end(),[](const Block& a, const Block& b) {
-	// 	if (a.ZPos  != b.ZPos)  return a.ZPos  < b.ZPos;
-	// 	if (a.YPos  != b.YPos)  return a.YPos  < b.YPos;
-	// 	if (a.XPos  != b.XPos)  return a.XPos  < b.XPos;
-	// 	return a.YPos < b.YPos;
-	// });
-	//if (ParentBlock.StartX == 8 && ParentBlock.StartY == 32) {
-	//	exit(0);
-	//}
-	//RelaxedZ(ParentBlock.Blocks);
-
 }
 
 
@@ -34,6 +21,7 @@ void Compression::RelaxedXY(std::vector<Block> &Blocks) {
 	});
 	size_t Size = Blocks.size();
 	std::vector<int> RecheckI;
+	RecheckI.reserve(Size / 10);
 	
 	for (size_t i = 0; i < Size; i++) {
 		Block &Current = Blocks[i];
