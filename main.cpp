@@ -8,7 +8,32 @@
 #include <chrono>
 #include <thread>
 
+inline int alloc_calls = 0;
+inline int alloc_bytes = 0;
+
+// void* operator new(std::size_t sz) {
+//   ++alloc_calls; alloc_bytes += (int)sz;
+//   return std::malloc(sz);
+// }
+
+// void* operator new[](std::size_t sz) {
+//   ++alloc_calls; alloc_bytes += (long long)sz;
+//   return std::malloc(sz);
+// }
+
+// void* operator new(std::size_t sz, std::align_val_t al) {
+//   ++alloc_calls; alloc_bytes += (long long)sz;
+// #ifdef _WIN32
+//   void* p = _aligned_malloc(sz, (std::size_t)al);
+// #else
+//   void* p = nullptr;
+//   if (posix_memalign(&p, (std::size_t)al, sz) != 0) p = nullptr;
+// #endif
+//   return p;
+// }
+
 int main(int argc, char* argv[]) {
+
 std::ios::sync_with_stdio(false);
 
     std::cin.tie(nullptr);
@@ -85,10 +110,10 @@ std::ios::sync_with_stdio(false);
         infile.close();
     } else {
         // No flags: read from stdin
-        while (std::getline(std::cin, line)) {
-            if (!line.empty() && line.back() == '\r') line.pop_back();
-            InitLines.push_back(line);
-        }
+        // while (std::getline(std::cin, line)) {
+        //     if (!line.empty() && line.back() == '\r') line.pop_back();
+        //     InitLines.push_back(line);
+        // }
     }
 
     auto start = std::chrono::high_resolution_clock::now();
@@ -96,54 +121,55 @@ std::ios::sync_with_stdio(false);
     // Compression logic
     std::thread Thread1, Thread2, Thread3, Thread4;
 
-    Parse Parser = Parse(InitLines);
-
+    //Parse Parser = Parse(InitLines);
+    Parse Parser;
+    Parser.StreamParseHeader();
     std::vector<ParentBlock>& ParentBlocks = Parser.OutputBlocks;
     
-    size_t TotalBlocks = ParentBlocks.size();
-    size_t Quarter = TotalBlocks / 4;
-    size_t Remainder = TotalBlocks % 4;
+    // size_t TotalBlocks = ParentBlocks.size();
+    // size_t Quarter = TotalBlocks / 4;
+    // size_t Remainder = TotalBlocks % 4;
 
-    // Find even splits for threads
-    size_t Split1 = Quarter + (Remainder > 0 ? 1 : 0);
-    size_t Split2 = Split1 + Quarter + (Remainder > 1 ? 1 : 0);
-    size_t Split3 = Split2 + Quarter + (Remainder > 2 ? 1 : 0);
+    // // Find even splits for threads
+    // size_t Split1 = Quarter + (Remainder > 0 ? 1 : 0);
+    // size_t Split2 = Split1 + Quarter + (Remainder > 1 ? 1 : 0);
+    // size_t Split3 = Split2 + Quarter + (Remainder > 2 ? 1 : 0);
 
-    Compression Compressor = Compression();
-    std::string* AllMappings = Parser.TagTable;
+    Compression Compressor;
+    // std::string* AllMappings = Parser.TagTable;
 
-    Thread1 = std::thread([&]() {
-        Compression LocalCompressor;
-        for (size_t i = 0; i < Split1; i++) {
-            LocalCompressor.CompressParentBlock(ParentBlocks[i]);
-        }
-    });
+    // Thread1 = std::thread([&]() {
+    //     Compression LocalCompressor;
+    //     for (size_t i = 0; i < Split1; i++) {
+    //         LocalCompressor.CompressParentBlock(ParentBlocks[i]);
+    //     }
+    // });
 
-    Thread2 = std::thread([&]() {
-        Compression LocalCompressor;
-        for (size_t i = Split1; i < Split2; i++) {
-            LocalCompressor.CompressParentBlock(ParentBlocks[i]);
-        }
-    });
+    // Thread2 = std::thread([&]() {
+    //     Compression LocalCompressor;
+    //     for (size_t i = Split1; i < Split2; i++) {
+    //         LocalCompressor.CompressParentBlock(ParentBlocks[i]);
+    //     }
+    // });
 
-    Thread3 = std::thread([&]() {
-        Compression LocalCompressor;
-        for (size_t i = Split2; i < Split3; i++) {
-            LocalCompressor.CompressParentBlock(ParentBlocks[i]);
-        }
-    });
+    // Thread3 = std::thread([&]() {
+    //     Compression LocalCompressor;
+    //     for (size_t i = Split2; i < Split3; i++) {
+    //         LocalCompressor.CompressParentBlock(ParentBlocks[i]);
+    //     }
+    // });
 
-    Thread4 = std::thread([&]() {
-        Compression LocalCompressor;
-        for (size_t i = Split3; i < TotalBlocks; i++) {
-            LocalCompressor.CompressParentBlock(ParentBlocks[i]);
-        }
-    });
+    // Thread4 = std::thread([&]() {
+    //     Compression LocalCompressor;
+    //     for (size_t i = Split3; i < TotalBlocks; i++) {
+    //         LocalCompressor.CompressParentBlock(ParentBlocks[i]);
+    //     }
+    // });
 
-    Thread1.join();
-    Thread2.join();
-    Thread3.join();
-    Thread4.join();
+    // Thread1.join();
+    // Thread2.join();
+    // Thread3.join();
+    // Thread4.join();
 
     // auto end = std::chrono::high_resolution_clock::now();
     // std::chrono::duration<double> elapsed = end - start;
@@ -152,8 +178,16 @@ std::ios::sync_with_stdio(false);
         // std::cout << "Compression done in " << elapsed.count() << " seconds.\n";
     }
 
-    std::cout << Parser.CollectOutput(ParentBlocks);
-    auto end = std::chrono::high_resolution_clock::now();
-    std::chrono::duration<double> elapsed = end - start;
-    std::cout << "Compression done in " << elapsed.count() << " seconds.\n";
+    // for (size_t i = 0; i < ParentBlocks.size(); i++) {
+    //     Compressor.CompressParentBlock(ParentBlocks[i]);
+    // }
+    
+    Parser.CollectOutput(ParentBlocks);
+    // auto end = std::chrono::high_resolution_clock::now();
+    // std::chrono::duration<double> elapsed = end - start;
+    // std::cout << "Compression done in " << elapsed.count() << " seconds.\n";
+    // std::cout << moveCounter << " moves.\n";
+    // std::cout << copyCounter << " copies.\n";
+    // std::cout << alloc_calls << " allocations.\n";
+    // std::cout << alloc_bytes << " bytes allocated.\n";
 }

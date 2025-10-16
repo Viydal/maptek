@@ -25,7 +25,9 @@ public:
   Parse() {};
   Parse(const std::vector<std::string>& Lines);
   
-  
+  int StreamParseHeader();
+  void StreamParseMapChunk();
+
   int ParseHeader();
   void ParseMap();
 
@@ -40,7 +42,8 @@ public:
 
   std::vector<std::vector<std::string>> GetMap() {return MapInformation;};
   std::string * GetTagTable() {return TagTable;};
-  std::string CollectOutput(std::vector<ParentBlock>& ParentBlocks);
+  void CollectOutput(std::vector<ParentBlock>& ParentBlocks);
+  std::string TestCollectOutput(std::vector<ParentBlock>& ParentBlocks);
 };
 
 #endif

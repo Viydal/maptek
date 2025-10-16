@@ -109,7 +109,7 @@ bool Tester::RunTest(Args args) {
     elapsed = end - TotalStart;
     std::cout << "Program done in " << elapsed.count() << " seconds." << std::endl;
     // Collect output lines
-    std::string Output = Parser.CollectOutput(ParentBlocks);
+    std::string Output = Parser.TestCollectOutput(ParentBlocks);
     std::vector<std::string> outputLines;
     std::stringstream ss(Output);
     while (std::getline(ss, line)) {
