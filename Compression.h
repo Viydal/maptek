@@ -10,15 +10,12 @@
 
 class Compression {
 public:
-  int XCount, YCount, ZCount, ParentX, ParentY, ParentZ;
-  std::vector<Block> AllLayerBlocks;
-  std::vector<Block> FinalBlocks;
 
   Compression();
   void CompressParentBlock(ParentBlock &ParentBlock);
   void ProcessLayerSort(std::vector<Block> &Blocks, int ParentX, int ParentY, int ParentZ);
   void MergeLayers(std::vector<Block>& Blocks, int ParentZ);
-  
+
   void RelaxedXY(std::vector<Block> &Blocks);
   void RelaxedZ(std::vector<Block> &Blocks);
   void ProcessLayer(std::vector<std::vector<Block>> &Rows, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable);

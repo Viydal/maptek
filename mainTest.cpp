@@ -7,7 +7,9 @@
 #include <vector>
 #include <chrono>
 #include <thread>
+#include <string>
 #include <cstdio>
+
 
 //chat gpt windows output speedup
 #ifdef _WIN32
@@ -16,17 +18,39 @@
   #include <fcntl.h> // _O_BINARY
 #endif
 
-
 inline int alloc_calls = 0;
 inline int alloc_bytes = 0;
 
+// void* operator new(std::size_t sz) {
+//   ++alloc_calls; alloc_bytes += (int)sz;
+//   return std::malloc(sz);
+// }
+
+// void* operator new[](std::size_t sz) {
+//   ++alloc_calls; alloc_bytes += (long long)sz;
+//   return std::malloc(sz);
+// }
+
+// void* operator new(std::size_t sz, std::align_val_t al) {
+//   ++alloc_calls; alloc_bytes += (long long)sz;
+// #ifdef _WIN32
+//   void* p = _aligned_malloc(sz, (std::size_t)al);
+// #else
+//   void* p = nullptr;
+//   if (posix_memalign(&p, (std::size_t)al, sz) != 0) p = nullptr;
+// #endif
+//   return p;
+// }
+
 int main(int argc, char* argv[]) {
 
-std::ios::sync_with_stdio(false);
-std::cin.tie(nullptr);
-std::cout.tie(nullptr);
+    auto TotalProgramTime = std::chrono::high_resolution_clock::now();
+    std::ios::sync_with_stdio(false);
+    std::cin.tie(nullptr);
+    std::cout.tie(nullptr);
 
-#ifdef _WIN32
+    //chat gpt windows output speedup
+    #ifdef _WIN32
         _setmode(_fileno(stdout), _O_BINARY); // no \n->\r\n translation
         _setmode(_fileno(stdin),  _O_BINARY);
 
@@ -36,7 +60,6 @@ std::cout.tie(nullptr);
         static char inbuf[1<<20];
         setvbuf(stdin,  inbuf,  _IOFBF, sizeof(inbuf));
     #endif
-
 
     Args Args;
     // --- Parse args ---
@@ -95,14 +118,10 @@ std::cout.tie(nullptr);
 
     // --- NORMAL MODE ---
 
-    // read in from file or stdin
-
     std::unique_ptr<std::ifstream> file;
     std::istream* in = &std::cin; 
 
-    // liberal use of generative ai here to get this working, some special form of pointer is used
     if (Args.readFile) {
-        
         file = std::make_unique<std::ifstream>("TestCases/" + Args.filePath);
         if (!*file) {
             std::cerr << "Error: could not open " << Args.filePath << "\n";
@@ -110,13 +129,16 @@ std::cout.tie(nullptr);
         }
         in = file.get();
     }
-    
+   
+    auto startParseHeader = std::chrono::high_resolution_clock::now();
+        
     Parse Parser;
-
     Parser.StreamParseHeader(*in);
 
-    //create the parent blocks which will be constructed and sorted in place
+    auto endParseHeader = std::chrono::high_resolution_clock::now();
+    auto ParseHeaderDuration = std::chrono::duration_cast<std::chrono::milliseconds>(endParseHeader - startParseHeader);
 
+    auto startInitialiseParentBlocks = std::chrono::high_resolution_clock::now();
     std::vector<ParentBlock> ParentBlocks;
     ParentBlocks.reserve(Parser.NumXBlocks * Parser.NumYBlocks);
 
@@ -126,27 +148,63 @@ std::cout.tie(nullptr);
         }
     }
 
+
+    auto endInitialiseParentBlocks = std::chrono::high_resolution_clock::now();
+    auto InitialiseParentBlocksDuration = std::chrono::duration_cast<std::chrono::milliseconds>(endInitialiseParentBlocks - startInitialiseParentBlocks);
+
     Compression Compressor;
 
     std::unordered_map<std::string, std::vector<std::pair<int,char>>> RleCache;
+
+    int ParseTime = 0, CompressTime = 0, WriteTime = 0;
     std::string Output;
     Output.reserve(ParentBlocks.size() * 80);
-    //Processes a ParentX * ParentY * ParentZ chunk of the map at a time
+
     for (int i = 0; i < Parser.NumZBlocks; i++){
         Output.clear();
-        for (ParentBlock& pb : ParentBlocks) {
+        for (auto& pb : ParentBlocks) {
             pb.StartZ = i * Parser.ParentZ; 
             pb.Blocks.clear();
         }
 
+        auto start = std::chrono::high_resolution_clock::now();
         Parser.StreamParseMapChunk(ParentBlocks, i, *in, RleCache);
+        auto end = std::chrono::high_resolution_clock::now();
+        auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        ParseTime += duration.count();
 
-        for (ParentBlock& PB : ParentBlocks) {
+        start = std::chrono::high_resolution_clock::now();
+        for (auto& PB : ParentBlocks) {
             Compressor.CompressParentBlock(PB);
+        }
+        end = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        CompressTime += duration.count();
+
+        start = std::chrono::high_resolution_clock::now();
+        for (auto& PB : ParentBlocks) {
             PB.WriteBlock(Parser.TagTable, Output);
         }
-        fwrite(Output.data(), 1, Output.size(), stdout);
-    }   
+        std::cout.write(Output.data(), Output.size());
+        
+        end = std::chrono::high_resolution_clock::now();
+        duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
+        WriteTime += duration.count();
+    }
+    auto TotalProgramEnd = std::chrono::high_resolution_clock::now();
+    auto TotalProgramDuration = std::chrono::duration_cast<std::chrono::milliseconds>(TotalProgramEnd - TotalProgramTime);
+
+    std::cout << "Total program done in " << TotalProgramDuration.count() << " ms.\n";
+    std::cout << "Parse Header done in " << ParseHeaderDuration.count() << " ms.\n";
+    std::cout << "Initialise Parent Blocks done in " << InitialiseParentBlocksDuration.count() << " ms.\n";
+    std::cout << "Parsing done in " << ParseTime << " ms.\n";
+    std::cout << "Compressing done in " << CompressTime << " ms.\n";
+    std::cout << "Writing done in " << WriteTime << " ms.\n";
+    std::cout << moveCounter << " ParentBlock or Block moves.\n";
+    std::cout << copyCounter << " ParentBlock or Block copies.\n";
+    std::cout << alloc_calls << " Heap allocations.\n";
+    std::cout << alloc_bytes << " Heap bytes allocated.\n";
+    std::cout << "Cache hits: " << Parser.CacheHits << "\n";
+    std::cout << "Cache misses: " << Parser.CacheMisses << "\n";    
+    
 }
-
-
