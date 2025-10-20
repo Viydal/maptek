@@ -48,7 +48,7 @@ void Parse::StreamParseMapChunk(std::vector<ParentBlock>& ParentBlocks, int chun
         int RowsRead = 0;
 
 
-        
+
         while (RowsRead < YCount && std::getline(in, Line)) {
             if (!Line.empty() && Line.back() == '\r') Line.pop_back();
             if (Line.empty()) continue;
@@ -153,24 +153,21 @@ std::string Parse::TestRLERow(std::string Row) {
     return RLEString;
 }
 
-void Parse::RLERow(std::string_view BlockString, std::vector<Block>& RowBlocks,int StartX, int RowNum, int LayerNum, std::unordered_map<std::string, std::vector<std::pair<int,char>>> &Cache) {
-
-    const unsigned char* p   = reinterpret_cast<const unsigned char*>(BlockString.data());
-    const unsigned char* end = p + BlockString.size();
-
-    int x = StartX;
-    unsigned char ch = *p++;
-    int run = 1;
-
-    // Unrolled main loop
-    while (p < end){
-        unsigned char c = *p++;
-        if (c == ch) { ++run; continue; }
-
-        RowBlocks.emplace_back(x, RowNum, LayerNum, run, 1, 1, (char)ch);
-        x   += run;
-        ch   = c;
-        run  = 1;
+void Parse::RLERow(std::string_view BlockString, std::vector<Block>& RowBlocks, int StartX, int RowNum, int LayerNum, std::unordered_map<std::string, std::vector<std::pair<int,char>>>&){
+ 
+    int Count = 1;
+    char Prev = BlockString[0];
+    char Current; 
+    for (int i = 1; i < ParentX; i++){
+        Current = BlockString[i];
+        if (Current == Prev) {
+            Count++;
+        } else {
+            RowBlocks.emplace_back(StartX, RowNum, LayerNum, Count, 1, 1, Prev);
+            StartX += Count;
+            Prev = Current;
+            Count = 1;
+        }
     }
-    RowBlocks.emplace_back(x, RowNum, LayerNum, run, 1, 1, (char)ch);
+    RowBlocks.emplace_back(StartX, RowNum, LayerNum, Count, 1, 1, Prev);
 }
