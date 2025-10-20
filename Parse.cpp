@@ -46,6 +46,9 @@ void Parse::StreamParseMapChunk(std::vector<ParentBlock>& ParentBlocks, int chun
     //
      for (int Z = 0; Z < ParentZ; Z++) {
         int RowsRead = 0;
+
+
+        
         while (RowsRead < YCount && std::getline(in, Line)) {
             if (!Line.empty() && Line.back() == '\r') Line.pop_back();
             if (Line.empty()) continue;
@@ -58,7 +61,7 @@ void Parse::StreamParseMapChunk(std::vector<ParentBlock>& ParentBlocks, int chun
                 int ParentBlockIndex = StartY * NumXBlocks + XBlockIndex;
 
                 std::string_view Substring(Line.data() + StartX, ParentX);
-                RLERow(Substring, ParentBlocks[ParentBlockIndex], 0, LocalY, Z, RleCache);
+                RLERow(Substring, ParentBlocks[ParentBlockIndex].Blocks, 0, LocalY, Z, RleCache);
                 StartX += ParentX;
             }
             RowsRead++;
@@ -150,34 +153,24 @@ std::string Parse::TestRLERow(std::string Row) {
     return RLEString;
 }
 
-void Parse::RLERow(std::string_view BlockString, ParentBlock& RowBlocks,int StartX, int RowNum, int LayerNum, std::unordered_map<std::string, std::vector<std::pair<int,char>>> &Cache) {
-    int Counter = 1;
-    char CurrChar;
-    char PrevChar = BlockString[0];
+void Parse::RLERow(std::string_view BlockString, std::vector<Block>& RowBlocks,int StartX, int RowNum, int LayerNum, std::unordered_map<std::string, std::vector<std::pair<int,char>>> &Cache) {
 
-    if (!RowBlocks.UniformInit){
-        RowBlocks.UniformInit = true;
-        RowBlocks.UniformChar = PrevChar;
-    } else {
-        if (PrevChar != RowBlocks.UniformChar){
-            RowBlocks.IsUniform = false;
-        }
-    }
-    
-    for (size_t i = 1; i < ParentX; i++) {
-        CurrChar = BlockString[i];
-        if (CurrChar == PrevChar) {
-            Counter++;
-        } else {
-            RowBlocks.Blocks.emplace_back(StartX, RowNum, LayerNum, Counter, 1, 1, PrevChar);
-            PrevChar = CurrChar;
-            StartX += Counter;
-            Counter = 1;
-        }
+    const unsigned char* p   = reinterpret_cast<const unsigned char*>(BlockString.data());
+    const unsigned char* end = p + BlockString.size();
 
-        if (Counter != ParentX){
-            RowBlocks.IsUniform = false;
-        }
+    int x = StartX;
+    unsigned char ch = *p++;
+    int run = 1;
+
+    // Unrolled main loop
+    while (p < end){
+        unsigned char c = *p++;
+        if (c == ch) { ++run; continue; }
+
+        RowBlocks.emplace_back(x, RowNum, LayerNum, run, 1, 1, (char)ch);
+        x   += run;
+        ch   = c;
+        run  = 1;
     }
-    RowBlocks.Blocks.emplace_back(StartX, RowNum, LayerNum, Counter, 1, 1, PrevChar);
+    RowBlocks.emplace_back(x, RowNum, LayerNum, run, 1, 1, (char)ch);
 }

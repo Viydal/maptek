@@ -35,7 +35,7 @@ public:
   void ParseMap();
 
   std::string TestRLERow(std::string Row);
-  void RLERow(std::string_view BlockString, ParentBlock& RowBlocks, int StartX, int RowNum, int LayerNum, std::unordered_map<std::string, std::vector<std::pair<int,char>>> &Cache);
+  void RLERow(std::string_view BlockString, std::vector<Block>& RowBlocks, int StartX, int RowNum, int LayerNum, std::unordered_map<std::string, std::vector<std::pair<int,char>>> &Cache);
   void RLERow(char* XBlockString, std::vector<Block> *RowBlocks, std::unordered_map<std::string, std::vector<std::pair<int,char>>> *DP,int StartX, int RowNum, int LayerNum);
 
   void Create3dKey(char * Key3d);

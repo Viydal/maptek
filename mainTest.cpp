@@ -167,8 +167,6 @@ int main(int argc, char* argv[]) {
         for (auto& pb : ParentBlocks) {
             pb.StartZ = i * Parser.ParentZ; 
             pb.Blocks.clear();
-            pb.IsUniform = true;
-            pb.UniformInit = false;
         }
 
         auto start = std::chrono::high_resolution_clock::now();
@@ -179,10 +177,6 @@ int main(int argc, char* argv[]) {
 
         start = std::chrono::high_resolution_clock::now();
         for (auto& PB : ParentBlocks) {
-            if (PB.IsUniform){
-                continue;
-            }
-            
             Compressor.CompressParentBlock(PB);
         }
         end = std::chrono::high_resolution_clock::now();

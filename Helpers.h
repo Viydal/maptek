@@ -71,9 +71,8 @@ public:
     uint16_t StartX, StartY, StartZ;
     uint8_t LimitX, LimitY, LimitZ;
 
-    bool IsUniform = true;
-    bool UniformInit = false;
-    char UniformChar = 0;
+    bool IsUniform;
+
 
     ParentBlock(){};
     ParentBlock(int startX, int startY, int startZ, int ParentX, int ParentY, int ParentZ, char Key) 
@@ -136,19 +135,6 @@ public:
     void WriteBlock(const std::string* TagTable, std::string& out) {
         
         for (const Block& B : Blocks) {
-            if (IsUniform) {
-                // one line: whole parent volume at StartX/Y/Z with LimitX/Y/Z
-                append_u32(out, StartX); out += ',';
-                append_u32(out, StartY); out += ',';
-                append_u32(out, StartZ); out += ',';
-                append_u32(out, LimitX); out += ',';
-                append_u32(out, LimitY); out += ',';
-                append_u32(out, LimitZ); out += ',';
-                out += TagTable[B.Ch];
-                out += '\n';
-                return;
-            }
-
             append_u32(out, B.XPos + StartX); out += ',';
             append_u32(out, B.YPos + StartY); out += ',';
             append_u32(out, B.ZPos + StartZ); out += ',';

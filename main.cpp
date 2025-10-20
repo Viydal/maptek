@@ -134,17 +134,11 @@ std::cout.tie(nullptr);
         for (ParentBlock& PB : ParentBlocks) {
             PB.StartZ = i * Parser.ParentZ; 
             PB.Blocks.clear();
-            PB.IsUniform = true;
-            PB.UniformInit = false;
         }
 
         Parser.StreamParseMapChunk(ParentBlocks, i, *in, RleCache);
 
         for (ParentBlock& PB : ParentBlocks) {
-            if (PB.IsUniform){
-                PB.WriteBlock(Parser.TagTable, Output);
-                continue;
-            }
             Compressor.CompressParentBlock(PB);
             PB.WriteBlock(Parser.TagTable, Output);
         }
