@@ -58,7 +58,7 @@ void Parse::StreamParseMapChunk(std::vector<ParentBlock>& ParentBlocks, int chun
                 int ParentBlockIndex = StartY * NumXBlocks + XBlockIndex;
 
                 std::string_view Substring(Line.data() + StartX, ParentX);
-                RLERow(Substring, ParentBlocks[ParentBlockIndex].Blocks, 0, LocalY, Z, RleCache);
+                RLERow(Substring, ParentBlocks[ParentBlockIndex], 0, LocalY, Z, RleCache);
                 StartX += ParentX;
             }
             RowsRead++;
@@ -150,42 +150,34 @@ std::string Parse::TestRLERow(std::string Row) {
     return RLEString;
 }
 
-void Parse::RLERow(std::string_view BlockString, std::vector<Block>& RowBlocks,int StartX, int RowNum, int LayerNum, std::unordered_map<std::string, std::vector<std::pair<int,char>>> &Cache) {
-    // std::string Key(BlockString);
-    // if (auto it = Cache.find(Key); it != Cache.end()) {
-    //     const std::vector<std::pair<int,char>>& runs = it->second;
-    //     for (const auto& [len, ch] : runs) {
-    //         RowBlocks.emplace_back(StartX, RowNum, LayerNum, len, 1, 1, ch);
-    //         StartX += len;
-    //     }
-    //     //CacheHits++;
-    //     return;
-    // }
-    // //CacheMisses++;
-
-    // std::vector<std::pair<int,char>> Runs;
-    // Runs.reserve(ParentX);
+void Parse::RLERow(std::string_view BlockString, ParentBlock& RowBlocks,int StartX, int RowNum, int LayerNum, std::unordered_map<std::string, std::vector<std::pair<int,char>>> &Cache) {
     int Counter = 1;
     char CurrChar;
     char PrevChar = BlockString[0];
 
+    if (!RowBlocks.UniformInit){
+        RowBlocks.UniformInit = true;
+        RowBlocks.UniformChar = PrevChar;
+    } else {
+        if (PrevChar != RowBlocks.UniformChar){
+            RowBlocks.IsUniform = false;
+        }
+    }
+    
     for (size_t i = 1; i < ParentX; i++) {
         CurrChar = BlockString[i];
         if (CurrChar == PrevChar) {
             Counter++;
         } else {
-            RowBlocks.emplace_back(StartX, RowNum, LayerNum, Counter, 1, 1, PrevChar);
-            // Runs.emplace_back(Counter, PrevChar);
+            RowBlocks.Blocks.emplace_back(StartX, RowNum, LayerNum, Counter, 1, 1, PrevChar);
             PrevChar = CurrChar;
             StartX += Counter;
             Counter = 1;
         }
-    }
-    RowBlocks.emplace_back(StartX, RowNum, LayerNum, Counter, 1, 1, PrevChar);
-    // Runs.emplace_back(Counter, PrevChar);
-    // if (Cache.size() > 4096){
-    //     Cache.clear();
-    // }
 
-    // Cache.emplace(std::move(Key), std::move(Runs));
+        if (Counter != ParentX){
+            RowBlocks.IsUniform = false;
+        }
+    }
+    RowBlocks.Blocks.emplace_back(StartX, RowNum, LayerNum, Counter, 1, 1, PrevChar);
 }

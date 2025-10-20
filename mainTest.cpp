@@ -167,6 +167,8 @@ int main(int argc, char* argv[]) {
         for (auto& pb : ParentBlocks) {
             pb.StartZ = i * Parser.ParentZ; 
             pb.Blocks.clear();
+            pb.IsUniform = true;
+            pb.UniformInit = false;
         }
 
         auto start = std::chrono::high_resolution_clock::now();
@@ -177,6 +179,10 @@ int main(int argc, char* argv[]) {
 
         start = std::chrono::high_resolution_clock::now();
         for (auto& PB : ParentBlocks) {
+            if (PB.IsUniform){
+                continue;
+            }
+            
             Compressor.CompressParentBlock(PB);
         }
         end = std::chrono::high_resolution_clock::now();
@@ -196,18 +202,18 @@ int main(int argc, char* argv[]) {
     auto TotalProgramEnd = std::chrono::high_resolution_clock::now();
     auto TotalProgramDuration = std::chrono::duration_cast<std::chrono::milliseconds>(TotalProgramEnd - TotalProgramTime);
 
-    std::cout << "Total program done in " << TotalProgramDuration.count() << " ms.\n";
-    std::cout << "Parse Header done in " << ParseHeaderDuration.count() << " ms.\n";
-    std::cout << "Initialise Parent Blocks done in " << InitialiseParentBlocksDuration.count() << " ms.\n";
-    std::cout << "Parsing done in " << ParseTime << " ms.\n";
-    std::cout << "Total Compressing done in " << TotalCompressTime << " ms.\n";
-    std::cout << "Deleting done in " << DeleteTime << " ms.\n";
-    std::cout << "Compressing done in " << CompressTime << " ms.\n";
-    std::cout << "Writing done in " << WriteTime << " ms.\n";
-    std::cout << moveCounter << " ParentBlock or Block moves.\n";
-    std::cout << copyCounter << " ParentBlock or Block copies.\n";
-    std::cout << alloc_calls << " Heap allocations.\n";
-    std::cout << alloc_bytes << " Heap bytes allocated.\n"; 
+    std::cout << "Total program done in " << TotalProgramDuration.count() << " ms. "
+    << "Parse Header done in " << ParseHeaderDuration.count() << " ms. "
+    << "Initialise Parent Blocks done in " << InitialiseParentBlocksDuration.count() << " ms. "
+    << "Parsing done in " << ParseTime << " ms. "
+    << "Total Compressing done in " << TotalCompressTime << " ms. "
+    << "Deleting done in " << DeleteTime << " ms. "
+    << "Compressing done in " << CompressTime << " ms. "
+    << "Writing done in " << WriteTime << " ms. "
+    << moveCounter << " ParentBlock or Block moves. "
+    << copyCounter << " ParentBlock or Block copies. "
+    << alloc_calls << " Heap allocations. "
+    << alloc_bytes << " Heap bytes allocated. ";
     // std::cout << sizeof(ParentBlock) << " bytes per ParentBlock.\n";
     // std::cout << sizeof(Block) << " bytes per Block.\n";
     // std::cout << sizeof(std::vector<Block>) << " bytes per vector<Block> overhead.\n";
