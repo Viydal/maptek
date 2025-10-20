@@ -13,10 +13,11 @@
 
 class Parse {
 public:
-  int XCount, YCount, ZCount, ParentX, ParentY, ParentZ;
-  int startX, startY, startZ;
+  uint16_t XCount, YCount, ZCount;
+  uint16_t ParentX, ParentY, ParentZ;
+  uint16_t startX, startY, startZ;
   int Iterator;
-  int NumXBlocks, NumYBlocks, NumZBlocks;
+  uint16_t NumXBlocks, NumYBlocks, NumZBlocks;
   int CacheHits = 0;
   int CacheMisses = 0;
   std::string TagTable[256];

@@ -25,40 +25,41 @@ struct Block {
     Block() : XPos(0), YPos(0), ZPos(0), XSize(0), YSize(0), ZSize(0), Ch('?') {}
     Block(int x, int y, int z, int xs, int ys, int zs, char ch) : XPos(x), YPos(y), ZPos(z), XSize(xs), YSize(ys), ZSize(zs), Ch(ch) {}
     
-     Block(const Block& o)
-        : XPos(o.XPos),YPos(o.YPos),ZPos(o.ZPos),
-          XSize(o.XSize),YSize(o.YSize),ZSize(o.ZSize),
-          Ch(o.Ch),Merged(o.Merged)
-    {copyCounter++;}
+    //  Block(const Block& o)
+    //     : XPos(o.XPos),YPos(o.YPos),ZPos(o.ZPos),
+    //       XSize(o.XSize),YSize(o.YSize),ZSize(o.ZSize),
+    //       Ch(o.Ch),Merged(o.Merged)
+    // {copyCounter++;}
 
-    Block& operator=(const Block& o) {
-        if (this != &o) {
-            XPos=o.XPos; YPos=o.YPos; ZPos=o.ZPos;
-            XSize=o.XSize; YSize=o.YSize; ZSize=o.ZSize;
-            Ch=o.Ch; Merged=o.Merged;
-            copyCounter++;
-        }
-        return *this;
-    }
+    // Block& operator=(const Block& o) {
+    //     if (this != &o) {
+    //         XPos=o.XPos; YPos=o.YPos; ZPos=o.ZPos;
+    //         XSize=o.XSize; YSize=o.YSize; ZSize=o.ZSize;
+    //         Ch=o.Ch; Merged=o.Merged;
+    //         copyCounter++;
+    //     }
+    //     return *this;
+    // }
     
-    Block(Block&& o) noexcept
-        : XPos(o.XPos),YPos(o.YPos),ZPos(o.ZPos),
-          XSize(o.XSize),YSize(o.YSize),ZSize(o.ZSize),
-          Ch(o.Ch),Merged(o.Merged)
-    { moveCounter++; }
+    // Block(Block&& o) noexcept
+    //     : XPos(o.XPos),YPos(o.YPos),ZPos(o.ZPos),
+    //       XSize(o.XSize),YSize(o.YSize),ZSize(o.ZSize),
+    //       Ch(o.Ch),Merged(o.Merged)
+    // { moveCounter++; }
 
-    Block& operator=(Block&& o) noexcept {
-        if (this != &o) {
-            XPos=o.XPos; YPos=o.YPos; ZPos=o.ZPos;
-            XSize=o.XSize; YSize=o.YSize; ZSize=o.ZSize;
-            Ch=o.Ch; Merged=o.Merged;
-            moveCounter++;
-        }
-        return *this;
-    }
+    // Block& operator=(Block&& o) noexcept {
+    //     if (this != &o) {
+    //         XPos=o.XPos; YPos=o.YPos; ZPos=o.ZPos;
+    //         XSize=o.XSize; YSize=o.YSize; ZSize=o.ZSize;
+    //         Ch=o.Ch; Merged=o.Merged;
+    //         moveCounter++;
+    //     }
+    //     return *this;
+    // }
 
-    uint8_t XPos, YPos, ZPos;
-    uint8_t XSize, YSize, ZSize;
+    uint8_t XPos, XSize;
+    uint8_t YPos, YSize;
+    uint8_t ZPos, ZSize;
     char Ch;
     bool Merged = false;
 };
@@ -83,45 +84,43 @@ public:
     }
     
     
-    ParentBlock(const ParentBlock& other)
-        : Blocks(other.Blocks),
-          StartX(other.StartX), StartY(other.StartY), StartZ(other.StartZ),
-          LimitX(other.LimitX), LimitY(other.LimitY), LimitZ(other.LimitZ),
-          IsUniform(other.IsUniform){ 
-        copyCounter++; 
-    }
+    // ParentBlock(const ParentBlock& other)
+    //     : Blocks(other.Blocks),
+    //       StartX(other.StartX), StartY(other.StartY), StartZ(other.StartZ),
+    //       LimitX(other.LimitX), LimitY(other.LimitY), LimitZ(other.LimitZ),
+    //       IsUniform(other.IsUniform){ 
+    //     copyCounter++; 
+    // }
 
-    ParentBlock& operator=(const ParentBlock& other) {
-        if (this != &other) {
-            Blocks = other.Blocks;
-            StartX = other.StartX;   StartY = other.StartY;   StartZ = other.StartZ;
-            LimitX = other.LimitX;   LimitY = other.LimitY;   LimitZ = other.LimitZ;
-            IsUniform = other.IsUniform;
-            copyCounter++;
-        }
-        return *this;
-    }
+    // ParentBlock& operator=(const ParentBlock& other) {
+    //     if (this != &other) {
+    //         Blocks = other.Blocks;
+    //         StartX = other.StartX;   StartY = other.StartY;   StartZ = other.StartZ;
+    //         LimitX = other.LimitX;   LimitY = other.LimitY;   LimitZ = other.LimitZ;
+    //         IsUniform = other.IsUniform;
+    //         copyCounter++;
+    //     }
+    //     return *this;
+    // }
 
-    // Move ctor (noexcept! vector will prefer this)
-    ParentBlock(ParentBlock&& other) noexcept
-        : Blocks(std::move(other.Blocks)),
-          StartX(other.StartX), StartY(other.StartY), StartZ(other.StartZ),
-          LimitX(other.LimitX), LimitY(other.LimitY), LimitZ(other.LimitZ),
-          IsUniform(other.IsUniform){
-            moveCounter++; 
-        }
+    // ParentBlock(ParentBlock&& other) noexcept
+    //     : Blocks(std::move(other.Blocks)),
+    //       StartX(other.StartX), StartY(other.StartY), StartZ(other.StartZ),
+    //       LimitX(other.LimitX), LimitY(other.LimitY), LimitZ(other.LimitZ),
+    //       IsUniform(other.IsUniform){
+    //         moveCounter++; 
+    //     }
 
-    // Move assign (noexcept!)
-    ParentBlock& operator=(ParentBlock&& other) noexcept {
-        if (this != &other) {
-            Blocks    = std::move(other.Blocks);
-            StartX    = other.StartX;   StartY = other.StartY;   StartZ = other.StartZ;
-            LimitX    = other.LimitX;   LimitY = other.LimitY;   LimitZ = other.LimitZ;
-            IsUniform = other.IsUniform;
-            moveCounter++;
-        }
-        return *this;
-    }
+    // ParentBlock& operator=(ParentBlock&& other) noexcept {
+    //     if (this != &other) {
+    //         Blocks    = std::move(other.Blocks);
+    //         StartX    = other.StartX;   StartY = other.StartY;   StartZ = other.StartZ;
+    //         LimitX    = other.LimitX;   LimitY = other.LimitY;   LimitZ = other.LimitZ;
+    //         IsUniform = other.IsUniform;
+    //         moveCounter++;
+    //     }
+    //     return *this;
+    // }
 
     //--------------------------------------------------------------------------------------chat gpt code
     inline void append_u32(std::string& s, uint16_t v) {

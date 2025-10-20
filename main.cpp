@@ -17,9 +17,6 @@
 #endif
 
 
-inline int alloc_calls = 0;
-inline int alloc_bytes = 0;
-
 int main(int argc, char* argv[]) {
 
 std::ios::sync_with_stdio(false);
@@ -134,9 +131,9 @@ std::cout.tie(nullptr);
     //Processes a ParentX * ParentY * ParentZ chunk of the map at a time
     for (int i = 0; i < Parser.NumZBlocks; i++){
         Output.clear();
-        for (ParentBlock& pb : ParentBlocks) {
-            pb.StartZ = i * Parser.ParentZ; 
-            pb.Blocks.clear();
+        for (ParentBlock& PB : ParentBlocks) {
+            PB.StartZ = i * Parser.ParentZ; 
+            PB.Blocks.clear();
         }
 
         Parser.StreamParseMapChunk(ParentBlocks, i, *in, RleCache);

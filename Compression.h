@@ -12,6 +12,7 @@ class Compression {
 public:
 
   Compression();
+  void CompressParentBlock(ParentBlock &ParentBlock, int &DeleteTime, int &CompressTime);
   void CompressParentBlock(ParentBlock &ParentBlock);
   void ProcessLayerSort(std::vector<Block> &Blocks, int ParentX, int ParentY, int ParentZ);
   void MergeLayers(std::vector<Block>& Blocks, int ParentZ);

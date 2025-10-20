@@ -21,26 +21,26 @@
 inline int alloc_calls = 0;
 inline int alloc_bytes = 0;
 
-// void* operator new(std::size_t sz) {
-//   ++alloc_calls; alloc_bytes += (int)sz;
-//   return std::malloc(sz);
-// }
+void* operator new(std::size_t sz) {
+  ++alloc_calls; alloc_bytes += (int)sz;
+  return std::malloc(sz);
+}
 
-// void* operator new[](std::size_t sz) {
-//   ++alloc_calls; alloc_bytes += (long long)sz;
-//   return std::malloc(sz);
-// }
+void* operator new[](std::size_t sz) {
+  ++alloc_calls; alloc_bytes += (long long)sz;
+  return std::malloc(sz);
+}
 
-// void* operator new(std::size_t sz, std::align_val_t al) {
-//   ++alloc_calls; alloc_bytes += (long long)sz;
-// #ifdef _WIN32
-//   void* p = _aligned_malloc(sz, (std::size_t)al);
-// #else
-//   void* p = nullptr;
-//   if (posix_memalign(&p, (std::size_t)al, sz) != 0) p = nullptr;
-// #endif
-//   return p;
-// }
+void* operator new(std::size_t sz, std::align_val_t al) {
+  ++alloc_calls; alloc_bytes += (long long)sz;
+#ifdef _WIN32
+  void* p = _aligned_malloc(sz, (std::size_t)al);
+#else
+  void* p = nullptr;
+  if (posix_memalign(&p, (std::size_t)al, sz) != 0) p = nullptr;
+#endif
+  return p;
+}
 
 int main(int argc, char* argv[]) {
 
@@ -129,7 +129,7 @@ int main(int argc, char* argv[]) {
         }
         in = file.get();
     }
-   
+
     auto startParseHeader = std::chrono::high_resolution_clock::now();
         
     Parse Parser;
@@ -156,7 +156,9 @@ int main(int argc, char* argv[]) {
 
     std::unordered_map<std::string, std::vector<std::pair<int,char>>> RleCache;
 
-    int ParseTime = 0, CompressTime = 0, WriteTime = 0;
+    int ParseTime = 0, TotalCompressTime = 0, WriteTime = 0;
+    int DeleteTime = 0, CompressTime = 0;
+
     std::string Output;
     Output.reserve(ParentBlocks.size() * 80);
 
@@ -179,7 +181,7 @@ int main(int argc, char* argv[]) {
         }
         end = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
-        CompressTime += duration.count();
+        TotalCompressTime += duration.count();
 
         start = std::chrono::high_resolution_clock::now();
         for (auto& PB : ParentBlocks) {
@@ -198,13 +200,15 @@ int main(int argc, char* argv[]) {
     std::cout << "Parse Header done in " << ParseHeaderDuration.count() << " ms.\n";
     std::cout << "Initialise Parent Blocks done in " << InitialiseParentBlocksDuration.count() << " ms.\n";
     std::cout << "Parsing done in " << ParseTime << " ms.\n";
+    std::cout << "Total Compressing done in " << TotalCompressTime << " ms.\n";
+    std::cout << "Deleting done in " << DeleteTime << " ms.\n";
     std::cout << "Compressing done in " << CompressTime << " ms.\n";
     std::cout << "Writing done in " << WriteTime << " ms.\n";
     std::cout << moveCounter << " ParentBlock or Block moves.\n";
     std::cout << copyCounter << " ParentBlock or Block copies.\n";
     std::cout << alloc_calls << " Heap allocations.\n";
-    std::cout << alloc_bytes << " Heap bytes allocated.\n";
-    std::cout << "Cache hits: " << Parser.CacheHits << "\n";
-    std::cout << "Cache misses: " << Parser.CacheMisses << "\n";    
-    
+    std::cout << alloc_bytes << " Heap bytes allocated.\n"; 
+    // std::cout << sizeof(ParentBlock) << " bytes per ParentBlock.\n";
+    // std::cout << sizeof(Block) << " bytes per Block.\n";
+    // std::cout << sizeof(std::vector<Block>) << " bytes per vector<Block> overhead.\n";
 }

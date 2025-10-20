@@ -42,7 +42,7 @@ void Parse::StreamParseHeader(std::istream& in){
 
 void Parse::StreamParseMapChunk(std::vector<ParentBlock>& ParentBlocks, int chunkIndex, std::istream& in, std::unordered_map<std::string, std::vector<std::pair<int,char>>>& RleCache) {
     std::string Line;
-    Line.reserve(XCount * 2);
+    Line.reserve(XCount + 3);
     //
      for (int Z = 0; Z < ParentZ; Z++) {
         int RowsRead = 0;
