@@ -70,6 +70,36 @@ void Parse::StreamParseMapChunk(std::vector<ParentBlock>& ParentBlocks, int chun
 }
 
 
+void Parse::TestStreamParseMapChunk(std::vector<ParentBlock>& ParentBlocks, int chunkIndex, std::istream& in, std::unordered_map<std::string, std::vector<std::pair<int,char>>>& RleCache, std::vector<std::string>& inputLines) {
+    std::string Line;
+    Line.reserve(XCount + 3);
+    //
+    inputLines.clear();
+     for (int Z = 0; Z < ParentZ; Z++) {
+        int RowsRead = 0;
+
+
+
+        while (RowsRead < YCount && std::getline(in, Line)) {
+            inputLines.push_back(Line);
+            if (!Line.empty() && Line.back() == '\r') Line.pop_back();
+            if (Line.empty()) continue;
+            int StartY = RowsRead / ParentY;
+            int LocalY = RowsRead % ParentY;
+
+            int StartX = 0;
+            for (int XBlockIndex = 0; XBlockIndex < NumXBlocks; XBlockIndex++) {
+                int ParentBlockIndex = StartY * NumXBlocks + XBlockIndex;
+
+                std::string_view Substring(Line.data() + StartX, ParentX);
+                RLERow(Substring, ParentBlocks[ParentBlockIndex].Blocks, 0, LocalY, Z, RleCache);
+                StartX += ParentX;
+            }
+            RowsRead++;
+        }
+    }
+}
+
 std::string Parse::TestCollectOutput(std::vector<ParentBlock>& ParentBlocks) {
     std::string Output;
     for (ParentBlock &PB : ParentBlocks){

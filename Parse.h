@@ -30,6 +30,7 @@ public:
   
   void StreamParseHeader(std::istream& infile);
   void StreamParseMapChunk(std::vector<ParentBlock>& ParentBlocks, int chunkIndex, std::istream& infile, std::unordered_map<std::string, std::vector<std::pair<int,char>>>& RleCache);
+  void TestStreamParseMapChunk(std::vector<ParentBlock>& ParentBlocks, int chunkIndex, std::istream& infile, std::unordered_map<std::string, std::vector<std::pair<int,char>>>& RleCache, std::vector<std::string>& inputLines);
 
   int ParseHeader();
   void ParseMap();
@@ -48,6 +49,22 @@ public:
   std::string * GetTagTable() {return TagTable;};
   void CollectOutput(std::vector<ParentBlock>& ParentBlocks);
   std::string TestCollectOutput(std::vector<ParentBlock>& ParentBlocks);
+  void operator=(const Parse& other) {
+      XCount = other.XCount;
+      YCount = other.YCount;
+      ZCount = other.ZCount;
+      ParentX = other.ParentX;
+      ParentY = other.ParentY;
+      ParentZ = other.ParentZ;
+      NumXBlocks = other.NumXBlocks;
+      NumYBlocks = other.NumYBlocks;
+      NumZBlocks = other.NumZBlocks;
+      for (int i = 0; i < 256; i++) {
+          TagTable[i] = other.TagTable[i];
+      }
+      Lines = other.Lines;
+      MapInformation = other.MapInformation;
+  }
 };
 
 #endif

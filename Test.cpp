@@ -10,7 +10,7 @@ void Test::reconstructOutputParse() {
 
     // Temporary expanded map
     OutputMapExpanded.resize(InputParse.ZCount, std::vector<std::string>(InputParse.YCount, std::string(InputParse.XCount, ' ')));
-
+    std::cout << "Reconstructing OutputMapExpanded from outputLines..." << std::endl;
     for (auto &line : outputLines) {
         int x, y, z, w, h, d;
         std::string label;
@@ -19,19 +19,17 @@ void Test::reconstructOutputParse() {
         ss >> x >> comma >> y >> comma >> z >> comma >> w >> comma >> h >> comma >> d >> comma;
         ss >> label;
         char codeChar = reverseMap[label];
-        //std::cout << "Line: " << line << " test- x:" << x << " y:" << y << " z:" << z << " w:" << w << " h:" << h << " d:" << d << std::endl;
         for (int zz = z; zz < z + d; ++zz) {
             for (int yy = y; yy < y + h; ++yy) {
                 for (int xx = x; xx < x + w; ++xx) {
-                    if (xx==12 && yy==4 && zz==1) {
-                        std::cout << "TESTING: " << line << std::endl;
-                    }
+                    std::cout << "TESTINGA: " << zz << " " << yy << " " << xx << std::endl;
                     if(OutputMapExpanded[zz][yy][xx] != ' ') {
                         std::cout << "Error: overlapping blocks at (" << xx << "," << yy << "," << zz << ")" << std::endl;
                         std::cout << line << std::endl << OutputMapExpanded[zz][yy][xx] << std::endl;
                         codeChar = ' ';
                     }
                     OutputMapExpanded[zz][yy][xx] = codeChar;
+                    std::cout << "TESTINGB" << std::endl;
                 }
             }
         }
@@ -65,20 +63,28 @@ bool Test::compareInputOutput() {
     // Use fully expanded maps stored in the class
     auto &inputMap = InputMapExpanded;   // InputParse fully expanded
     auto &outputMap = OutputMapExpanded; // OutputParse fully expanded
-
+    std::cout << "TEST TEST" << std::endl;
+    std::cout << inputMap.size() << " " << outputMap.size() << std::endl;
+    std::cout << inputMap[0].size() << " " << outputMap[0].size() << std::endl;
+    std::cout << inputMap[0][0].size() << " " << outputMap[0][0].size() << std::endl;
     for (size_t layer = 0; layer < inputMap.size(); ++layer) {
         for (size_t row = 0; row < inputMap[layer].size(); ++row) {
             for (size_t col = 0; col < inputMap[layer][row].size(); ++col) {
                 char inChar = inputMap[layer][row][col];
                 char outChar = (col < outputMap[layer][row].size()) ? outputMap[layer][row][col] : '-';
+                
                 if (inChar != outChar) {
+                    cout << "Comparing (" << col << "," << row << "," << layer << "): input='" << inChar << "' output='" << outChar << "'\n" <<
+                outputMap.size() << " " << outputMap[layer].size() << " " << outputMap[layer][row].size() << std::endl << 
+                inputMap.size() << " " << inputMap[layer].size() << " " << inputMap[layer][row].size() << std::endl;
                     std::cout << "Mismatch at: (" << col
-                              << ", " << row
-                              << ", " << layer
-                              << "): input='" << inChar
-                              << "' output='" << outChar << "'\n";
+                            << ", " << row
+                            << ", " << layer
+                            << "): input='" << inChar
+                            << "' output='" << outChar << "'\n";
+                              getchar();
                     allMatch = false;
-                    //break; // stop at first mismatch in this row
+                    break; // stop at first mismatch in this row
                 }
             }
         }

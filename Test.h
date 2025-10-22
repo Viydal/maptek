@@ -33,32 +33,39 @@ public:
 
 public:
     // Constructor: takes the input lines and output lines
-    Test(const std::vector<std::string> &inputLines, const std::vector<std::string> &compressedLines)
-        : InputParse(inputLines), outputLines(compressedLines) 
+    Test(const std::vector<std::string> &inputLines, const std::vector<std::string> &compressedLines, Parse& parser)
+        : outputLines(compressedLines), InputParse(parser)
     {
+        InputParse.NumZBlocks = 1;
+        InputParse.ZCount = InputParse.ParentZ;
         // Expand input map for direct access
-            
+        std::cout << "TESTA" << std::endl;
+        std::cout << inputLines.size() << " " << inputLines[0] << std::endl;
         InputMapExpanded.resize(InputParse.ZCount, std::vector<std::string>(InputParse.YCount, std::string(InputParse.XCount, ' ')));
-        //std::cout << InputParse.ZCount << " " << InputParse.YCount << " " << InputParse.XCount << "    -    " << InputMapExpanded.size() << " " << InputMapExpanded[0].size() << " " << InputMapExpanded[0][0].size() << std::endl;
-        //std::cout <<"Before test \n";
+        std::cout << "TESTB" << std::endl;
+        std::cout << InputParse.XCount << " " << InputParse.YCount << " " <<  InputParse.ZCount <<  std::endl;
+        std::cout   << "    -    " << InputMapExpanded.size() << " " << InputMapExpanded[0].size() << " " << InputMapExpanded[0][0].size() << std::endl;
+        std::cout << "TESTC" << std::endl;
         int Iterator = 0;
         
-        while (!inputLines[Iterator].empty()) {
-            //std::cout << "Line: " << inputLines[Iterator] << std::endl;
+
+        while (inputLines[Iterator].empty()) {
+            std::cout << "Line: " << inputLines[Iterator] << " " << Iterator << " E: " << inputLines[Iterator].empty() << std::endl;
             Iterator++;
         }
         std::cout << "\n\n";
-        Iterator++;
         int z_count = 0;
         int y_count = 0;
+        std::cout << "TESTC2: IL_size: " << inputLines.size() << " iterator: " << Iterator<< std::endl;
         while(Iterator < inputLines.size()){
+            std::string line = inputLines[Iterator];
+            std::cout << "TESTB2: i-" << Iterator << " x-" << line.size() << " yc-" <<  InputParse.YCount << " y-" << y_count << " t-" << inputLines.size() << std::endl;
             if (inputLines[Iterator].empty()){
                 z_count++;
                 Iterator++;
                 y_count = 0;
                 continue;
             }
-            std::string line = inputLines[Iterator];
             for (int x = 0; x < line.size(); x++) {
                 InputMapExpanded[z_count][(y_count) % InputParse.YCount][x] = (line[x]);
             }
@@ -74,7 +81,9 @@ public:
             }
         }
         // Reconstruct output Parse and expanded map
+        std::cout << "TESTD:" << std::endl;
         reconstructOutputParse();
+        std::cout << "TESTE:" << std::endl;
     }
 
     // Constructor for generation-only

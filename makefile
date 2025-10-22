@@ -12,7 +12,7 @@ windowsTest:
 
 # For wsl to compile main
 submit:
-	x86_64-w64-mingw32-g++-posix -std=c++17 -O3 -DNDEBUG -march=native -flto -static -fno-exceptions -fno-rtti Compression.cpp Parse.cpp Test.cpp main.cpp Tester.cpp -o chill.exe
+	x86_64-w64-mingw32-g++ -std=c++17 -O3 -DNDEBUG -march=native -flto -static -fno-exceptions -fno-rtti Compression.cpp Parse.cpp Test.cpp main.cpp Tester.cpp -o chill.exe
 
 test:
 	g++ testGenerator.cpp Parse.cpp Test.cpp -o MakeTests.exe
