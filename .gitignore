@@ -1,8 +1,0 @@
-*.exe
-main
-*.o
-*.out*
-*.json
-callgrind.*
-*.txt
-*.csv
