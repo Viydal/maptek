@@ -50,18 +50,21 @@ bool Tester::RunTest(Args args) {
     Output.reserve(ParentBlocks.size() * 80);
     //Processes a ParentX * ParentY * ParentZ chunk of the map at a time
     for (int i = 0; i < Parser.NumZBlocks; i++){
+        start = chrono::high_resolution_clock::now();
         Output.clear();
         for (ParentBlock& PB : ParentBlocks) {
             PB.StartZ = i * Parser.ParentZ; 
             PB.Blocks.clear();
         }
-
+        if (args.verbose){
+            cout << "\n--- PARSING --- " << i << std::endl;
+        }
         Parser.TestStreamParseMapChunk(ParentBlocks, i, *in, RleCache, lineBuffer);
 
         if (args.verbose){
-            elapsed = chrono::high_resolution_clock::now() - TotalStart;
+            elapsed = chrono::high_resolution_clock::now() - start;
             cout << "Parsing done in " << elapsed.count() << " seconds." << std::endl;
-            cout << "\n--- COMPRESSING --- " << std::endl;
+            cout << "\n--- COMPRESSING --- " << i << std::endl;
             start = chrono::high_resolution_clock::now();
         }
 
@@ -70,16 +73,10 @@ bool Tester::RunTest(Args args) {
             PB.WriteBlock(Parser.TagTable, Output);
         }
         if (args.verbose) {
+            elapsed = chrono::high_resolution_clock::now() - start;
             std::cout << "Compression done in " << elapsed.count() << " seconds." << std::endl;
-            cout << "Writing blocks now" << std::endl;
             start = std::chrono::high_resolution_clock::now();
         }
-        //fwrite(Output.data(), 1, Output.size(), stdout);
-        //if (args.verbose) {
-        //    end = chrono::high_resolution_clock::now();
-        //    elapsed = end - start;
-        //    cout << "Writing done in " << elapsed.count() << " seconds." << std::endl;
-        //}
         std::string line;
         std::string Output = Parser.TestCollectOutput(ParentBlocks);
         std::vector<std::string> outputLines;
@@ -88,13 +85,9 @@ bool Tester::RunTest(Args args) {
             if (!line.empty())
             outputLines.push_back(line);
         }
-        std::cout << "TEST1" << std::endl;
         
         // Compare input/output
-        std::cout << lineBuffer[0] << std::endl;
-        std::cout << outputLines[0] << std::endl;
         Test myTest(lineBuffer, outputLines, Parser);
-        std::cout << "TEST2" << std::endl;
         bool match = myTest.compareInputOutput();
         if (!match) {
             TotalMatch = false;

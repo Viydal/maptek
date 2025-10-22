@@ -36,30 +36,21 @@ public:
     Test(const std::vector<std::string> &inputLines, const std::vector<std::string> &compressedLines, Parse& parser)
         : outputLines(compressedLines), InputParse(parser)
     {
+        // Set InputParse dimensions to account for single chunk
         InputParse.NumZBlocks = 1;
         InputParse.ZCount = InputParse.ParentZ;
-        // Expand input map for direct access
-        std::cout << "TESTA" << std::endl;
-        std::cout << inputLines.size() << " " << inputLines[0] << std::endl;
-        InputMapExpanded.resize(InputParse.ZCount, std::vector<std::string>(InputParse.YCount, std::string(InputParse.XCount, ' ')));
-        std::cout << "TESTB" << std::endl;
-        std::cout << InputParse.XCount << " " << InputParse.YCount << " " <<  InputParse.ZCount <<  std::endl;
-        std::cout   << "    -    " << InputMapExpanded.size() << " " << InputMapExpanded[0].size() << " " << InputMapExpanded[0][0].size() << std::endl;
-        std::cout << "TESTC" << std::endl;
-        int Iterator = 0;
         
-
+        // Expand input map for direct access
+        InputMapExpanded.resize(InputParse.ZCount, std::vector<std::string>(InputParse.YCount, std::string(InputParse.XCount, ' ')));
+        
+        int Iterator = 0;
         while (inputLines[Iterator].empty()) {
-            std::cout << "Line: " << inputLines[Iterator] << " " << Iterator << " E: " << inputLines[Iterator].empty() << std::endl;
             Iterator++;
         }
-        std::cout << "\n\n";
         int z_count = 0;
         int y_count = 0;
-        std::cout << "TESTC2: IL_size: " << inputLines.size() << " iterator: " << Iterator<< std::endl;
         while(Iterator < inputLines.size()){
             std::string line = inputLines[Iterator];
-            std::cout << "TESTB2: i-" << Iterator << " x-" << line.size() << " yc-" <<  InputParse.YCount << " y-" << y_count << " t-" << inputLines.size() << std::endl;
             if (inputLines[Iterator].empty()){
                 z_count++;
                 Iterator++;
@@ -81,9 +72,7 @@ public:
             }
         }
         // Reconstruct output Parse and expanded map
-        std::cout << "TESTD:" << std::endl;
         reconstructOutputParse();
-        std::cout << "TESTE:" << std::endl;
     }
 
     // Constructor for generation-only
