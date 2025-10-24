@@ -2,7 +2,7 @@
 ## Software Engineering Project – Semester 2, 2025
 
 ## Table of Contents
-- [About](-about)
+- [About](#about)
 
 ## About
 
