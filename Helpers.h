@@ -57,9 +57,9 @@ struct Block {
     //     return *this;
     // }
 
-    uint8_t XPos, XSize;
-    uint8_t YPos, YSize;
-    uint8_t ZPos, ZSize;
+    uint16_t XPos, XSize;
+    uint16_t YPos, YSize;
+    uint16_t ZPos, ZSize;
     char Ch;
     bool Merged = false;
 };
@@ -69,7 +69,7 @@ class ParentBlock{
 public:
     std::vector<Block> Blocks;
     uint16_t StartX, StartY, StartZ;
-    uint8_t LimitX, LimitY, LimitZ;
+    uint16_t LimitX, LimitY, LimitZ;
 
     bool IsUniform;
 

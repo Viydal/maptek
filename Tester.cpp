@@ -67,14 +67,18 @@ bool Tester::RunTest(Args args) {
             cout << "\n--- COMPRESSING --- " << i << std::endl;
             start = chrono::high_resolution_clock::now();
         }
-
+        int counter = 0;
         for (ParentBlock& PB : ParentBlocks) {
+            counter++;
+            if (counter % 1 == 0 && args.verbose) {
+                cout << "\r Compressing Block " << counter << " / " << ParentBlocks.size() << std::flush;
+            } 
             Compressor.CompressParentBlock(PB);
             PB.WriteBlock(Parser.TagTable, Output);
         }
         if (args.verbose) {
             elapsed = chrono::high_resolution_clock::now() - start;
-            std::cout << "Compression done in " << elapsed.count() << " seconds." << std::endl;
+            std::cout << "\nCompression done in " << elapsed.count() << " seconds." << std::endl;
             start = std::chrono::high_resolution_clock::now();
         }
         std::string line;

@@ -26,6 +26,7 @@ void Test::reconstructOutputParse() {
                     if(OutputMapExpanded[zz][yy][xx] != ' ') {
                         std::cout << "Error: overlapping blocks at (" << xx << "," << yy << "," << zz << ")" << std::endl;
                         codeChar = ' ';
+                        getchar();
                     }
                     OutputMapExpanded[zz][yy][xx] = codeChar;
                 }
@@ -68,12 +69,13 @@ bool Test::compareInputOutput() {
                 char outChar = (col < outputMap[layer][row].size()) ? outputMap[layer][row][col] : '-';
                 
                 if (inChar != outChar) {
-                    std::cout << "Mismatch at: (" << col
+                    std::cout << "Mismatch - at: (" << col
                             << ", " << row
                             << ", " << layer
                             << "): input='" << inChar
                             << "' output='" << outChar << "'\n";
                     allMatch = false;
+                    exit(0);
                     //break; // stop at first mismatch in this row
                 }
             }

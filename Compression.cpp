@@ -76,7 +76,7 @@ void Compression::CompressParentBlock(ParentBlock &ParentBlock) {
 	RelaxedXY(ParentBlock.Blocks);
 	ParentBlock.Blocks.erase(std::remove_if(ParentBlock.Blocks.begin(), ParentBlock.Blocks.end(),[](const Block& b){return b.Merged;}), ParentBlock.Blocks.end());
 	
-	MergeLayers(ParentBlock.Blocks, ParentBlock.LimitZ);
+	RelaxedZ(ParentBlock.Blocks);
 	ParentBlock.Blocks.erase(std::remove_if(ParentBlock.Blocks.begin(), ParentBlock.Blocks.end(),[](const Block& b){return b.Merged;}), ParentBlock.Blocks.end());
 }
 
@@ -92,7 +92,7 @@ void Compression::RelaxedXY(std::vector<Block> &Blocks) {
 
     const size_t Size = Blocks.size();
     std::vector<int> RecheckI;
-    RecheckI.reserve(Size / 10);
+    RecheckI.reserve(Size);
 
     for (size_t i = 0; i < Size; i++) {
         Block &Current = Blocks[i];
@@ -198,13 +198,149 @@ void Compression::RelaxedXY(std::vector<Block> &Blocks) {
     }
 }
 
+bool CanRelaxedZMerge(const Block& Current, const Block& Next) {
+	//Base Rule: Blocks can be merged if they have the same X, Y, size, and Ch, and are adjacent in Z
+	if (Current.ZPos + Current.ZSize != Next.ZPos) return false;
+	if (Current.Ch != Next.Ch) return false;
+	return true;
+}
+
+int RegionChoice(const Block& A, const Block& B) {
+	if (A.XPos == B.XPos && A.XSize == B.XSize && A.YPos == B.YPos && A.YSize == B.YSize) {
+		return 0; // perfect alignment
+	} else if (A.XPos == B.XPos) {
+		if (A.XSize == B.XSize) {
+			if (A.YPos == B.YPos) {
+				return 1 + (A.YSize < B.YSize); // Perfect X, trim Y (1=A Y, 2=B Y)
+			} else if (A.YPos + A.YSize == B.YPos + B.YSize) {
+				return 3 + (A.YPos < B.YPos); // Perfect X, End Y - trim start Y (3=A Y, 4=B Y)
+			}
+		} else {
+			if (A.YPos == B.YPos && A.YSize == B.YSize) {
+				return 5 + (A.XSize < B.XSize); // Perfect Y, trim X (5=A X, 6=B X)
+			} 
+		}
+	} else {
+		if (A.YPos == B.YPos && A.XPos + A.XSize == B.XPos + B.XSize && A.YSize == B.YSize) {
+			return 7 + (A.YPos < B.YPos); // Perfect Y, End X - trim start X (7=A X, 8=B X)
+		}
+	}
+	return -1; // no merge possible
+}
+
 void Compression::RelaxedZ(std::vector<Block> &Blocks) {
-	// std::sort(Blocks.begin(), Blocks.end(),[](const Block& a, const Block& b) {
-	// 	if (a.XPos  != b.XPos)  return a.XPos  < b.XPos;
-	// 	if (a.YPos  != b.YPos)  return a.YPos  < b.YPos;
-	// 	if (a.ZPos  != b.ZPos)  return a.ZPos  < b.ZPos;
-	// 	return a.YPos < b.YPos;
-	// });
+	std::sort(Blocks.begin(), Blocks.end(),[](const Block& a, const Block& b) {
+		if (a.Ch    != b.Ch  ) return a.Ch   < b.Ch;
+		if (a.YPos  != b.YPos)  return a.YPos  < b.YPos;
+		if (a.XPos  != b.XPos)  return a.XPos  < b.XPos;
+		if (a.ZPos  != b.ZPos)  return a.ZPos  < b.ZPos;
+		return a.YPos < b.YPos;
+	});
+
+	std::vector<int> RecheckI;
+	int Size = Blocks.size();
+    RecheckI.reserve(Size);
+	int counter = 0;
+	for (size_t i = 0; i < Size; i++) {
+		Block& Current = Blocks[i];
+		while (i + 1 < Size) {
+			Block& Next = Blocks[i + 1];
+
+			if (!CanRelaxedZMerge(Current, Next)) break;
+			int region = RegionChoice(Current, Next);
+			
+			if (region == -1) {
+				i++;
+				continue;
+			}
+			
+			switch (region) {
+				case 0: // perfect alignment
+					Current.ZSize += Next.ZSize;
+					Next.Merged = true;
+					break;
+				case 1:{ // Perfect X, trim Current End Y
+					Next.ZPos = Current.ZPos;
+					Next.ZSize += Current.ZSize;
+					Current.YPos = Next.YPos + Next.YSize;
+					Current.YSize -= Next.YSize;
+					goto BREAK;
+				}
+				case 2: { // Perfect X, trim Next End Y
+					Current.ZSize += Next.ZSize;
+					Next.YPos = Current.YPos + Current.YSize;
+					Next.YSize -= Current.YSize;
+					RecheckI.push_back(int(i + 1));
+					break;
+				}
+				case 3: { // Perfect X, trim Next Start Y
+					Next.YSize = Next.YPos - Current.YPos;
+					Current.ZSize += Next.ZSize;
+					RecheckI.push_back(int(i + 1));
+					
+					break;
+				}
+				case 4: { // Perfect X, trim Current Start Y
+					Current.YSize -= Next.YSize;
+					Next.ZPos = Current.ZPos;
+					Next.ZSize += Current.ZSize;
+					goto BREAK;
+				}
+				case 5: { // Perfect Y, trim Current End X
+					Next.ZSize += Current.ZSize;
+					Next.ZPos = Current.ZPos;
+					Current.XPos = Next.XPos + Next.XSize;
+					Current.XSize -= Next.XSize;
+					goto BREAK;
+				}
+				case 6: { // Perfect Y, trim Next End X
+					Current.ZSize += Next.ZSize;
+					Next.XPos = Current.XPos + Current.XSize;
+					Next.XSize -= Current.XSize;
+					RecheckI.push_back(int(i + 1));
+					break;
+				}
+				case 7: { // Perfect Y, trim Current Start X
+					Current.XSize = Next.XPos - Current.XPos;
+					Next.ZSize += Current.ZSize;
+					Next.ZPos = Current.ZPos;
+					goto BREAK;
+				}
+				case 8:{ // Perfect Y, trim Next Start X
+					Current.ZSize += Next.ZSize;
+					Next.XSize = Current.XSize - (Next.XPos - Current.XPos);
+					RecheckI.push_back(int(i + 1));
+					break;
+				}
+				default:
+					break;
+			}
+			
+			i++;
+			continue;
+			BREAK:
+			break;
+		}
+	}
+	for (size_t pos : RecheckI) {
+        Block &Current = Blocks[size_t(pos)];
+
+        for (int i = 0; i < Size; ++i) {
+            Block &Next = Blocks[i];
+
+            bool canMerge = (Current.XPos == Next.XPos && 
+							Current.YPos == Next.YPos &&
+							Current.XSize == Next.XSize && 
+							Current.YSize == Next.YSize &&
+							Current.Ch == Next.Ch &&
+							Current.ZPos + Current.ZSize == Next.ZPos);
+
+            if (canMerge) {
+                Current.ZSize += Next.ZSize;
+				Next.Merged = true;
+            }
+        }
+    }
 }
 
 /**
