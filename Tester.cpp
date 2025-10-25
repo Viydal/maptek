@@ -110,6 +110,7 @@ bool Tester::RunTest(Args args) {
     std::cout << "Program done in " << elapsed.count() << " seconds." << std::endl;
     // Collect output lines
     std::string Output = Parser.CollectOutput(ParentBlocks);
+    // Output += "70,165,236,1,1,1,continent";
     std::vector<std::string> outputLines;
     std::stringstream ss(Output);
     while (std::getline(ss, line)) {

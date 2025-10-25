@@ -14,12 +14,13 @@ inline void compact_live(std::vector<Block>& v) {
     v.resize(w);
 }
 
-void Compression::CompressParentBlock(ParentBlock &ParentBlock) {
+void Compression::Merge(ParentBlock &ParentBlock){
 	int numBlocks;
 	int newNumBlocks;
-	int i = 1;
+
 	while(true){
 		numBlocks = ParentBlock.Blocks.size();
+
 		ProcessLayerSort(ParentBlock.Blocks, ParentBlock.LimitX, ParentBlock.LimitY, ParentBlock.LimitZ);
 		compact_live(ParentBlock.Blocks);
 
@@ -32,23 +33,120 @@ void Compression::CompressParentBlock(ParentBlock &ParentBlock) {
 		RelaxedZ(ParentBlock.Blocks);
 		compact_live(ParentBlock.Blocks);
 
-		ProcessLayerSort(ParentBlock.Blocks, ParentBlock.LimitX, ParentBlock.LimitY, ParentBlock.LimitZ);
-		compact_live(ParentBlock.Blocks);
-
-		MergeLayers(ParentBlock.Blocks, ParentBlock.LimitZ);
-		compact_live(ParentBlock.Blocks);
-
-
-
 		newNumBlocks = ParentBlock.Blocks.size();
 		if (newNumBlocks == numBlocks)
 		{
 			break;
 		}
-		i++;
 	}
+}
+
+
+
+void Compression::CompressParentBlock(ParentBlock &ParentBlock) {
+
+	// x, y, z
 	
+	Merge(ParentBlock);
+
+	// yz swap (x, z, y)
+
+	for (auto& b : ParentBlock.Blocks) {
+        std::swap(b.YPos,  b.ZPos);
+        std::swap(b.YSize, b.ZSize);
+    }
+	std::swap(ParentBlock.LimitY, ParentBlock.LimitZ);
+
+	Merge(ParentBlock);
+
+	std::swap(ParentBlock.LimitY, ParentBlock.LimitZ);
+	for (auto& b : ParentBlock.Blocks) {
+        std::swap(b.YPos,  b.ZPos);
+        std::swap(b.YSize, b.ZSize);
+    }
+
+	// rotate (y,x,z)
 	
+	for (auto& b : ParentBlock.Blocks) {
+        std::swap(b.XPos,  b.YPos);
+        std::swap(b.XSize, b.YSize);
+    }
+	std::swap(ParentBlock.LimitX, ParentBlock.LimitY);
+
+	Merge(ParentBlock);
+
+	std::swap(ParentBlock.LimitX, ParentBlock.LimitY);
+	for (auto& b : ParentBlock.Blocks) {
+        std::swap(b.XPos,  b.YPos);
+        std::swap(b.XSize, b.YSize);
+    }
+
+	// rotate (y,z,x)
+
+	for (auto& b : ParentBlock.Blocks) {
+        std::swap(b.XPos,  b.YPos);
+        std::swap(b.XSize, b.YSize);
+
+		std::swap(b.YPos,  b.ZPos);
+        std::swap(b.YSize, b.ZSize);
+    }
+	std::swap(ParentBlock.LimitX, ParentBlock.LimitY);
+	std::swap(ParentBlock.LimitY, ParentBlock.LimitZ);
+
+	Merge(ParentBlock);
+
+	std::swap(ParentBlock.LimitY, ParentBlock.LimitZ);
+	std::swap(ParentBlock.LimitX, ParentBlock.LimitY);
+	for (auto& b : ParentBlock.Blocks) {
+		std::swap(b.YPos,  b.ZPos);
+        std::swap(b.YSize, b.ZSize);
+
+        std::swap(b.XPos,  b.YPos);
+        std::swap(b.XSize, b.YSize);
+    }
+
+	// rotate (z,x,y) -- breaks it idk why
+	
+	for (auto& b : ParentBlock.Blocks) {
+        std::swap(b.XPos,  b.ZPos);
+        std::swap(b.XSize, b.ZSize);
+
+		std::swap(b.YPos,  b.ZPos);
+        std::swap(b.YSize, b.ZSize);
+    }
+	std::swap(ParentBlock.LimitX, ParentBlock.LimitZ);
+	std::swap(ParentBlock.LimitY, ParentBlock.LimitZ);
+
+	Merge(ParentBlock);
+
+	std::swap(ParentBlock.LimitY, ParentBlock.LimitZ);
+	std::swap(ParentBlock.LimitX, ParentBlock.LimitZ);
+	for (auto& b : ParentBlock.Blocks) {
+		std::swap(b.YPos,  b.ZPos);
+        std::swap(b.YSize, b.ZSize);
+
+        std::swap(b.XPos,  b.ZPos);
+        std::swap(b.XSize, b.ZSize);
+    }
+
+	// rotate (z,y,x)
+
+	for (auto& b : ParentBlock.Blocks) {
+        std::swap(b.XPos,  b.ZPos);
+        std::swap(b.XSize, b.ZSize);
+    }
+
+	std::swap(ParentBlock.LimitX, ParentBlock.LimitZ);
+
+	Merge(ParentBlock);
+
+	std::swap(ParentBlock.LimitX, ParentBlock.LimitZ);
+
+	for (auto& b : ParentBlock.Blocks) {
+        std::swap(b.XPos,  b.ZPos);
+        std::swap(b.XSize, b.ZSize);
+    }
+
 }
 
 
@@ -79,7 +177,7 @@ void Compression::RelaxedXY(std::vector<Block> &Blocks) {
             int EndMerge   = std::min(Current.XPos + Current.XSize, Next.XPos + Next.XSize);
             int overlap    = EndMerge - startMerge;
             if (overlap <= 0) break;
-            if (overlap < Current.XSize / 2) break;
+             if (overlap < Current.XSize / 2) break;
 
             int CurXPosInitial = Current.XPos;
             int CurXSizeInitial = Current.XSize;
