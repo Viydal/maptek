@@ -1,173 +1,319 @@
 #include "Compression.h"
 #include <algorithm>
-
+#include <chrono>
 Compression::Compression() {}
 
-void Compression::CompressParentBlock(ParentBlock &ParentBlock) {
-	ProcessLayerSort(ParentBlock.Blocks, ParentBlock.LimitX, ParentBlock.LimitY, ParentBlock.LimitZ);
-	MergeLayers(ParentBlock.Blocks, ParentBlock.LimitZ);
-	//printf("ParentBlock Start: %d %d %d\n", ParentBlock.StartX,ParentBlock.StartY, ParentBlock.StartZ);
-	
-	RelaxedXY(ParentBlock.Blocks);
-	MergeLayers(ParentBlock.Blocks, ParentBlock.LimitZ);
-	// std::sort(ParentBlock.Blocks.begin(), ParentBlock.Blocks.end(),[](const Block& a, const Block& b) {
-	// 	if (a.ZPos  != b.ZPos)  return a.ZPos  < b.ZPos;
-	// 	if (a.YPos  != b.YPos)  return a.YPos  < b.YPos;
-	// 	if (a.XPos  != b.XPos)  return a.XPos  < b.XPos;
-	// 	return a.YPos < b.YPos;
-	// });
-	//if (ParentBlock.StartX == 8 && ParentBlock.StartY == 32) {
-	//	exit(0);
-	//}
-	//RelaxedZ(ParentBlock.Blocks);
+inline void compact_live(std::vector<Block>& v) {
+    size_t w = 0;
+    for (size_t r = 0, n = v.size(); r < n; ++r) {
+        if (!v[r].Merged) {
+            if (w != r) v[w] = std::move(v[r]);
+            ++w;
+        }
+    }
+    v.resize(w);
+}
 
+void Compression::CompressParentBlock(ParentBlock &ParentBlock) {
+	int numBlocks;
+	int newNumBlocks;
+	int i = 1;
+	while(true){
+		numBlocks = ParentBlock.Blocks.size();
+		ProcessLayerSort(ParentBlock.Blocks, ParentBlock.LimitX, ParentBlock.LimitY, ParentBlock.LimitZ);
+		compact_live(ParentBlock.Blocks);
+
+		MergeLayers(ParentBlock.Blocks, ParentBlock.LimitZ);
+		compact_live(ParentBlock.Blocks);
+
+		RelaxedXY(ParentBlock.Blocks);
+		compact_live(ParentBlock.Blocks);
+
+		RelaxedZ(ParentBlock.Blocks);
+		compact_live(ParentBlock.Blocks);
+
+		ProcessLayerSort(ParentBlock.Blocks, ParentBlock.LimitX, ParentBlock.LimitY, ParentBlock.LimitZ);
+		compact_live(ParentBlock.Blocks);
+
+		MergeLayers(ParentBlock.Blocks, ParentBlock.LimitZ);
+		compact_live(ParentBlock.Blocks);
+
+
+
+		newNumBlocks = ParentBlock.Blocks.size();
+		if (newNumBlocks == numBlocks)
+		{
+			std::cout << "done" << i <<"\n";
+			
+			break;
+		}
+		i++;
+	}
+	
+	
 }
 
 
 void Compression::RelaxedXY(std::vector<Block> &Blocks) {
-	std::sort(Blocks.begin(), Blocks.end(),[](const Block& a, const Block& b) {
-		if (a.Ch  != b.Ch)  return a.Ch  < b.Ch;
-		if (a.ZPos  != b.ZPos)  return a.ZPos  < b.ZPos;
-		if (a.YPos  != b.YPos)  return a.YPos  < b.YPos;
-		if (a.XPos  != b.XPos)  return a.XPos  < b.XPos;
-		return a.YPos < b.YPos;
-	});
-	size_t Size = Blocks.size();
-	std::vector<int> RecheckI;
-	
-	for (size_t i = 0; i < Size; i++) {
-		Block &Current = Blocks[i];
-		if (Current.Merged) continue;
-		while(i+1 < Size) {
-			Block &Next = Blocks[i+1];
-			if (Next.Merged) {i++; continue;}
-			//std::cout << "Begin: I: " << i << std::endl;
-			//std::cout << "Current: ";
-			//Current.printBlock();
-			//std::cout << "Next: ";
-			//Next.printBlock();
-			//std::cout << std::endl;
-			if (Current.Ch != Next.Ch) {break;}
-			if (Current.YPos + Current.YSize != Next.YPos) {break;}
-			if (Current.ZPos != Next.ZPos || Current.ZSize != Next.ZSize) {break;}
-			
-			
-			int startMerge = std::max(Current.XPos, Next.XPos);
-			int EndMerge = std::min(Current.XPos+Current.XSize, Next.XPos+Next.XSize);
-			int overlap = EndMerge - startMerge;
-			if (overlap <= 0) {break;}
-			
-			if (overlap < Current.XSize / 2) {break;}
-			if (startMerge == Current.XPos && startMerge == Next.XPos) {
-				if (Next.XSize == overlap && Current.XSize == overlap) {
-					//std::cout << "Reduce A" << std::endl;
-					//std::cout << "I: " << i << std::endl;
-					//std::cout << "Current: ";
-					//Current.printBlock();
-					//std::cout << "Next: ";
-					//Next.printBlock();
-					//std::cout << std::endl;
-					Current.YSize += Next.YSize;
-					Next.Merged = true;
-				} else if (Next.XSize == overlap){
-					//std::cout << "Curr Merge A" << std::endl;
-					//std::cout << "I: " << i << std::endl;
-					//std::cout << "Current: ";
-					//Current.printBlock();
-					//std::cout << "Next: ";
-					//Next.printBlock();
-					//std::cout << std::endl;
-					Block NewBlock(EndMerge, Current.YPos, Current.ZPos, Current.XSize - overlap, Current.YSize, Current.ZSize, Current.Ch);
-					Current.YSize += Next.YSize;
-					Current.XSize = overlap;
-					Next = NewBlock;
-				} else {
-					//std::cout << "Next Merge A" << std::endl;
-					//std::cout << "I: " << i << std::endl;
-					//std::cout << "Current: ";
-					//Current.printBlock();
-					//std::cout << "Next: ";
-					//Next.printBlock();
-					//std::cout << std::endl;
-					Block NewBlock(EndMerge, Next.YPos, Next.ZPos, Next.XSize - overlap, Next.YSize, Next.ZSize, Next.Ch);
-					RecheckI.push_back(i+1);
-					Current.YSize += Next.YSize;
-					Next = NewBlock;
-				}
-				i++;
-				continue;
-			} else if (EndMerge == Current.XPos + Current.XSize && EndMerge == Next.XPos + Next.XSize) {
-				if (Next.XSize == overlap && Current.XSize == overlap) { 
-					//std::cout << "Reduce B" << std::endl;
-					//std::cout << "I: " << i << std::endl;
-					//std::cout << "Current: ";
-					//Current.printBlock();
-					//std::cout << "Next: ";
-					//Next.printBlock();
-					//std::cout << std::endl;
-					Current.YSize += Next.YSize;
-					Next.Merged = true;
-				}else if (Next.XSize == overlap){
-					//std::cout << "Curr Merge B" << std::endl;
-					//std::cout << "I: " << i << std::endl;
-					//std::cout << "Current: ";
-					//Current.printBlock();
-					//std::cout << "Next: ";
-					//Next.printBlock();
-					//std::cout << std::endl;
-					Block NewBlock(Current.XPos, Current.YPos, Current.ZPos, startMerge - Current.XPos, Current.YSize, Current.ZSize, Current.Ch);
-					Current.YSize += Next.YSize;
-					Current.XPos = startMerge;
-					Current.XSize = overlap;
-					Next = NewBlock;
-				} else {
-					//std::cout << "Next Merge B" << std::endl;
-					//std::cout << "I: " << i << std::endl;
-					//std::cout << "Current: ";
-					//Current.printBlock();
-					//std::cout << "Next: ";
-					//Next.printBlock();
-					//std::cout << std::endl;
-					Block NewBlock(Next.XPos, Next.YPos, Next.ZPos, startMerge - Next.XPos, Next.YSize, Next.ZSize, Next.Ch);
-					RecheckI.push_back(i+1);
-					Current.YSize += Next.YSize;
-					Next = NewBlock;
-				}
-				i++;
-				continue;
-			} else {break;}
-		}
-	}
-	//std::cout << "Checking. Size: " << RecheckI.size() << std::endl;
-	for (size_t pos : RecheckI) {
-		Block & Current = Blocks[pos];
-		if (Current.Merged) continue;
-		for (size_t i = 0; i < Size; i++) {
-			if (i == pos) continue;
-			Block & Next = Blocks[i];
-			if (Next.Merged) continue;
-			bool canMerge = (Current.Ch == Next.Ch && Current.XPos == Next.XPos && 
-					Current.XSize == Next.XSize && Current.ZPos == Next.ZPos &&
-					Current.ZSize == Next.ZSize &&
-					(Next.YPos == Current.YPos + Current.YSize));
-			//Current.printBlock();
-			//Next.printBlock();
-			//std::cout << canMerge << std::endl;
-			if (canMerge) {
-				Current.YSize += Next.YSize;
-				Next.Merged = true;
+    std::sort(Blocks.begin(), Blocks.end(), [](const Block& a, const Block& b) {
+        if (a.Ch   != b.Ch  ) return a.Ch   < b.Ch;
+        if (a.ZPos != b.ZPos) return a.ZPos < b.ZPos;
+        if (a.YPos != b.YPos) return a.YPos < b.YPos;
+        if (a.XPos != b.XPos) return a.XPos < b.XPos;
+        return a.YPos < b.YPos;
+    });
+
+    const size_t Size = Blocks.size();
+    std::vector<int> RecheckI;
+    RecheckI.reserve(Size);
+
+    for (size_t i = 0; i < Size; i++) {
+        Block &Current = Blocks[i];
+
+        while (i + 1 < Size) {
+            Block &Next = Blocks[i + 1];
+
+            if (Current.Ch != Next.Ch) break;
+            if (Current.ZPos != Next.ZPos || Current.ZSize != Next.ZSize) break;
+            if (Current.YPos + Current.YSize != Next.YPos) break;
+
+            int startMerge = std::max(Current.XPos, Next.XPos);
+            int EndMerge   = std::min(Current.XPos + Current.XSize, Next.XPos + Next.XSize);
+            int overlap    = EndMerge - startMerge;
+            if (overlap <= 0) break;
+            if (overlap < Current.XSize / 2) break;
+
+            int CurXPosInitial = Current.XPos;
+            int CurXSizeInitial = Current.XSize;
+            int CurYSizeInitial = Current.YSize;
+            int NextXPosInitial = Next.XPos;
+            int NextXSizeInitial = Next.XSize;
+            int NextYSizeInitial = Next.YSize;
+
+            bool LeftAligned  = (startMerge == Current.XPos && startMerge == Next.XPos);
+            bool RightAligned = (EndMerge   == Current.XPos + Current.XSize && EndMerge   == Next.XPos   + Next.XSize);
+
+            if (LeftAligned) {
+                if (NextXSizeInitial == overlap && CurXSizeInitial == overlap) {
+                    Current.YSize += NextYSizeInitial;
+                    Next.Merged = true;
+                } else if (NextXSizeInitial == overlap) {
+                    Current.XSize = overlap;
+                    Current.YSize = CurYSizeInitial + NextYSizeInitial;
+
+                    Next.XPos  = CurXPosInitial + overlap;
+                    Next.XSize = CurXSizeInitial - overlap;
+                    Next.YPos  = Current.YPos;  Next.ZPos  = Current.ZPos;
+                    Next.YSize = CurYSizeInitial; Next.ZSize = Current.ZSize;
+                    Next.Ch    = Current.Ch;
+
+                    RecheckI.push_back(int(i + 1));
+                } else {
+                    Current.XSize = overlap;
+                    Current.YSize = CurYSizeInitial + NextYSizeInitial;
+
+                    Next.XPos  = NextXPosInitial + overlap;
+                    Next.XSize = NextXSizeInitial - overlap;
+
+                    RecheckI.push_back(int(i + 1));
+                }
+                i++;
+                continue;
+            }
+
+            if (RightAligned) {
+                if (NextXSizeInitial == overlap && CurXSizeInitial == overlap) {
+                    Current.YSize += NextYSizeInitial;
+                    Next.Merged = true;
+                } else if (NextXSizeInitial == overlap) {
+                    Current.XPos  = startMerge;
+                    Current.XSize = overlap;
+                    Current.YSize = CurYSizeInitial + NextYSizeInitial;
+
+                    Next.XPos  = CurXPosInitial;
+                    Next.XSize = startMerge - CurXPosInitial;
+                    Next.YPos  = Current.YPos;  Next.ZPos  = Current.ZPos;
+                    Next.YSize = CurYSizeInitial; Next.ZSize = Current.ZSize;
+                    Next.Ch    = Current.Ch;
+
+                    RecheckI.push_back(int(i + 1));
+                } else {
+                    Current.YSize = CurYSizeInitial + NextYSizeInitial;
+
+                    Next.XSize = startMerge - NextXPosInitial;
+
+                    RecheckI.push_back(int(i + 1));
+                }
+                i++;
+                continue;
+            }
+
+            break;
+        }
+    }
+
+    for (size_t pos : RecheckI) {
+        Block &Current = Blocks[size_t(pos)];
+
+        for (int i = 0; i < Size; ++i) {
+            Block &Next = Blocks[i];
+
+            bool canMerge = (Current.Ch == Next.Ch
+			&& Current.XPos == Next.XPos && Current.XSize == Next.XSize
+			&& Current.ZPos == Next.ZPos&& Current.ZSize == Next.ZSize
+			&& (Next.YPos == Current.YPos + Current.YSize));
+
+            if (canMerge) {
+                Current.YSize += Next.YSize;
+                Next.Merged = true;
+            }
+        }
+    }
+}
+
+bool CanRelaxedZMerge(const Block& Current, const Block& Next) {
+	//Base Rule: Blocks can be merged if they have the same X, Y, size, and Ch, and are adjacent in Z
+	if (Current.ZPos + Current.ZSize != Next.ZPos) return false;
+	if (Current.Ch != Next.Ch) return false;
+	return true;
+}
+
+int RegionChoice(const Block& A, const Block& B) {
+	if (A.XPos == B.XPos && A.XSize == B.XSize && A.YPos == B.YPos && A.YSize == B.YSize) {
+		return 0; // perfect alignment
+	} else if (A.XPos == B.XPos) {
+		if (A.XSize == B.XSize) {
+			if (A.YPos == B.YPos) {
+				return 1 + (A.YSize < B.YSize); // Perfect X, trim Y (1=A Y, 2=B Y)
+			} else if (A.YPos + A.YSize == B.YPos + B.YSize) {
+				return 3 + (A.YPos < B.YPos); // Perfect X, End Y - trim start Y (3=A Y, 4=B Y)
 			}
+		} else {
+			if (A.YPos == B.YPos && A.YSize == B.YSize) {
+				return 5 + (A.XSize < B.XSize); // Perfect Y, trim X (5=A X, 6=B X)
+			} 
+		}
+	} else {
+		if (A.YPos == B.YPos && A.XPos + A.XSize == B.XPos + B.XSize && A.YSize == B.YSize) {
+			return 7 + (A.YPos < B.YPos); // Perfect Y, End X - trim start X (7=A X, 8=B X)
 		}
 	}
-};
+	return -1; // no merge possible
+}
 
 void Compression::RelaxedZ(std::vector<Block> &Blocks) {
-	// std::sort(Blocks.begin(), Blocks.end(),[](const Block& a, const Block& b) {
-	// 	if (a.XPos  != b.XPos)  return a.XPos  < b.XPos;
-	// 	if (a.YPos  != b.YPos)  return a.YPos  < b.YPos;
-	// 	if (a.ZPos  != b.ZPos)  return a.ZPos  < b.ZPos;
-	// 	return a.YPos < b.YPos;
-	// });
+	std::sort(Blocks.begin(), Blocks.end(),[](const Block& a, const Block& b) {
+		if (a.Ch    != b.Ch  ) return a.Ch   < b.Ch;
+		if (a.YPos  != b.YPos)  return a.YPos  < b.YPos;
+		if (a.XPos  != b.XPos)  return a.XPos  < b.XPos;
+		if (a.ZPos  != b.ZPos)  return a.ZPos  < b.ZPos;
+		return a.YPos < b.YPos;
+	});
+
+	std::vector<int> RecheckI;
+	int Size = Blocks.size();
+    RecheckI.reserve(Size);
+	int counter = 0;
+	for (size_t i = 0; i < Size; i++) {
+		Block& Current = Blocks[i];
+		while (i + 1 < Size) {
+			Block& Next = Blocks[i + 1];
+
+			if (!CanRelaxedZMerge(Current, Next)) break;
+			int region = RegionChoice(Current, Next);
+			
+			if (region == -1) {
+				i++;
+				continue;
+			}
+			
+			switch (region) {
+				case 0: // perfect alignment
+					Current.ZSize += Next.ZSize;
+					Next.Merged = true;
+					break;
+				case 1:{ // Perfect X, trim Current End Y
+					Next.ZPos = Current.ZPos;
+					Next.ZSize += Current.ZSize;
+					Current.YPos = Next.YPos + Next.YSize;
+					Current.YSize -= Next.YSize;
+					goto BREAK;
+				}
+				case 2: { // Perfect X, trim Next End Y
+					Current.ZSize += Next.ZSize;
+					Next.YPos = Current.YPos + Current.YSize;
+					Next.YSize -= Current.YSize;
+					RecheckI.push_back(int(i + 1));
+					break;
+				}
+				case 3: { // Perfect X, trim Next Start Y
+					Next.YSize = Next.YPos - Current.YPos;
+					Current.ZSize += Next.ZSize;
+					RecheckI.push_back(int(i + 1));
+					
+					break;
+				}
+				case 4: { // Perfect X, trim Current Start Y
+					Current.YSize -= Next.YSize;
+					Next.ZPos = Current.ZPos;
+					Next.ZSize += Current.ZSize;
+					goto BREAK;
+				}
+				case 5: { // Perfect Y, trim Current End X
+					Next.ZSize += Current.ZSize;
+					Next.ZPos = Current.ZPos;
+					Current.XPos = Next.XPos + Next.XSize;
+					Current.XSize -= Next.XSize;
+					goto BREAK;
+				}
+				case 6: { // Perfect Y, trim Next End X
+					Current.ZSize += Next.ZSize;
+					Next.XPos = Current.XPos + Current.XSize;
+					Next.XSize -= Current.XSize;
+					RecheckI.push_back(int(i + 1));
+					break;
+				}
+				case 7: { // Perfect Y, trim Current Start X
+					Current.XSize = Next.XPos - Current.XPos;
+					Next.ZSize += Current.ZSize;
+					Next.ZPos = Current.ZPos;
+					goto BREAK;
+				}
+				case 8:{ // Perfect Y, trim Next Start X
+					Current.ZSize += Next.ZSize;
+					Next.XSize = Current.XSize - (Next.XPos - Current.XPos);
+					RecheckI.push_back(int(i + 1));
+					break;
+				}
+				default:
+					break;
+			}
+			
+			i++;
+			continue;
+			BREAK:
+			break;
+		}
+	}
+	for (size_t pos : RecheckI) {
+        Block &Current = Blocks[size_t(pos)];
+
+        for (int i = 0; i < Size; ++i) {
+            Block &Next = Blocks[i];
+
+            bool canMerge = (Current.XPos == Next.XPos && 
+							Current.YPos == Next.YPos &&
+							Current.XSize == Next.XSize && 
+							Current.YSize == Next.YSize &&
+							Current.Ch == Next.Ch &&
+							Current.ZPos + Current.ZSize == Next.ZPos);
+
+            if (canMerge) {
+                Current.ZSize += Next.ZSize;
+				Next.Merged = true;
+            }
+        }
+    }
 }
 
 /**
@@ -216,12 +362,10 @@ bool Compression::TryRelaxedMerge(Block& prev, Block& curr, int ParentY, std::ve
 		//std::cout << "\nRelaxed merging block at (" << prev.XPos << "," << prev.YPos << "," << prev.ZPos << ") size (" << prev.XSize << "," << prev.YSize << "," << prev.ZSize << ") with block at (" << curr.XPos << "," << curr.YPos << "," << curr.ZPos << ") size (" << curr.XSize << "," << curr.YSize << "," << curr.ZSize << ")\n";
 		// --- leftovers from prev: must be flushed immediately
 		if (prev_left > 0) {
-				Block left = {prev.XPos, prev.YPos, prev.ZPos, prev_left, prev.YSize, prev.ZSize, prev.Ch};
-				OutputStack.push_back(left);
+				OutputStack.emplace_back(prev.XPos, prev.YPos, prev.ZPos, prev_left, prev.YSize, prev.ZSize, prev.Ch);
 				//std::cout << "Prev left Output: (" << left.XPos << "," << left.YPos << "," << left.ZPos << ") size (" << left.XSize << "," << left.YSize << "," << left.ZSize << ") - " << left.Ch << "\n";
 		} else if (prev_right > 0) {
-				Block right = {EndMerge, prev.YPos, prev.ZPos, prev_right, prev.YSize, prev.ZSize, prev.Ch};
-				OutputStack.push_back(right);
+				OutputStack.emplace_back(EndMerge, prev.YPos, prev.ZPos, prev_right, prev.YSize, prev.ZSize, prev.Ch);
 				//std::cout << "Prev right Output: (" << right.XPos << "," << right.YPos << "," << right.ZPos << ") size (" << right.XSize << "," << right.YSize << "," << right.ZSize << ") - " << right.Ch << "\n";
 		}
 
@@ -231,12 +375,10 @@ bool Compression::TryRelaxedMerge(Block& prev, Block& curr, int ParentY, std::ve
 		prev.YSize += curr.YSize;
 
 		if (curr_left > 0) {
-				Block left = {curr.XPos, curr.YPos, curr.ZPos, curr_left, curr.YSize, curr.ZSize, curr.Ch};
-				BlockStack.push_back(left);
+				BlockStack.emplace_back(curr.XPos, curr.YPos, curr.ZPos, curr_left, curr.YSize, curr.ZSize, curr.Ch);
 				//std::cout << "Curr left Block Stack: (" << left.XPos << "," << left.YPos << "," << left.ZPos << ") size (" << left.XSize << "," << left.YSize << "," << left.ZSize << ") - " << left.Ch << "\n";
 		} else if (curr_right > 0) {
-				Block right = {EndMerge, curr.YPos, curr.ZPos, curr_right, curr.YSize, curr.ZSize, curr.Ch};
-				BlockStack.push_back(right);
+				BlockStack.emplace_back(EndMerge, curr.YPos, curr.ZPos, curr_right, curr.YSize, curr.ZSize, curr.Ch);
 				//std::cout << "  Curr right BlockStack: (" << right.XPos << "," << right.YPos << "," << right.ZPos << ") size (" << right.XSize << "," << right.YSize << "," << right.ZSize << ") - " << right.Ch << "\n";
 		}
 
@@ -254,74 +396,7 @@ bool Compression::TryRelaxedMerge(Block& prev, Block& curr, int ParentY, std::ve
  * 
  * Blocks that cannot merge are flushed to OutputStack.
  */
-
-void Compression::MergeRows(std::vector<Block> &OutputStack, std::vector<Block> &Cr, std::vector<Block> &BlockStack, int ParentY) {
-	bool MergedFlag = false;
-	Block EBlock;
-	int StackPointer = 0;
-
-	// If BlockStack is empty, just load current row
-	if (BlockStack.size() == 0) {
-		BlockStack = Cr;
-		return;
-	}
-
-	// Iterate existing stack blocks
-	while (StackPointer < BlockStack.size()){
-		EBlock = BlockStack[StackPointer];
-		MergedFlag = false;
 		
-		// Compare against each new row block
-		for (size_t NewBPos = 0; NewBPos < Cr.size(); NewBPos++) {
-			
-			Block NewB = Cr[NewBPos];
-			if (EBlock.Ch == NewB.Ch){
-			// Case 1: Perfect merge
-			if (EBlock.XPos == NewB.XPos && EBlock.XSize == NewB.XSize &&
-					EBlock.ZPos == NewB.ZPos && ((EBlock.YPos / ParentY) == (NewB.YPos / ParentY)) &&
-					(NewB.YPos == EBlock.YPos + EBlock.YSize)) 
-			{
-				//std::cout << "Perfect Merging at (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
-				// extend vertically
-				EBlock.YSize += NewB.YSize;
-				// always set YPos to the *lowest index row*    
-				EBlock.YPos = std::min(EBlock.YPos, NewB.YPos);
-				BlockStack[StackPointer] = EBlock;
-				MergedFlag = true;
-				Cr.erase(Cr.begin()+NewBPos);
-				NewBPos--;
-				goto NEXTBLOCK;
-
-				// Case 2: Relaxed merge
-			} else if (TryRelaxedMerge(EBlock, NewB, ParentY, Cr, OutputStack)) {
-							//std::cout << "Relaxed merging block at (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
-							BlockStack[StackPointer] = EBlock;
-							MergedFlag = true;
-							Cr.erase(Cr.begin()+NewBPos);
-							NewBPos--;
-							goto NEXTBLOCK;
-					} else {
-				 //std::cout << "No Merging (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";
-			}
-		} //else {std::cout << "No Merging (" << EBlock.XPos << "," << EBlock.YPos << "," << EBlock.ZPos << ") size (" << EBlock.XSize << "," << EBlock.YSize << "," << EBlock.ZSize << ") with block at (" << NewB.XPos << "," << NewB.YPos << "," << NewB.ZPos << ") size (" << NewB.XSize << "," << NewB.YSize << "," << NewB.ZSize << ")\n";}
-		}
-		NEXTBLOCK:
-		if (!MergedFlag) {
-			// Couldn’t merge → flush to output
-			//std::cout << "Adding most recent block to Output\n"; 
-			OutputStack.push_back(EBlock);
-			BlockStack.erase(BlockStack.begin()+StackPointer);
-		} else {StackPointer++;}
-		//std::cout <<"SP: " << StackPointer << " StackSize: " << BlockStack.size() << " CR_Size:" << Cr.size() << "\n\n";
-			
-
-	}
-	// Push remaining new row blocks onto stack
-	for(Block block : Cr) {
-		BlockStack.push_back(block);
-	}
-}
-
 /**
  * MergeLayers
  * -----------
@@ -342,11 +417,8 @@ void Compression::MergeLayers(std::vector<Block>& Blocks, int ParentZ) {
 	
 	for (size_t i = 0; i < Blocks.size(); i++) {
 		Block& Current = Blocks[i];
-		if (Current.Merged) continue;
-		// Try to merge with blocks that have same X, Y, Size, and Ch
 		while (i + 1 < Blocks.size()) {
-			const Block Next = Blocks[i + 1];
-			if (Next.Merged) {i++;continue;};
+			const Block& Next = Blocks[i + 1];
 			// Can the blocks be merged?
 			bool canMerge = (Current.XPos == Next.XPos && 
 											Current.YPos == Next.YPos &&
@@ -356,9 +428,7 @@ void Compression::MergeLayers(std::vector<Block>& Blocks, int ParentZ) {
 											Current.ZPos + Current.ZSize == Next.ZPos);
 			
 			if (!canMerge) break;
-			// int TotalZSize = Current.ZSize + Next.ZSize;
 			Current.ZSize += Next.ZSize;
-			////Blocks.erase(Blocks.begin()+i+1);
 			Blocks[i+1].Merged = true;
 			i++;
 		}
@@ -414,11 +484,9 @@ bool Compression::TryRelaxedLayerMerge(Block& Current, Block& Next, int ParentZ,
 
 	// --- LeftOvers from merge: must be flushed immediately
 	if (CurrentLeft > 0) {
-			Block Left = {Current.XPos, Current.YPos, Current.ZPos, CurrentLeft, Current.YSize, Current.ZSize, Current.Ch};
-			LeftOvers.push_back(Left);
+			LeftOvers.emplace_back(Current.XPos, Current.YPos, Current.ZPos, CurrentLeft, Current.YSize, Current.ZSize, Current.Ch);
 	} else if (CurrentRight > 0) {
-			Block Right = {EndMerge, Current.YPos, Current.ZPos, CurrentRight, Current.YSize, Current.ZSize, Current.Ch};
-			LeftOvers.push_back(Right);
+			LeftOvers.emplace_back(EndMerge, Current.YPos, Current.ZPos, CurrentRight, Current.YSize, Current.ZSize, Current.Ch);
 	}
 
 	// --- perform the merge using overlap region
@@ -427,46 +495,15 @@ bool Compression::TryRelaxedLayerMerge(Block& Current, Block& Next, int ParentZ,
 	Current.ZSize += Next.ZSize;
 
 	if (NextLeft > 0) {
-			Block Left = {Next.XPos, Next.YPos, Next.ZPos, NextLeft, Next.YSize, Next.ZSize, Next.Ch};
-			LeftOvers.push_back(Left);
+			LeftOvers.emplace_back(Next.XPos, Next.YPos, Next.ZPos, NextLeft, Next.YSize, Next.ZSize, Next.Ch);
 	} else if (NextRight > 0) {
-			Block Right = {EndMerge, Next.YPos, Next.ZPos, NextRight, Next.YSize, Next.ZSize, Next.Ch};
-			LeftOvers.push_back(Right);
+			LeftOvers.emplace_back(EndMerge, Next.YPos, Next.ZPos, NextRight, Next.YSize, Next.ZSize, Next.Ch);
 	}
 
 	return true;
 }
 
-/**
- * ProcessLayer
- * ------------
- * Processes a full 2D layer (vector of rows).
- * Merges rows into vertical ParentY-aligned blocks,
- * then flushes completed groups into AllLayerBlocks.
- */
 
-void Compression::ProcessLayer(std::vector<std::vector<Block>> &Rows, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable) {
-	std::vector<Block> OutputBlocks; // merged blocks for Current ParentY group
-	std::vector<Block> BlockStack;
-	int Height = (int)Rows.size();
-	// Iterate bottom -> top
-	for (int RowNum = 0; RowNum < Height; RowNum++) {
-		int YPos = RowNum; // bottom = 0
-		std::vector<Block> CurrRow = Rows[YPos];
-
-		MergeRows(OutputBlocks, CurrRow, BlockStack, ParentY);
-
-		// If we've completed a ParentY block or hit the last row, flush
-		if ((RowNum + 1) % ParentY == 0 || RowNum == Height - 1) {
-			//std::cout << "\n Clearing Blockstack and writing output\n\n";
-			AllLayerBlocks.insert(AllLayerBlocks.end(), OutputBlocks.begin(), OutputBlocks.end());
-			AllLayerBlocks.insert(AllLayerBlocks.end(), BlockStack.begin(), BlockStack.end());
-
-			OutputBlocks.clear();
-			BlockStack.clear();
-		}
-	}
-}
 
 void Compression::ProcessLayerSort(std::vector<Block> &Blocks, int ParentX, int ParentY, int ParentZ) {
 
@@ -479,11 +516,11 @@ void Compression::ProcessLayerSort(std::vector<Block> &Blocks, int ParentX, int 
 		for (size_t i = 0; i < Blocks.size(); i++) {
 				Block& Current = Blocks[i];
 				while (i + 1 < Blocks.size()) {
-					const Block Next = Blocks[i + 1];
+					const Block& Next = Blocks[i + 1];
 					//std::cout << "testinA " << Next.YPos << " " << ParentY << std::endl;
 					//std::cout << "After Testing" << (Next.YPos / ParentY) << std::endl;
 					bool canMerge = Current.Ch == Next.Ch && Current.XPos == Next.XPos && 
-					Current.XSize == Next.XSize && Current.ZPos == Next.ZPos && 
+					Current.XSize == Next.XSize && Current.ZPos == Next.ZPos && Current.ZSize == Next.ZSize &&
 					(Next.YPos == Current.YPos + Current.YSize);
 					//std::cout << "After" << std::endl;
 					if (!canMerge) break;
@@ -492,25 +529,6 @@ void Compression::ProcessLayerSort(std::vector<Block> &Blocks, int ParentX, int 
 					Current.YSize = TotalYSize;
 					Blocks[i+1].Merged = true;
 					i++;
-					
 				}
 		}
-}
-
-
-/**
- * GetBlocks
- * ---------
- * Returns all intermediate blocks accumulated across layers.
- */
-std::vector<Block>& Compression::GetBlocks(){
-	return AllLayerBlocks;
-}
-
-size_t Compression::GetBlocksSize(){
-	return AllLayerBlocks.size();
-}
-
-std::vector<Block>& Compression::GetFinalBlocks(){
-	return FinalBlocks;
 }
