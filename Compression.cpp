@@ -43,8 +43,6 @@ void Compression::CompressParentBlock(ParentBlock &ParentBlock) {
 		newNumBlocks = ParentBlock.Blocks.size();
 		if (newNumBlocks == numBlocks)
 		{
-			std::cout << "done" << i <<"\n";
-			
 			break;
 		}
 		i++;
