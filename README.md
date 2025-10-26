@@ -7,6 +7,8 @@
 - [Features](#features)
 - [Installation](#installation)
 - [Usage](#usage)
+- [How It Works](#how-it-works)
+- [Extra Info](#extra-info)
 
 ## About
 
@@ -39,7 +41,8 @@ The **Block Model Compression ALgorithm** reads its input form `stdin` and write
 
 ### Standard Input Format
 
-The input stream follows a specific structure consisting of three parts:
+The input stream follows a specific structure consisting of three parts that needs to be strictly adhered to:
+> Note: Example input files are provided within the `TestCases/` directory for reference.
 
 #### 1. **Header Line**
 
@@ -58,7 +61,7 @@ The next set of lines define key-value pairs in terms of tag and label, one per 
 
 #### 3. **Block Data**
 
-The remainder of the input specifies the model itself as a 3D grid of tag characters:
+The remainder of the input specifies the model itself as a 3D grid of tag characters.
 
 ### Standard Output Format
 
@@ -71,4 +74,25 @@ The compressed output will contain one line per compressed block, with seven com
 
 ### Compression 
 
+Once the project is built with `make`, you can run the compression algorithm using either file input or standard input.
+
+#### Running The Compression Algorithm
+
+You can provide input to the program in two ways:<br><br>
+
+**Option 1: From a File**<br><br>
+Run the program with the `-f` flag followed by a file name containing your block model:
+
+`./main.exe -f TestCases/T1.txt`
+<br><br>
+
+**Option 2: From Standard Input**<br><br>
+Run the program without arguments and enter your block model directly into the terminal.
+When you’re done, press Ctrl + D (on Linux/macOS) or Ctrl + Z followed by Enter (on Windows) to indicate the end of input:
+
+`./main.exe`
+
 ## How It Works
+
+
+## Extra Info
