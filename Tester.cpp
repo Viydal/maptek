@@ -70,9 +70,9 @@ bool Tester::RunTest(Args args) {
         int counter = 0;
         for (ParentBlock& PB : ParentBlocks) {
             counter++;
-            if (counter % 1 == 0 && args.verbose) {
-                cout << "\r Compressing Block " << counter << " / " << ParentBlocks.size() << std::flush;
-            } 
+            //if (counter % 1 == 0 && args.verbose) {
+            //    cout << "\r Compressing Block " << counter << " / " << ParentBlocks.size() << std::flush;
+            //} 
             Compressor.CompressParentBlock(PB);
             PB.WriteBlock(Parser.TagTable, Output);
         }
