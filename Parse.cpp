@@ -70,7 +70,7 @@ void Parse::ParseMap(){
 
         // check if the entire string is uniform and skip compressing if so
         if (UniformCheck(MapKey3d)){
-            OutputBlocks.push_back({startX, startY, startZ, ParentX, ParentY, ParentZ, MapKey3d[0]});
+            OutputBlocks.push_back(ParentBlock(startX, startY, startZ, ParentX, ParentY, ParentZ, MapKey3d[0]));
             continue; // move onto next parent block
         }
 

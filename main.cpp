@@ -114,28 +114,28 @@ std::ios::sync_with_stdio(false);
     Thread1 = std::thread([&]() {
         Compression LocalCompressor;
         for (size_t i = 0; i < Split1; i++) {
-            LocalCompressor.CompressParentBlock(ParentBlocks[i]);
+            if (!ParentBlocks[i].IsUniform) LocalCompressor.CompressParentBlock(ParentBlocks[i]);
         }
     });
 
     Thread2 = std::thread([&]() {
         Compression LocalCompressor;
         for (size_t i = Split1; i < Split2; i++) {
-            LocalCompressor.CompressParentBlock(ParentBlocks[i]);
+            if (!ParentBlocks[i].IsUniform) LocalCompressor.CompressParentBlock(ParentBlocks[i]);
         }
     });
 
     Thread3 = std::thread([&]() {
         Compression LocalCompressor;
         for (size_t i = Split2; i < Split3; i++) {
-            LocalCompressor.CompressParentBlock(ParentBlocks[i]);
+            if (!ParentBlocks[i].IsUniform) LocalCompressor.CompressParentBlock(ParentBlocks[i]);
         }
     });
 
     Thread4 = std::thread([&]() {
         Compression LocalCompressor;
         for (size_t i = Split3; i < TotalBlocks; i++) {
-            LocalCompressor.CompressParentBlock(ParentBlocks[i]);
+            if (!ParentBlocks[i].IsUniform) LocalCompressor.CompressParentBlock(ParentBlocks[i]);
         }
     });
 
