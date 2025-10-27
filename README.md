@@ -95,7 +95,28 @@ Furthermore, by caching identical slices and blocks the parser could minimise re
 
 ### Compression Logic
 
-### Printing Blocks
+The compression logic employs a multi-pass, multi-orientation merging strategy, with the core approach being iteratively merging along different axes until no further compression is possible. The merging process is as follows:
+
+1. **Layer Sorting and Perfect Merging
+2. **Z-Axis Layer Merging
+3. **Relaxed XY Merging
+4. **Relaxed Z Merging
+
+The algorithm cycles through this series of operations until no new merges can occur, then rotates the orientation of the block model and repeats the process.
+
+### Core Compression Techniques
+
+**Perfect Merging**
+
+Perfect Merging combines blocks that share identical dimensions and position, forming the foundation of the compression strategy.
+
+**Relaxed Merging**
+
+A more complex apporach that allows merging between two imperfect blocks given they follow strict guidelines:
+- Blocks can only merge if they overlap by at least 50% in one dimension
+- Can only cut along one side
+- Leftover fragments maintained for potential future merging
+- Applied in both XY-plane and Z-plane
 
 ## Extra Info
 
