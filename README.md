@@ -37,7 +37,67 @@ You can either **clone** the repository locally, or **fork** it if you intend to
 
 ## Usage
 
-The **Block Model Compression ALgorithm** reads its input form `stdin` and writes the compressed result to `stdout`.
+The **Block Model Compression ALgorithm** reads its input form `stdin` and writes the compressed result to `stdout`. For information on how to format the input file, please visit the [standard input format](#standard-input-format) section.
+
+Once the project is built with `make`, you can run the compression algorithm using either file input or standard input.
+
+### Running The Compression Algorithm
+
+You can provide input to the program in two ways:<br><br>
+
+**Option 1: From a File**<br><br>
+Run the program with the `-f` flag followed by a file name containing your block model:
+
+`./main.exe -f TestCases/T1.txt`
+<br><br>
+
+**Option 2: From Standard Input**<br><br>
+Run the program without arguments and enter your block model directly into the terminal.
+When you’re done, press Ctrl + D (on Linux/macOS) or Ctrl + Z followed by Enter (on Windows) to indicate the end of input:
+
+`./main.exe`
+
+## How It Works
+
+Within this section, a brief but thorough explanation for the functionality of each section will be provided.
+
+### Main Function
+
+The entry point of the program is within `main.cpp`, it is the basis for argument parsing, input setup, multithreaded compression, and output formatting.
+
+Below is a breakdown of its major stages:
+
+#### 1. Argument Parsing
+
+Arguments are read in from standard input and stored within an Args struct for later use, this Args struct contains information like whether the input is of type file, whether the program should be executed in testing mode, and whether the program should be verbose in its execution.
+
+#### 2. Input Handling
+
+The main function reads the input and calls several helper functions to further the programs execution. There are two major components:
+
+- **Parsing**
+- **Compression**
+
+The input is first passed to the [parse function](#parsing-input) to be broken into its individual components as outlined in the [standard input format](#standard-input-format). After this has occurred, the parsed input is passed to the [compression function](#compression-logic) where it can be systematically compressed into appropriate blocks.
+
+### Parsing Input
+
+The parsing phase is responsible for reading the raw input data and converting it into a structured format that can be efficiently handled by the compression functions. A more [detailed description](#extra-info) of the decomposition of the programs input can be understood within the extra information provided at the base of the README.
+
+In terms of the actual functionality of the parsing function, several key design choices occur such that the program may execute efficiently:
+
+- **Run-Length Encoding (RLE)**
+- **Caching System**
+
+These design choices were made to serve very distinct but complementary purposes. As the input often contained large amounts of consecutive identical characters, Run-Length Encoding could significantly reduce data redundancy prior to passing to higher-level merging operations. 
+
+Furthermore, by caching identical slices and blocks the parser could minimise recomputation considerably. The caching system would store 2D slices, parent blocks, and RLE operations, such that any sort of repetition or uniformity within the input file would use minimal computational efforts.
+
+### Compression Logic
+
+### Printing Blocks
+
+## Extra Info
 
 ### Standard Input Format
 
@@ -72,27 +132,3 @@ The compressed output will contain one line per compressed block, with seven com
 - `x_size`, `y_size`, `z_size`: dimensions of the compressed block.
 - `label`: corresponding label from the tag table.
 
-### Compression 
-
-Once the project is built with `make`, you can run the compression algorithm using either file input or standard input.
-
-#### Running The Compression Algorithm
-
-You can provide input to the program in two ways:<br><br>
-
-**Option 1: From a File**<br><br>
-Run the program with the `-f` flag followed by a file name containing your block model:
-
-`./main.exe -f TestCases/T1.txt`
-<br><br>
-
-**Option 2: From Standard Input**<br><br>
-Run the program without arguments and enter your block model directly into the terminal.
-When you’re done, press Ctrl + D (on Linux/macOS) or Ctrl + Z followed by Enter (on Windows) to indicate the end of input:
-
-`./main.exe`
-
-## How It Works
-
-
-## Extra Info
