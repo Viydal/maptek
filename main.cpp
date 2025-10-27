@@ -152,5 +152,4 @@ std::ios::sync_with_stdio(false);
     }
 
     std::cout << Parser.CollectOutput(ParentBlocks);
-
 }
