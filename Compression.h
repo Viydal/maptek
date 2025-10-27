@@ -16,7 +16,6 @@ public:
 
   Compression();
   void Merge(ParentBlock &ParentBlock);
-  void SmartRelaxedZ(std::vector<Block>& Blocks);
   void CompressParentBlock(ParentBlock &ParentBlock);
   void ProcessLayerSort(std::vector<Block> &Blocks, int ParentX, int ParentY, int ParentZ);
   void MergeLayers(std::vector<Block>& Blocks, int ParentZ);

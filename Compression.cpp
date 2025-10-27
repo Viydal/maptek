@@ -1,6 +1,7 @@
 #include "Compression.h"
 #include <algorithm>
 #include <chrono>
+#include <functional>
 Compression::Compression() {}
 
 inline void compact_live(std::vector<Block>& v) {
@@ -91,58 +92,82 @@ void Compression::Merge(ParentBlock &WorkingParentBlock){
 }
 
 void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
-	int PrevSize = WorkingParentBlock.Blocks.size();
+    int PrevSize = WorkingParentBlock.Blocks.size();
 
-	while (true) {
-		ParentBlock Original = WorkingParentBlock;
-		ParentBlock CurrentBest = Original;
-		ParentBlock WorkingCopy = WorkingParentBlock;
+    while (true) {
+        ParentBlock Original = WorkingParentBlock;
+        ParentBlock CurrentBest = Original;
+        int BestSize = Original.Blocks.size();
+        std::string BestOperation = "none";
 
-		//(x,y,z)
-        Merge(WorkingCopy);
-		// std::cout << "X Y Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
+        // Define all 6 permutation operations
+        struct Operation {
+            std::string name;
+            std::function<void(ParentBlock&)> apply;
+            std::function<void(ParentBlock&)> reverse;
+        };
 
-		//(x,z,y)
-        SwapYZ(WorkingCopy);
-        Merge(WorkingCopy);
-        SwapYZ(WorkingCopy);
-		// std::cout << "X Z Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
+        std::vector<Operation> operations = {
+            {"X Y Z", 
+             [this](ParentBlock& pb) { Merge(pb); }, 
+             [](ParentBlock& pb) {}},
+            {"X Z Y", 
+             [this](ParentBlock& pb) { SwapYZ(pb); Merge(pb); SwapYZ(pb); }, 
+             [](ParentBlock& pb) {}},
+            {"Y X Z", 
+             [this](ParentBlock& pb) { SwapXY(pb); Merge(pb); SwapXY(pb); }, 
+             [](ParentBlock& pb) {}},
+            {"Y Z X", 
+             [this](ParentBlock& pb) { RotateYZX(pb); Merge(pb); RotateZXY(pb); }, 
+             [](ParentBlock& pb) {}},
+            {"Z X Y", 
+             [this](ParentBlock& pb) { RotateZXY(pb); Merge(pb); RotateYZX(pb); }, 
+             [](ParentBlock& pb) {}},
+            {"Z Y X", 
+             [this](ParentBlock& pb) { SwapXZ(pb); Merge(pb); SwapXZ(pb); }, 
+             [](ParentBlock& pb) {}}
+        };
+
+        // Try each operation with one-step lookahead
+        for (const auto& firstOp : operations) {
+            ParentBlock firstStep = Original;
+            firstOp.apply(firstStep);
+            int firstStepSize = firstStep.Blocks.size();
+
+            std::cout << firstOp.name << " DONE, number of blocks: " << firstStepSize;
+
+            // Lookahead: try all operations after this one
+            int bestLookaheadSize = firstStepSize;
+            for (const auto& secondOp : operations) {
+                ParentBlock secondStep = firstStep;
+                secondOp.apply(secondStep);
+                int secondStepSize = secondStep.Blocks.size();
+
+                if (secondStepSize < bestLookaheadSize) {
+                    bestLookaheadSize = secondStepSize;
+                }
+            }
+
+            std::cout << " (lookahead best: " << bestLookaheadSize << ")" << std::endl;
+
+            // Keep track of the best first step based on lookahead
+            if (bestLookaheadSize < BestSize || 
+                (bestLookaheadSize == BestSize && firstStepSize < CurrentBest.Blocks.size())) {
+                BestSize = bestLookaheadSize;
+                CurrentBest = firstStep;
+                BestOperation = firstOp.name;
+            }
+        }
+
+        std::cout << "Selected: " << BestOperation << " (size: " << CurrentBest.Blocks.size() 
+                  << ", lookahead: " << BestSize << ")" << std::endl;
+        std::cout << std::endl;
+
+        int NewSize = CurrentBest.Blocks.size();
+        if (NewSize >= PrevSize) break;
         
-        //(y,x,z)
-        SwapXY(WorkingCopy);
-        Merge(WorkingCopy);
-        SwapXY(WorkingCopy);
-		// std::cout << "Y X Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        //(y,z,x)
-        RotateYZX(WorkingCopy);
-        Merge(WorkingCopy);
-        RotateZXY(WorkingCopy);
-		// std::cout << "Y Z X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // XZY rotation (z,x,y)
-        RotateZXY(WorkingCopy);
-        Merge(WorkingCopy);
-        RotateYZX(WorkingCopy);
-		// std::cout << "Z X Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // (z,y,x)
-        SwapXZ(WorkingCopy);
-        Merge(WorkingCopy);
-        SwapXZ(WorkingCopy);
-		// std::cout << "Z Y X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-		// std::cout << std::endl;
-        
-        int NewSize = WorkingCopy.Blocks.size();
-        if (NewSize == PrevSize) break;
         PrevSize = NewSize;
-		WorkingParentBlock = CurrentBest;
+        WorkingParentBlock = CurrentBest;
     }
 }
 
