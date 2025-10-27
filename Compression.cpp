@@ -135,11 +135,10 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         SwapXZ(WorkingCopy);
         Merge(WorkingCopy);
         SwapXZ(WorkingCopy);
-		// std::cout << "Z Y X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl << std::endl;
+		// std::cout << "Z Y X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
 		// std::cout << std::endl;
         
-        //
         int NewSize = WorkingCopy.Blocks.size();
         if (NewSize == PrevSize) break;
         PrevSize = NewSize;
