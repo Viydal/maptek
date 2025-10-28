@@ -152,54 +152,52 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
 
 		//(x,y,z)
         Merge(WorkingCopy);
-		// std::cout << "X Y Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		std::cout << "X Y Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
 
 		//(x,z,y)
         SwapYZ(WorkingCopy);
         Merge(WorkingCopy);
         SwapYZ(WorkingCopy);
-		// std::cout << "X Z Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		std::cout << "X Z Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         //(y,x,z)
         SwapXY(WorkingCopy);
         Merge(WorkingCopy);
         SwapXY(WorkingCopy);
-		// std::cout << "Y X Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		std::cout << "Y X Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         //(y,z,x)
         RotateYZX(WorkingCopy);
         Merge(WorkingCopy);
         RotateZXY(WorkingCopy);
-		// std::cout << "Y Z X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		std::cout << "Y Z X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         // XZY rotation (z,x,y)
         RotateZXY(WorkingCopy);
         Merge(WorkingCopy);
         RotateYZX(WorkingCopy);
-		// std::cout << "Z X Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		std::cout << "Z X Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         // (z,y,x)
         SwapXZ(WorkingCopy);
         Merge(WorkingCopy);
         SwapXZ(WorkingCopy);
-		// std::cout << "Z Y X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		std::cout << "Z Y X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-		// std::cout << std::endl;
+		std::cout << std::endl;
 
-
-
-		// Mirror operations
+		// Mirror XYZ operations
 
 		//(x,y,z)
 		MirrorXYZ(WorkingCopy);
         Merge(WorkingCopy);
 		MirrorXYZ(WorkingCopy);
-		// std::cout << "X Y Z MIRROR DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		std::cout << "X Y Z MIRROR DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
 
 		//(x,z,y)
@@ -208,7 +206,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         SwapYZ(WorkingCopy);
 		MirrorXYZ(WorkingCopy);
-		// std::cout << "X Z Y MIRROR DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		std::cout << "X Z Y MIRROR DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         //(y,x,z)
@@ -217,7 +215,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         SwapXY(WorkingCopy);
 		MirrorXYZ(WorkingCopy);
-		// std::cout << "Y X Z MIRROR DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		std::cout << "Y X Z MIRROR DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         //(y,z,x)
@@ -226,7 +224,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         RotateZXY(WorkingCopy);
 		MirrorXYZ(WorkingCopy);
-		// std::cout << "Y Z X MIRROR DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		std::cout << "Y Z X MIRROR DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         // XZY rotation (z,x,y)
@@ -235,7 +233,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         RotateYZX(WorkingCopy);
 		MirrorXYZ(WorkingCopy);
-		// std::cout << "Z X Y MIRROR DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		std::cout << "Z X Y MIRROR DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         // (z,y,x)
@@ -244,9 +242,64 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         SwapXZ(WorkingCopy);
 		MirrorXYZ(WorkingCopy);
-		// std::cout << "Z Y X MIRROR DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		std::cout << "Z Y X MIRROR DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-		// std::cout << std::endl;
+		std::cout << std::endl;
+
+		// Mirror XY operations
+		
+		//(x,y,z)
+		MirrorYZ(WorkingCopy);
+        Merge(WorkingCopy);
+		MirrorYZ(WorkingCopy);
+		std::cout << "X Y Z MIRROR v2 DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
+
+		//(x,z,y)
+		MirrorYZ(WorkingCopy);
+        SwapYZ(WorkingCopy);
+        Merge(WorkingCopy);
+        SwapYZ(WorkingCopy);
+		MirrorYZ(WorkingCopy);
+		std::cout << "X Z Y MIRROR v2 DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
+        
+        //(y,x,z)
+		MirrorYZ(WorkingCopy);
+        SwapXY(WorkingCopy);
+        Merge(WorkingCopy);
+        SwapXY(WorkingCopy);
+		MirrorYZ(WorkingCopy);
+		std::cout << "Y X Z MIRROR v2 DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
+        
+        //(y,z,x)
+		MirrorYZ(WorkingCopy);
+        RotateYZX(WorkingCopy);
+        Merge(WorkingCopy);
+        RotateZXY(WorkingCopy);
+		MirrorYZ(WorkingCopy);
+		std::cout << "Y Z X MIRROR v2 DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
+        
+        // XZY rotation (z,x,y)
+		MirrorYZ(WorkingCopy);
+        RotateZXY(WorkingCopy);
+        Merge(WorkingCopy);
+        RotateYZX(WorkingCopy);
+		MirrorYZ(WorkingCopy);
+		std::cout << "Z X Y MIRROR v2 DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
+        
+        // (z,y,x)
+		MirrorYZ(WorkingCopy);
+        SwapXZ(WorkingCopy);
+        Merge(WorkingCopy);
+        SwapXZ(WorkingCopy);
+		MirrorYZ(WorkingCopy);
+		std::cout << "Z Y X MIRROR v2 DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
+		std::cout << std::endl;
         
         int NewSize = WorkingCopy.Blocks.size();
         if (NewSize == PrevSize) break;
