@@ -28,6 +28,8 @@ public:
   int ParseHeader();
   void ParseMap();
 
+  void NoRLE(std::string_view BlockString, std::vector<Block>& RowBlocks, int StartX, int RowNum, int LayerNum);
+
   std::string TestRLERow(std::string Row);
   void RLERow(char* XBlockString, std::vector<Block> *RowBlocks, std::unordered_map<std::string, std::vector<std::pair<int,char>>> *DP,int StartX, int RowNum, int LayerNum);
 

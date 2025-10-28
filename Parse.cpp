@@ -41,6 +41,13 @@ int Parse::ParseHeader(){
     return Iterator;
 }
 
+void Parse::NoRLE(std::string_view BlockString, std::vector<Block>& RowBlocks, int StartX, int RowNum, int LayerNum){
+    for (char C : BlockString){
+        RowBlocks.push_back({ StartX, RowNum, LayerNum, 1, 1, 1, C });
+        StartX ++;
+    }
+}
+
 
 void Parse::ParseMap(){
     //caches
