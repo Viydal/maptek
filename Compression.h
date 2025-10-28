@@ -18,11 +18,13 @@ public:
   void Merge(ParentBlock &ParentBlock);
   void SmartRelaxedZ(std::vector<Block>& Blocks);
   void CompressParentBlock(ParentBlock &ParentBlock);
-  void ProcessLayerSort(std::vector<Block> &Blocks, int ParentX, int ParentY, int ParentZ);
-  void MergeLayers(std::vector<Block>& Blocks, int ParentZ);
-  
+
+  void PerfectXY(std::vector<Block> &Blocks, int ParentX, int ParentY, int ParentZ);
+  void PerfectZ(std::vector<Block>& Blocks, int ParentZ);
+  void PerfectX(std::vector<Block>& Blocks);
   void RelaxedXY(std::vector<Block> &Blocks);
   void RelaxedZ(std::vector<Block> &Blocks);
+
   void ProcessLayer(std::vector<std::vector<Block>> &Rows, int ParentX, int ParentY, int ParentZ, int LayerNum, std::ostringstream &Output, const std::string* TagTable);
   bool TryRelaxedMerge(Block& prev, Block& curr, int ParentY, std::vector<Block>& BlockStack, std::vector<Block>& OutputStack);
   void MergeRows(std::vector<Block> &OutputStack, std::vector<Block> &Cr, std::vector<Block> &BlockStack, int ParentY);

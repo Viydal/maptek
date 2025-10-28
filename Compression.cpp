@@ -70,18 +70,21 @@ inline void CheckAndSave(ParentBlock &PB, int &PrevSize, ParentBlock &Best, cons
 
 void Compression::Merge(ParentBlock &WorkingParentBlock){
 	int PrevSize = WorkingParentBlock.Blocks.size();
-
+	
 	while(true){
-		ProcessLayerSort(WorkingParentBlock.Blocks, WorkingParentBlock.LimitX, WorkingParentBlock.LimitY, WorkingParentBlock.LimitZ);
+		PerfectXY(WorkingParentBlock.Blocks, WorkingParentBlock.LimitX, WorkingParentBlock.LimitY, WorkingParentBlock.LimitZ);
 		compact_live(WorkingParentBlock.Blocks);
 
-		MergeLayers(WorkingParentBlock.Blocks, WorkingParentBlock.LimitZ);
+		PerfectZ(WorkingParentBlock.Blocks, WorkingParentBlock.LimitZ);
 		compact_live(WorkingParentBlock.Blocks);
 
 		RelaxedXY(WorkingParentBlock.Blocks);
 		compact_live(WorkingParentBlock.Blocks);
 
 		RelaxedZ(WorkingParentBlock.Blocks);
+		compact_live(WorkingParentBlock.Blocks);
+
+		PerfectX(WorkingParentBlock.Blocks);
 		compact_live(WorkingParentBlock.Blocks);
 
 		int NewSize = WorkingParentBlock.Blocks.size();
@@ -502,7 +505,7 @@ bool Compression::TryRelaxedMerge(Block& prev, Block& curr, int ParentY, std::ve
  *   - Are adjacent in Z
  *   - Do not exceed ParentZ boundaries
  */
-void Compression::MergeLayers(std::vector<Block>& Blocks, int ParentZ) {
+void Compression::PerfectZ(std::vector<Block>& Blocks, int ParentZ) {
 	
 	// Sort all blocks by position (X, Y, then Z)
 	std::sort(Blocks.begin(), Blocks.end(), [](const Block& a, const Block& b) {
@@ -529,6 +532,32 @@ void Compression::MergeLayers(std::vector<Block>& Blocks, int ParentZ) {
 			i++;
 		}
 	}
+}
+
+void Compression::PerfectX(std::vector<Block>& Blocks) {
+	// Sort all blocks by position (X, Y, then Z)
+	std::sort(Blocks.begin(), Blocks.end(), [](const Block& a, const Block& b) {
+		if (a.YPos != b.YPos) return a.YPos < b.YPos;
+		if (a.ZPos != b.ZPos) return a.ZPos < b.ZPos;
+		return a.XPos < b.XPos;
+	});
+
+	for (size_t i = 0; i < Blocks.size(); i++) {
+		Block& Current = Blocks[i];
+		while (i + 1 < Blocks.size()) {
+			const Block& Next = Blocks[i + 1];
+			// Can the blocks be merged?
+			bool canMerge = (Current.YPos == Next.YPos && Current.YSize == Next.YSize && Current.Ch == Next.Ch && Current.ZPos == Next.ZPos && Current.ZSize == Next.ZSize && (Next.XPos == Current.XPos + Current.XSize));
+			
+			if (!canMerge) break;
+
+			Current.XSize = Current.XSize + Next.XSize;
+			Blocks[i+1].Merged = true;
+			i++;
+		}
+	}
+
+
 }
 
 bool Compression::TryRelaxedLayerMerge(Block& Current, Block& Next, int ParentZ, std::vector<Block>& LeftOvers) {
@@ -601,7 +630,7 @@ bool Compression::TryRelaxedLayerMerge(Block& Current, Block& Next, int ParentZ,
 
 
 
-void Compression::ProcessLayerSort(std::vector<Block> &Blocks, int ParentX, int ParentY, int ParentZ) {
+void Compression::PerfectXY(std::vector<Block> &Blocks, int ParentX, int ParentY, int ParentZ) {
 
 		std::sort(Blocks.begin(), Blocks.end(),[](const Block& a, const Block& b) {
 			if (a.XPos  != b.XPos)  return a.XPos  < b.XPos;
