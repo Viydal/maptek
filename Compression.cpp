@@ -69,22 +69,32 @@ inline void CheckAndSave(ParentBlock &PB, int &PrevSize, ParentBlock &Best, cons
 }
 
 void Compression::Merge(ParentBlock &WorkingParentBlock){
-	int PrevSize = WorkingParentBlock.Blocks.size();
-	
+	int PrevSize;
+
+	// Perfect merges only
+	PrevSize = WorkingParentBlock.Blocks.size();
 	while(true){
 		PerfectXY(WorkingParentBlock.Blocks, WorkingParentBlock.LimitX, WorkingParentBlock.LimitY, WorkingParentBlock.LimitZ);
+		compact_live(WorkingParentBlock.Blocks);
+
+		PerfectX(WorkingParentBlock.Blocks);
 		compact_live(WorkingParentBlock.Blocks);
 
 		PerfectZ(WorkingParentBlock.Blocks, WorkingParentBlock.LimitZ);
 		compact_live(WorkingParentBlock.Blocks);
 
+		int NewSize = WorkingParentBlock.Blocks.size();
+		if (NewSize == PrevSize) break;
+		PrevSize = NewSize;
+	}
+
+	// Relaxed merges only
+	PrevSize = WorkingParentBlock.Blocks.size();
+	while(true){
 		RelaxedXY(WorkingParentBlock.Blocks);
 		compact_live(WorkingParentBlock.Blocks);
 
 		RelaxedZ(WorkingParentBlock.Blocks);
-		compact_live(WorkingParentBlock.Blocks);
-
-		PerfectX(WorkingParentBlock.Blocks);
 		compact_live(WorkingParentBlock.Blocks);
 
 		int NewSize = WorkingParentBlock.Blocks.size();
@@ -103,44 +113,44 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
 
 		//(x,y,z)
         Merge(WorkingCopy);
-		// std::cout << "X Y Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		std::cout << "X Y Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
 
 		//(x,z,y)
         SwapYZ(WorkingCopy);
         Merge(WorkingCopy);
         SwapYZ(WorkingCopy);
-		// std::cout << "X Z Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		std::cout << "X Z Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         //(y,x,z)
         SwapXY(WorkingCopy);
         Merge(WorkingCopy);
         SwapXY(WorkingCopy);
-		// std::cout << "Y X Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		std::cout << "Y X Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         //(y,z,x)
         RotateYZX(WorkingCopy);
         Merge(WorkingCopy);
         RotateZXY(WorkingCopy);
-		// std::cout << "Y Z X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		std::cout << "Y Z X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         // XZY rotation (z,x,y)
         RotateZXY(WorkingCopy);
         Merge(WorkingCopy);
         RotateYZX(WorkingCopy);
-		// std::cout << "Z X Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		std::cout << "Z X Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         // (z,y,x)
         SwapXZ(WorkingCopy);
         Merge(WorkingCopy);
         SwapXZ(WorkingCopy);
-		// std::cout << "Z Y X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		std::cout << "Z Y X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-		// std::cout << std::endl;
+		std::cout << std::endl;
         
         int NewSize = WorkingCopy.Blocks.size();
         if (NewSize == PrevSize) break;

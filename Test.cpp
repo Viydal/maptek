@@ -23,9 +23,9 @@ void Test::reconstructOutputParse() {
         for (int zz = z; zz < z + d; ++zz) {
             for (int yy = y; yy < y + h; ++yy) {
                 for (int xx = x; xx < x + w; ++xx) {
-                    if (xx==12 && yy==4 && zz==1) {
-                        std::cout << "TESTING: " << line << std::endl;
-                    }
+                    // if (xx==12 && yy==4 && zz==1) {
+                    //     std::cout << "TESTING: " << line << std::endl;
+                    // }
                     if(OutputMapExpanded[zz][yy][xx] != ' ') {
                         std::cout << "Error: overlapping blocks at (" << xx << "," << yy << "," << zz << ")" << std::endl;
                         std::cout << line << std::endl << OutputMapExpanded[zz][yy][xx] << std::endl;
