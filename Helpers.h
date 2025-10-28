@@ -4,6 +4,7 @@
 #include <string>
 #include <iostream>
 #include <charconv>
+#include <stdint.h>
 
 using namespace std;
 
