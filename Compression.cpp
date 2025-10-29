@@ -124,20 +124,6 @@ void Compression::Merge(ParentBlock &WorkingParentBlock){
 		PerfectX(WorkingParentBlock.Blocks);
 		compact_live(WorkingParentBlock.Blocks);
 
-		int NewSize = WorkingParentBlock.Blocks.size();
-		if (NewSize == PrevSize) {
-			Strike++;
-		} else {
-			Strike = 0;
-		}
-		PrevSize = NewSize;
-	}
-
-	Strike = 0;
-	
-	// Relaxed merges only
-	PrevSize = WorkingParentBlock.Blocks.size();
-	while (Strike < 5) {
 		RelaxedXY(WorkingParentBlock.Blocks);
 		compact_live(WorkingParentBlock.Blocks);
 
@@ -162,7 +148,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
 		int BestSize = PrevSize;
 
 		// Try all possible 5-step sequences
-		TryAllSequences(WorkingParentBlock, BestResult, BestSize, 0, 1, PrevSize);
+		TryAllSequences(WorkingParentBlock, BestResult, BestSize, 0, 3, PrevSize);
 
 		// If no improvement found, break
 		if (BestSize >= PrevSize) break;
@@ -184,14 +170,14 @@ void Compression::TryAllSequences(ParentBlock Current, ParentBlock& Best, int& B
 	}
 
     // Pruning branches
-    if (Depth > 0) {
-        double ImprovementPercentage = ((OriginalSize - CurrentSize) / OriginalSize) * 100;
-        double ImprovementThreshold = 0.05;
-        if (ImprovementPercentage < ImprovementThreshold) {
-            // std::cout << "PRUNED" << std::endl;
-            return;
-        }
-    }
+    // if (Depth > 0) {
+    //     double ImprovementPercentage = ((OriginalSize - CurrentSize) / OriginalSize) * 100;
+    //     double ImprovementThreshold = 0.05;
+    //     if (ImprovementPercentage < ImprovementThreshold) {
+    //         // std::cout << "PRUNED" << std::endl;
+    //         return;
+    //     }
+    // }
 
 	// Try each transformation at this Depth level
 	ParentBlock Temp;
