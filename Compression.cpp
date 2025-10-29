@@ -158,278 +158,272 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
 	int PrevSize = WorkingParentBlock.Blocks.size();
 
 	while (true) {
-		ParentBlock Original = WorkingParentBlock;
-		ParentBlock CurrentBest = Original;
-		ParentBlock WorkingCopy = WorkingParentBlock;
+		ParentBlock BestResult = WorkingParentBlock;
+		int BestSize = PrevSize;
 
-		//(x,y,z)
-        Merge(WorkingCopy);
-		// << "X Y Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
+		// Try all possible 5-step sequences
+		TryAllSequences(WorkingParentBlock, BestResult, BestSize, 0, 1, PrevSize);
 
-		//(x,z,y)
-        SwapYZ(WorkingCopy);
-        Merge(WorkingCopy);
-        SwapYZ(WorkingCopy);
-		// << "X Z Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        //(y,x,z)
-        SwapXY(WorkingCopy);
-        Merge(WorkingCopy);
-        SwapXY(WorkingCopy);
-		// << "Y X Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        //(y,z,x)
-        RotateYZX(WorkingCopy);
-        Merge(WorkingCopy);
-        RotateZXY(WorkingCopy);
-		// << "Y Z X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // XZY rotation (z,x,y)
-        RotateZXY(WorkingCopy);
-        Merge(WorkingCopy);
-        RotateYZX(WorkingCopy);
-		// << "Z X Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // (z,y,x)
-        SwapXZ(WorkingCopy);
-        Merge(WorkingCopy);
-        SwapXZ(WorkingCopy);
-		// << "Z Y X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-		// << std::endl;
-
-		// Mirror Z operations
-
-		//(x,y,z)
-		MirrorZ(WorkingCopy);
-        Merge(WorkingCopy);
-		MirrorZ(WorkingCopy);
-		// << "X Y Z MIRROR Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-
-		//(x,z,y)
-		MirrorZ(WorkingCopy);
-        SwapYZ(WorkingCopy);
-        Merge(WorkingCopy);
-        SwapYZ(WorkingCopy);
-		MirrorZ(WorkingCopy);
-		// << "X Z Y MIRROR Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        //(y,x,z)
-		MirrorZ(WorkingCopy);
-        SwapXY(WorkingCopy);
-        Merge(WorkingCopy);
-        SwapXY(WorkingCopy);
-		MirrorZ(WorkingCopy);
-		// << "Y X Z MIRROR Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        //(y,z,x)
-		MirrorZ(WorkingCopy);
-        RotateYZX(WorkingCopy);
-        Merge(WorkingCopy);
-        RotateZXY(WorkingCopy);
-		MirrorZ(WorkingCopy);
-		// << "Y Z X MIRROR Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // XZY rotation (z,x,y)
-		MirrorZ(WorkingCopy);
-        RotateZXY(WorkingCopy);
-        Merge(WorkingCopy);
-        RotateYZX(WorkingCopy);
-		MirrorZ(WorkingCopy);
-		// << "Z X Y MIRROR Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // (z,y,x)
-		MirrorZ(WorkingCopy);
-        SwapXZ(WorkingCopy);
-        Merge(WorkingCopy);
-        SwapXZ(WorkingCopy);
-		MirrorZ(WorkingCopy);
-		// << "Z Y X MIRROR Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-		// << std::endl;
-
-		// Mirror Y operations
+		// If no improvement found, break
+		if (BestSize >= PrevSize) break;
 		
-		//(x,y,z)
-		MirrorY(WorkingCopy);
-        Merge(WorkingCopy);
-		MirrorY(WorkingCopy);
-		// << "X Y Z MIRROR Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-
-		//(x,z,y)
-		MirrorY(WorkingCopy);
-        SwapYZ(WorkingCopy);
-        Merge(WorkingCopy);
-        SwapYZ(WorkingCopy);
-		MirrorY(WorkingCopy);
-		// << "X Z Y MIRROR Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        //(y,x,z)
-		MirrorY(WorkingCopy);
-        SwapXY(WorkingCopy);
-        Merge(WorkingCopy);
-        SwapXY(WorkingCopy);
-		MirrorY(WorkingCopy);
-		// << "Y X Z MIRROR Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        //(y,z,x)
-		MirrorY(WorkingCopy);
-        RotateYZX(WorkingCopy);
-        Merge(WorkingCopy);
-        RotateZXY(WorkingCopy);
-		MirrorY(WorkingCopy);
-		// << "Y Z X MIRROR Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // XZY rotation (z,x,y)
-		MirrorY(WorkingCopy);
-        RotateZXY(WorkingCopy);
-        Merge(WorkingCopy);
-        RotateYZX(WorkingCopy);
-		MirrorY(WorkingCopy);
-		// << "Z X Y MIRROR Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // (z,y,x)
-		MirrorY(WorkingCopy);
-        SwapXZ(WorkingCopy);
-        Merge(WorkingCopy);
-        SwapXZ(WorkingCopy);
-		MirrorY(WorkingCopy);
-		// << "Z Y X MIRROR Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-		// << std::endl;
-
-		// Mirror X operations
-		
-		//(x,y,z)
-		MirrorX(WorkingCopy);
-        Merge(WorkingCopy);
-		MirrorX(WorkingCopy);
-		// << "X Y Z MIRROR X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-
-		//(x,z,y)
-		MirrorX(WorkingCopy);
-        SwapYZ(WorkingCopy);
-        Merge(WorkingCopy);
-        SwapYZ(WorkingCopy);
-		MirrorX(WorkingCopy);
-		// << "X Z Y MIRROR X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        //(y,x,z)
-		MirrorX(WorkingCopy);
-        SwapXY(WorkingCopy);
-        Merge(WorkingCopy);
-        SwapXY(WorkingCopy);
-		MirrorX(WorkingCopy);
-		// << "Y X Z MIRROR X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        //(y,z,x)
-		MirrorX(WorkingCopy);
-        RotateYZX(WorkingCopy);
-        Merge(WorkingCopy);
-        RotateZXY(WorkingCopy);
-		MirrorX(WorkingCopy);
-		// << "Y Z X MIRROR X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // XZY rotation (z,x,y)
-		MirrorX(WorkingCopy);
-        RotateZXY(WorkingCopy);
-        Merge(WorkingCopy);
-        RotateYZX(WorkingCopy);
-		MirrorX(WorkingCopy);
-		// << "Z X Y MIRROR X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // (z,y,x)
-		MirrorX(WorkingCopy);
-        SwapXZ(WorkingCopy);
-        Merge(WorkingCopy);
-        SwapXZ(WorkingCopy);
-		MirrorX(WorkingCopy);
-		// << "Z Y X MIRROR X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-		// << std::endl;
-
-		// Mirror XY operations
-		
-		//(x,y,z)
-		MirrorXY(WorkingCopy);
-        Merge(WorkingCopy);
-		MirrorXY(WorkingCopy);
-		// << "X Y Z MIRROR XY DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-
-		//(x,z,y)
-		MirrorXY(WorkingCopy);
-        SwapYZ(WorkingCopy);
-        Merge(WorkingCopy);
-        SwapYZ(WorkingCopy);
-		MirrorXY(WorkingCopy);
-		// << "X Z Y MIRROR XY DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        //(y,x,z)
-		MirrorXY(WorkingCopy);
-        SwapXY(WorkingCopy);
-        Merge(WorkingCopy);
-        SwapXY(WorkingCopy);
-		MirrorXY(WorkingCopy);
-		// << "Y X Z MIRROR XY DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        //(y,z,x)
-		MirrorXY(WorkingCopy);
-        RotateYZX(WorkingCopy);
-        Merge(WorkingCopy);
-        RotateZXY(WorkingCopy);
-		MirrorXY(WorkingCopy);
-		// << "Y Z X MIRROR XY DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // XZY rotation (z,x,y)
-		MirrorXY(WorkingCopy);
-        RotateZXY(WorkingCopy);
-        Merge(WorkingCopy);
-        RotateYZX(WorkingCopy);
-		MirrorXY(WorkingCopy);
-		// << "Z X Y MIRROR XY DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // (z,y,x)
-		MirrorXY(WorkingCopy);
-        SwapXZ(WorkingCopy);
-        Merge(WorkingCopy);
-        SwapXZ(WorkingCopy);
-		MirrorXY(WorkingCopy);
-		// << "Z Y X MIRROR XY DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-		// << std::endl;
-
-        int NewSize = WorkingCopy.Blocks.size();
-        if (NewSize == PrevSize) break;
-        PrevSize = NewSize;
-		WorkingParentBlock = CurrentBest;
-    }
+		PrevSize = BestSize;
+		WorkingParentBlock = BestResult;
+	}
 }
 
+void Compression::TryAllSequences(ParentBlock Current, ParentBlock& Best, int& BestSize, int Depth, int MaxDepth, double OriginalSize) {
+    double CurrentSize = Current.Blocks.size();
+	// Base case of completing set Depth
+	if (Depth == MaxDepth) {
+		if (CurrentSize < BestSize) {
+			BestSize = CurrentSize;
+			Best = Current;
+		}
+		return;
+	}
+
+    // Pruning branches
+    if (Depth > 0) {
+        double ImprovementPercentage = ((OriginalSize - CurrentSize) / OriginalSize) * 100;
+        double ImprovementThreshold = 0.05;
+        if (ImprovementPercentage < ImprovementThreshold) {
+            // std::cout << "PRUNED" << std::endl;
+            return;
+        }
+    }
+
+	// Try each transformation at this Depth level
+	ParentBlock Temp;
+
+	// (x,y,z)
+	Temp = Current;
+	Merge(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	// (x,z,y)
+	Temp = Current;
+	SwapYZ(Temp);
+	Merge(Temp);
+	SwapYZ(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	// (y,x,z)
+	Temp = Current;
+	SwapXY(Temp);
+	Merge(Temp);
+	SwapXY(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	// (y,z,x)
+	Temp = Current;
+	RotateYZX(Temp);
+	Merge(Temp);
+	RotateZXY(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	// (z,x,y)
+	Temp = Current;
+	RotateZXY(Temp);
+	Merge(Temp);
+	RotateYZX(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	// (z,y,x)
+	Temp = Current;
+	SwapXZ(Temp);
+	Merge(Temp);
+	SwapXZ(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	// Mirror Z operations
+	Temp = Current;
+	MirrorZ(Temp);
+	Merge(Temp);
+	MirrorZ(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	Temp = Current;
+	MirrorZ(Temp);
+	SwapYZ(Temp);
+	Merge(Temp);
+	SwapYZ(Temp);
+	MirrorZ(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	Temp = Current;
+	MirrorZ(Temp);
+	SwapXY(Temp);
+	Merge(Temp);
+	SwapXY(Temp);
+	MirrorZ(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	Temp = Current;
+	MirrorZ(Temp);
+	RotateYZX(Temp);
+	Merge(Temp);
+	RotateZXY(Temp);
+	MirrorZ(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	Temp = Current;
+	MirrorZ(Temp);
+	RotateZXY(Temp);
+	Merge(Temp);
+	RotateYZX(Temp);
+	MirrorZ(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	Temp = Current;
+	MirrorZ(Temp);
+	SwapXZ(Temp);
+	Merge(Temp);
+	SwapXZ(Temp);
+	MirrorZ(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	// Mirror Y operations
+	Temp = Current;
+	MirrorY(Temp);
+	Merge(Temp);
+	MirrorY(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	Temp = Current;
+	MirrorY(Temp);
+	SwapYZ(Temp);
+	Merge(Temp);
+	SwapYZ(Temp);
+	MirrorY(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	Temp = Current;
+	MirrorY(Temp);
+	SwapXY(Temp);
+	Merge(Temp);
+	SwapXY(Temp);
+	MirrorY(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	Temp = Current;
+	MirrorY(Temp);
+	RotateYZX(Temp);
+	Merge(Temp);
+	RotateZXY(Temp);
+	MirrorY(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	Temp = Current;
+	MirrorY(Temp);
+	RotateZXY(Temp);
+	Merge(Temp);
+	RotateYZX(Temp);
+	MirrorY(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	Temp = Current;
+	MirrorY(Temp);
+	SwapXZ(Temp);
+	Merge(Temp);
+	SwapXZ(Temp);
+	MirrorY(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	// Mirror X operations
+	Temp = Current;
+	MirrorX(Temp);
+	Merge(Temp);
+	MirrorX(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	Temp = Current;
+	MirrorX(Temp);
+	SwapYZ(Temp);
+	Merge(Temp);
+	SwapYZ(Temp);
+	MirrorX(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	Temp = Current;
+	MirrorX(Temp);
+	SwapXY(Temp);
+	Merge(Temp);
+	SwapXY(Temp);
+	MirrorX(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	Temp = Current;
+	MirrorX(Temp);
+	RotateYZX(Temp);
+	Merge(Temp);
+	RotateZXY(Temp);
+	MirrorX(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	Temp = Current;
+	MirrorX(Temp);
+	RotateZXY(Temp);
+	Merge(Temp);
+	RotateYZX(Temp);
+	MirrorX(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	Temp = Current;
+	MirrorX(Temp);
+	SwapXZ(Temp);
+	Merge(Temp);
+	SwapXZ(Temp);
+	MirrorX(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	// Mirror XY operations
+	Temp = Current;
+	MirrorXY(Temp);
+	Merge(Temp);
+	MirrorXY(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	Temp = Current;
+	MirrorXY(Temp);
+	SwapYZ(Temp);
+	Merge(Temp);
+	SwapYZ(Temp);
+	MirrorXY(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	Temp = Current;
+	MirrorXY(Temp);
+	SwapXY(Temp);
+	Merge(Temp);
+	SwapXY(Temp);
+	MirrorXY(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	Temp = Current;
+	MirrorXY(Temp);
+	RotateYZX(Temp);
+	Merge(Temp);
+	RotateZXY(Temp);
+	MirrorXY(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	Temp = Current;
+	MirrorXY(Temp);
+	RotateZXY(Temp);
+	Merge(Temp);
+	RotateYZX(Temp);
+	MirrorXY(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+
+	Temp = Current;
+	MirrorXY(Temp);
+	SwapXZ(Temp);
+	Merge(Temp);
+	SwapXZ(Temp);
+	MirrorXY(Temp);
+	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+}
 
 void Compression::RelaxedXY(std::vector<Block> &Blocks) {
     const size_t Size = Blocks.size();

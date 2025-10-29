@@ -17,6 +17,7 @@ public:
   Compression();
   void Merge(ParentBlock &ParentBlock);
   void CompressParentBlock(ParentBlock &ParentBlock);
+  void TryAllSequences(ParentBlock Current, ParentBlock& Best, int& BestSize, int Depth, int MaxDepth, double OriginalSize);
 
   void PerfectXY(std::vector<Block> &Blocks, int ParentX, int ParentY, int ParentZ);
   void PerfectZ(std::vector<Block>& Blocks, int ParentZ);
