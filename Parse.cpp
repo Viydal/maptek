@@ -126,11 +126,11 @@ void Parse::ParseMap(){
             for (int Y = 0; Y < ParentY; Y++) {
                 int XBlockStart = Y * ParentX;
                 std::string Row = MapKey2d.substr(XBlockStart, ParentX);
-                if (UniformCheck(Row)){
-                    ParentSlice.push_back({0, Y, localZ, ParentX, 1, 1, Row[0]});
-                    continue;
-                }
-                RLERow(&Row[0],&ParentSlice, &RleCache,0, Y, localZ);
+                // if (UniformCheck(Row)){
+                //     ParentSlice.push_back({0, Y, localZ, ParentX, 1, 1, Row[0]});
+                //     continue;
+                // }
+                NoRLE(&Row[0],ParentSlice,0, Y, localZ);
             }
             IndividualParentBlock.Blocks.insert(IndividualParentBlock.Blocks.end(), ParentSlice.begin(), ParentSlice.end());
 
