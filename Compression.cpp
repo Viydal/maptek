@@ -114,7 +114,7 @@ void Compression::Merge(ParentBlock &WorkingParentBlock){
 
 	// Perfect merges only
 	PrevSize = WorkingParentBlock.Blocks.size();
-	while(true){
+	while(Strike < 5){
 		PerfectXY(WorkingParentBlock.Blocks, WorkingParentBlock.LimitX, WorkingParentBlock.LimitY, WorkingParentBlock.LimitZ);
 		compact_live(WorkingParentBlock.Blocks);
 		
@@ -130,7 +130,6 @@ void Compression::Merge(ParentBlock &WorkingParentBlock){
 		} else {
 			Strike = 0;
 		}
-		if (Strike == 5) break;
 		PrevSize = NewSize;
 	}
 
@@ -138,7 +137,7 @@ void Compression::Merge(ParentBlock &WorkingParentBlock){
 	
 	// Relaxed merges only
 	PrevSize = WorkingParentBlock.Blocks.size();
-	while (true) {
+	while (Strike < 5) {
 		RelaxedXY(WorkingParentBlock.Blocks);
 		compact_live(WorkingParentBlock.Blocks);
 
@@ -151,7 +150,6 @@ void Compression::Merge(ParentBlock &WorkingParentBlock){
 		} else {
 			Strike = 0;
 		}
-		if (Strike == 5) break;
 		PrevSize = NewSize;
 	}
 }
