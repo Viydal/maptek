@@ -130,7 +130,7 @@ void Compression::Merge(ParentBlock &WorkingParentBlock){
 		} else {
 			Strike = 0;
 		}
-		if (Strike == 3) break;
+		if (Strike == 5) break;
 		PrevSize = NewSize;
 	}
 
@@ -138,25 +138,12 @@ void Compression::Merge(ParentBlock &WorkingParentBlock){
 	
 	// Relaxed merges only
 	PrevSize = WorkingParentBlock.Blocks.size();
-	// double totalXYTime = 0.0;
-	// double totalZTime = 0.0;
-
 	while (true) {
-		// --- Time RelaxedXY ---
-		// auto startXY = std::chrono::high_resolution_clock::now();
 		RelaxedXY(WorkingParentBlock.Blocks);
 		compact_live(WorkingParentBlock.Blocks);
-		// auto endXY = std::chrono::high_resolution_clock::now();
-		// std::chrono::duration<double> elapsedXY = endXY - startXY;
-		// totalXYTime += elapsedXY.count();
 
-		// --- Time RelaxedZ ---
-		// auto startZ = std::chrono::high_resolution_clock::now();
 		RelaxedZ(WorkingParentBlock.Blocks);
 		compact_live(WorkingParentBlock.Blocks);
-		// auto endZ = std::chrono::high_resolution_clock::now();
-		// std::chrono::duration<double> elapsedZ = endZ - startZ;
-		// totalZTime += elapsedZ.count();
 
 		int NewSize = WorkingParentBlock.Blocks.size();
 		if (NewSize == PrevSize) {
@@ -164,14 +151,9 @@ void Compression::Merge(ParentBlock &WorkingParentBlock){
 		} else {
 			Strike = 0;
 		}
-		if (Strike == 3) break;
+		if (Strike == 5) break;
 		PrevSize = NewSize;
 	}
-
-	// Print total times after all iterations
-	// std::cout << "Total RelaxedXY time: " << totalXYTime << " seconds.\n";
-	// std::cout << "Total RelaxedZ time: " << totalZTime << " seconds.\n";
-	
 }
 
 void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
@@ -181,48 +163,47 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
 		ParentBlock Original = WorkingParentBlock;
 		ParentBlock CurrentBest = Original;
 		ParentBlock WorkingCopy = WorkingParentBlock;
-		bool foundImprovement = false;
 
 		//(x,y,z)
         Merge(WorkingCopy);
-		std::cout << "X Y Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "X Y Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
 
 		//(x,z,y)
         SwapYZ(WorkingCopy);
         Merge(WorkingCopy);
         SwapYZ(WorkingCopy);
-		std::cout << "X Z Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "X Z Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         //(y,x,z)
         SwapXY(WorkingCopy);
         Merge(WorkingCopy);
         SwapXY(WorkingCopy);
-		std::cout << "Y X Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "Y X Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         //(y,z,x)
         RotateYZX(WorkingCopy);
         Merge(WorkingCopy);
         RotateZXY(WorkingCopy);
-		std::cout << "Y Z X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "Y Z X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         // XZY rotation (z,x,y)
         RotateZXY(WorkingCopy);
         Merge(WorkingCopy);
         RotateYZX(WorkingCopy);
-		std::cout << "Z X Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "Z X Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         // (z,y,x)
         SwapXZ(WorkingCopy);
         Merge(WorkingCopy);
         SwapXZ(WorkingCopy);
-		std::cout << "Z Y X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "Z Y X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-		std::cout << std::endl;
+		// << std::endl;
 
 		// Mirror Z operations
 
@@ -230,7 +211,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
 		MirrorZ(WorkingCopy);
         Merge(WorkingCopy);
 		MirrorZ(WorkingCopy);
-		std::cout << "X Y Z MIRROR Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "X Y Z MIRROR Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
 
 		//(x,z,y)
@@ -239,7 +220,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         SwapYZ(WorkingCopy);
 		MirrorZ(WorkingCopy);
-		std::cout << "X Z Y MIRROR Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "X Z Y MIRROR Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         //(y,x,z)
@@ -248,7 +229,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         SwapXY(WorkingCopy);
 		MirrorZ(WorkingCopy);
-		std::cout << "Y X Z MIRROR Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "Y X Z MIRROR Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         //(y,z,x)
@@ -257,7 +238,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         RotateZXY(WorkingCopy);
 		MirrorZ(WorkingCopy);
-		std::cout << "Y Z X MIRROR Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "Y Z X MIRROR Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         // XZY rotation (z,x,y)
@@ -266,7 +247,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         RotateYZX(WorkingCopy);
 		MirrorZ(WorkingCopy);
-		std::cout << "Z X Y MIRROR Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "Z X Y MIRROR Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         // (z,y,x)
@@ -275,9 +256,9 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         SwapXZ(WorkingCopy);
 		MirrorZ(WorkingCopy);
-		std::cout << "Z Y X MIRROR Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "Z Y X MIRROR Z DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-		std::cout << std::endl;
+		// << std::endl;
 
 		// Mirror Y operations
 		
@@ -285,7 +266,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
 		MirrorY(WorkingCopy);
         Merge(WorkingCopy);
 		MirrorY(WorkingCopy);
-		std::cout << "X Y Z MIRROR Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "X Y Z MIRROR Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
 
 		//(x,z,y)
@@ -294,7 +275,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         SwapYZ(WorkingCopy);
 		MirrorY(WorkingCopy);
-		std::cout << "X Z Y MIRROR Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "X Z Y MIRROR Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         //(y,x,z)
@@ -303,7 +284,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         SwapXY(WorkingCopy);
 		MirrorY(WorkingCopy);
-		std::cout << "Y X Z MIRROR Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "Y X Z MIRROR Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         //(y,z,x)
@@ -312,7 +293,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         RotateZXY(WorkingCopy);
 		MirrorY(WorkingCopy);
-		std::cout << "Y Z X MIRROR Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "Y Z X MIRROR Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         // XZY rotation (z,x,y)
@@ -321,7 +302,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         RotateYZX(WorkingCopy);
 		MirrorY(WorkingCopy);
-		std::cout << "Z X Y MIRROR Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "Z X Y MIRROR Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         // (z,y,x)
@@ -330,9 +311,9 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         SwapXZ(WorkingCopy);
 		MirrorY(WorkingCopy);
-		std::cout << "Z Y X MIRROR Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "Z Y X MIRROR Y DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-		std::cout << std::endl;
+		// << std::endl;
 
 		// Mirror X operations
 		
@@ -340,7 +321,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
 		MirrorX(WorkingCopy);
         Merge(WorkingCopy);
 		MirrorX(WorkingCopy);
-		std::cout << "X Y Z MIRROR X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "X Y Z MIRROR X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
 
 		//(x,z,y)
@@ -349,7 +330,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         SwapYZ(WorkingCopy);
 		MirrorX(WorkingCopy);
-		std::cout << "X Z Y MIRROR X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "X Z Y MIRROR X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         //(y,x,z)
@@ -358,7 +339,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         SwapXY(WorkingCopy);
 		MirrorX(WorkingCopy);
-		std::cout << "Y X Z MIRROR X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "Y X Z MIRROR X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         //(y,z,x)
@@ -367,7 +348,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         RotateZXY(WorkingCopy);
 		MirrorX(WorkingCopy);
-		std::cout << "Y Z X MIRROR X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "Y Z X MIRROR X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         // XZY rotation (z,x,y)
@@ -376,7 +357,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         RotateYZX(WorkingCopy);
 		MirrorX(WorkingCopy);
-		std::cout << "Z X Y MIRROR X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "Z X Y MIRROR X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         // (z,y,x)
@@ -385,9 +366,9 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         SwapXZ(WorkingCopy);
 		MirrorX(WorkingCopy);
-		std::cout << "Z Y X MIRROR X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "Z Y X MIRROR X DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-		std::cout << std::endl;
+		// << std::endl;
 
 		// Mirror XY operations
 		
@@ -395,7 +376,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
 		MirrorXY(WorkingCopy);
         Merge(WorkingCopy);
 		MirrorXY(WorkingCopy);
-		std::cout << "X Y Z MIRROR XY DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "X Y Z MIRROR XY DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
 
 		//(x,z,y)
@@ -404,7 +385,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         SwapYZ(WorkingCopy);
 		MirrorXY(WorkingCopy);
-		std::cout << "X Z Y MIRROR XY DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "X Z Y MIRROR XY DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         //(y,x,z)
@@ -413,7 +394,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         SwapXY(WorkingCopy);
 		MirrorXY(WorkingCopy);
-		std::cout << "Y X Z MIRROR XY DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "Y X Z MIRROR XY DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         //(y,z,x)
@@ -422,7 +403,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         RotateZXY(WorkingCopy);
 		MirrorXY(WorkingCopy);
-		std::cout << "Y Z X MIRROR XY DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "Y Z X MIRROR XY DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         // XZY rotation (z,x,y)
@@ -431,7 +412,7 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         RotateYZX(WorkingCopy);
 		MirrorXY(WorkingCopy);
-		std::cout << "Z X Y MIRROR XY DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "Z X Y MIRROR XY DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
         
         // (z,y,x)
@@ -440,175 +421,10 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
         Merge(WorkingCopy);
         SwapXZ(WorkingCopy);
 		MirrorXY(WorkingCopy);
-		std::cout << "Z Y X MIRROR XY DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
+		// << "Z Y X MIRROR XY DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
 		CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-		std::cout << std::endl;
+		// << std::endl;
 
-		// // Mirror XZ operations
-		
-		// //(x,y,z)
-		// MirrorXZ(WorkingCopy);
-        // Merge(WorkingCopy);
-		// MirrorXZ(WorkingCopy);
-		// std::cout << "X Y Z MIRROR XZ DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		// CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-
-		// //(x,z,y)
-		// MirrorXZ(WorkingCopy);
-        // SwapYZ(WorkingCopy);
-        // Merge(WorkingCopy);
-        // SwapYZ(WorkingCopy);
-		// MirrorXZ(WorkingCopy);
-		// std::cout << "X Z Y MIRROR XZ DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		// CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // //(y,x,z)
-		// MirrorXZ(WorkingCopy);
-        // SwapXY(WorkingCopy);
-        // Merge(WorkingCopy);
-        // SwapXY(WorkingCopy);
-		// MirrorXZ(WorkingCopy);
-		// std::cout << "Y X Z MIRROR XZ DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		// CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // //(y,z,x)
-		// MirrorXZ(WorkingCopy);
-        // RotateYZX(WorkingCopy);
-        // Merge(WorkingCopy);
-        // RotateZXY(WorkingCopy);
-		// MirrorXZ(WorkingCopy);
-		// std::cout << "Y Z X MIRROR XZ DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		// CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // // XZY rotation (z,x,y)
-		// MirrorXZ(WorkingCopy);
-        // RotateZXY(WorkingCopy);
-        // Merge(WorkingCopy);
-        // RotateYZX(WorkingCopy);
-		// MirrorXZ(WorkingCopy);
-		// std::cout << "Z X Y MIRROR XZ DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		// CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // // (z,y,x)
-		// MirrorXZ(WorkingCopy);
-        // SwapXZ(WorkingCopy);
-        // Merge(WorkingCopy);
-        // SwapXZ(WorkingCopy);
-		// MirrorXZ(WorkingCopy);
-		// std::cout << "Z Y X MIRROR XZ DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		// CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-		// std::cout << std::endl;
-
-		// // Mirror YZ operations
-		
-		// //(x,y,z)
-		// MirrorYZ(WorkingCopy);
-        // Merge(WorkingCopy);
-		// MirrorYZ(WorkingCopy);
-		// std::cout << "X Y Z MIRROR YZ DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		// CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-
-		// //(x,z,y)
-		// MirrorYZ(WorkingCopy);
-        // SwapYZ(WorkingCopy);
-        // Merge(WorkingCopy);
-        // SwapYZ(WorkingCopy);
-		// MirrorYZ(WorkingCopy);
-		// std::cout << "X Z Y MIRROR YZ DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		// CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // //(y,x,z)
-		// MirrorYZ(WorkingCopy);
-        // SwapXY(WorkingCopy);
-        // Merge(WorkingCopy);
-        // SwapXY(WorkingCopy);
-		// MirrorYZ(WorkingCopy);
-		// std::cout << "Y X Z MIRROR YZ DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		// CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // //(y,z,x)
-		// MirrorYZ(WorkingCopy);
-        // RotateYZX(WorkingCopy);
-        // Merge(WorkingCopy);
-        // RotateZXY(WorkingCopy);
-		// MirrorYZ(WorkingCopy);
-		// std::cout << "Y Z X MIRROR YZ DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		// CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // // XZY rotation (z,x,y)
-		// MirrorYZ(WorkingCopy);
-        // RotateZXY(WorkingCopy);
-        // Merge(WorkingCopy);
-        // RotateYZX(WorkingCopy);
-		// MirrorYZ(WorkingCopy);
-		// std::cout << "Z X Y MIRROR YZ DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		// CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // // (z,y,x)
-		// MirrorYZ(WorkingCopy);
-        // SwapXZ(WorkingCopy);
-        // Merge(WorkingCopy);
-        // SwapXZ(WorkingCopy);
-		// MirrorYZ(WorkingCopy);
-		// std::cout << "Z Y X MIRROR YZ DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		// CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-		// std::cout << std::endl;
-
-		// // Mirror XYZ operations
-		
-		// //(x,y,z)
-		// MirrorXYZ(WorkingCopy);
-        // Merge(WorkingCopy);
-		// MirrorXYZ(WorkingCopy);
-		// std::cout << "X Y Z MIRROR XYZ DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		// CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-
-		// //(x,z,y)
-		// MirrorXYZ(WorkingCopy);
-        // SwapYZ(WorkingCopy);
-        // Merge(WorkingCopy);
-        // SwapYZ(WorkingCopy);
-		// MirrorXYZ(WorkingCopy);
-		// std::cout << "X Z Y MIRROR XYZ DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		// CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // //(y,x,z)
-		// MirrorXYZ(WorkingCopy);
-        // SwapXY(WorkingCopy);
-        // Merge(WorkingCopy);
-        // SwapXY(WorkingCopy);
-		// MirrorXYZ(WorkingCopy);
-		// std::cout << "Y X Z MIRROR XYZ DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		// CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // //(y,z,x)
-		// MirrorXYZ(WorkingCopy);
-        // RotateYZX(WorkingCopy);
-        // Merge(WorkingCopy);
-        // RotateZXY(WorkingCopy);
-		// MirrorXYZ(WorkingCopy);
-		// std::cout << "Y Z X MIRROR XYZ DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		// CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // // XZY rotation (z,x,y)
-		// MirrorXYZ(WorkingCopy);
-        // RotateZXY(WorkingCopy);
-        // Merge(WorkingCopy);
-        // RotateYZX(WorkingCopy);
-		// MirrorXYZ(WorkingCopy);
-		// std::cout << "Z X Y MIRROR XYZ DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		// CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-        
-        // // (z,y,x)
-		// MirrorXYZ(WorkingCopy);
-        // SwapXZ(WorkingCopy);
-        // Merge(WorkingCopy);
-        // SwapXZ(WorkingCopy);
-		// MirrorXYZ(WorkingCopy);
-		// std::cout << "Z Y X MIRROR XYZ DONE, number of blocks: " << WorkingCopy.Blocks.size() << std::endl;
-		// CheckAndSave(WorkingCopy, PrevSize, CurrentBest, Original);
-		// std::cout << std::endl;
-        
         int NewSize = WorkingCopy.Blocks.size();
         if (NewSize == PrevSize) break;
         PrevSize = NewSize;
@@ -879,90 +695,9 @@ void Compression::RelaxedZ(std::vector<Block> &Blocks) {
         i++;
     }
 }
-
+	
 /**
- * TryRelaxedMerge
- * ---------------
- * Attempts to merge two blocks (prev and curr) that overlap horizontally
- * but are not perfectly aligned. Allows "relaxed merging" if:
- *  - Both blocks share the same character, Z, and ParentY group
- *  - They overlap by at least half of prev's width
- *  - Only one "side trimming" occurs (no double trims)
- * 
- * Leftover pieces are pushed either to OutputStack (prev leftovers)
- * or BlockStack (curr leftovers).
- */
-
-bool Compression::TryRelaxedMerge(Block& prev, Block& curr, int ParentY, std::vector<Block>& BlockStack, std::vector<Block>& OutputStack) {
-		// Rule 0: must be same "row group"
-		if ((prev.YPos / ParentY) != (curr.YPos / ParentY)) return false;
-		if (prev.ZPos != curr.ZPos) return false;
-		if (prev.Ch != curr.Ch) return false;
-
-		// --- compute overlap in x
-		int StartMerge = std::max(prev.XPos, curr.XPos);
-		int EndMerge   = std::min(prev.XPos + prev.XSize, curr.XPos + curr.XSize);
-		int overlap = EndMerge - StartMerge;
-		if (overlap <= 0) return false; // no horizontal overlap
-
-		// --- Rule 2: cannot shrink prev overlap too much
-		if (overlap <= prev.XSize / 2) {
-				return false;
-		}
-
-		// --- split prev into (left, overlap, right)
-		int prev_left  = StartMerge - prev.XPos;
-		int prev_right = (prev.XPos + prev.XSize) - EndMerge;
-		// --- split curr into (left, overlap, right)
-		int curr_left  = StartMerge - curr.XPos;
-		int curr_right = (curr.XPos + curr.XSize) - EndMerge;
-
-		// enforce Rule 1/3/4 by tracking "which side relaxed"
-		// Right now we only allow one side trimming for prev and curr
-		if (prev_left > 0 && prev_right > 0) return false;
-		if (curr_left > 0 && curr_right > 0) return false;
-		if ((prev_left > 0 && curr_right > 0) || (prev_right > 0 && curr_left > 0)) return false;
-
-		//// << "\nRelaxed merging block at (" << prev.XPos << "," << prev.YPos << "," << prev.ZPos << ") size (" << prev.XSize << "," << prev.YSize << "," << prev.ZSize << ") with block at (" << curr.XPos << "," << curr.YPos << "," << curr.ZPos << ") size (" << curr.XSize << "," << curr.YSize << "," << curr.ZSize << ")\n";
-		// --- leftovers from prev: must be flushed immediately
-		if (prev_left > 0) {
-				OutputStack.emplace_back(prev.XPos, prev.YPos, prev.ZPos, prev_left, prev.YSize, prev.ZSize, prev.Ch);
-				//// << "Prev left Output: (" << left.XPos << "," << left.YPos << "," << left.ZPos << ") size (" << left.XSize << "," << left.YSize << "," << left.ZSize << ") - " << left.Ch << "\n";
-		} else if (prev_right > 0) {
-				OutputStack.emplace_back(EndMerge, prev.YPos, prev.ZPos, prev_right, prev.YSize, prev.ZSize, prev.Ch);
-				//// << "Prev right Output: (" << right.XPos << "," << right.YPos << "," << right.ZPos << ") size (" << right.XSize << "," << right.YSize << "," << right.ZSize << ") - " << right.Ch << "\n";
-		}
-
-		// --- perform the merge using overlap region
-		prev.XPos  = StartMerge;
-		prev.XSize = overlap;
-		prev.YSize += curr.YSize;
-
-		if (curr_left > 0) {
-				BlockStack.emplace_back(curr.XPos, curr.YPos, curr.ZPos, curr_left, curr.YSize, curr.ZSize, curr.Ch);
-				//// << "Curr left Block Stack: (" << left.XPos << "," << left.YPos << "," << left.ZPos << ") size (" << left.XSize << "," << left.YSize << "," << left.ZSize << ") - " << left.Ch << "\n";
-		} else if (curr_right > 0) {
-				BlockStack.emplace_back(EndMerge, curr.YPos, curr.ZPos, curr_right, curr.YSize, curr.ZSize, curr.Ch);
-				//// << "  Curr right BlockStack: (" << right.XPos << "," << right.YPos << "," << right.ZPos << ") size (" << right.XSize << "," << right.YSize << "," << right.ZSize << ") - " << right.Ch << "\n";
-		}
-
-		return true;
-}
-
-/**
- * MergeRows
- * ---------
- * Attempts to merge blocks across rows (vertical merging).
- * 
- * Rules:
- *  1. Perfect merge: same X range, same label, same Z, directly stacked
- *  2. Relaxed merge: allow partial X overlap with TryRelaxedMerge
- * 
- * Blocks that cannot merge are flushed to OutputStack.
- */
-		
-/**
- * MergeLayers
+ * PerfectZ
  * -----------
  * Attempts to merge blocks vertically along the Z axis.
  * Blocks can merge if they:
@@ -1024,76 +759,6 @@ void Compression::PerfectX(std::vector<Block>& Blocks) {
 
 
 }
-
-bool Compression::TryRelaxedLayerMerge(Block& Current, Block& Next, int ParentZ, std::vector<Block>& LeftOvers) {
-	// Rule 0: two Blocks must be in the same parent block segment
-	if ((Current.ZPos / ParentZ) != (Next.ZPos / ParentZ)) return false;
-
-	// general check to ensure the Blocks are eligible for merging
-	if ((Current.ZPos % ParentZ) + (Current.ZSize + Next.ZSize) > ParentZ) return false;
-	if (Current.ZPos + Current.ZSize != Next.ZPos) return false;
-	if (Current.YPos != Next.YPos) return false;
-	if (Current.YSize != Next.YSize) return false;
-	if (Current.Ch != Next.Ch) return false;
-
-	// --- compute overlap in z layers based off their x coordinate
-	int StartMerge = std::max(Current.XPos, Next.XPos);
-	int EndMerge = std::min(Current.XPos + Current.XSize, Next.XPos + Next.XSize);
-	int overlap = EndMerge - StartMerge;
-	if (overlap <= 0) return false; // no horizontal overlap
-
-	// --- Rule 2: cannot shrink current block overlap too much
-	if (overlap <= Current.XSize / 2) {
-			return false;
-	}
-
-	// --- split current into (Left, overlap, Right)
-	int CurrentLeft = StartMerge - Current.XPos;
-	int CurrentRight = (Current.XPos + Current.XSize) - EndMerge;
-	// --- split next into (Left, overlap, Right)
-	int NextLeft = StartMerge - Next.XPos;
-	int NextRight = (Next.XPos + Next.XSize) - EndMerge;
-
-	// enforce Rule 1/3/4 by tracking "which side relaxed"
-	// Right now we only allow one side trimming for prev and curr
-	if (CurrentLeft > 0 && CurrentRight > 0) return false;
-	if (NextLeft > 0 && NextRight > 0) return false;
-	if ((CurrentLeft > 0 && NextRight > 0) || (CurrentRight > 0 && NextLeft > 0)) return false;
-
-	// making sure that relaxed z compression doesnt create more blocks
-	int CountBefore = 2;
-	int CountAfter = 1;
-	if (CurrentLeft > 0) CountAfter++;
-	if (CurrentRight > 0) CountAfter++;
-	if (NextLeft > 0) CountAfter++;
-	if (NextRight > 0) CountAfter++;
-
-	if (CountAfter >= CountBefore) return false;
-
-	// ALL TEST CASES PASSED - COMMENCE RELAXED MERGE
-
-	// --- LeftOvers from merge: must be flushed immediately
-	if (CurrentLeft > 0) {
-			LeftOvers.emplace_back(Current.XPos, Current.YPos, Current.ZPos, CurrentLeft, Current.YSize, Current.ZSize, Current.Ch);
-	} else if (CurrentRight > 0) {
-			LeftOvers.emplace_back(EndMerge, Current.YPos, Current.ZPos, CurrentRight, Current.YSize, Current.ZSize, Current.Ch);
-	}
-
-	// --- perform the merge using overlap region
-	Current.XPos = StartMerge;
-	Current.XSize = overlap;
-	Current.ZSize += Next.ZSize;
-
-	if (NextLeft > 0) {
-			LeftOvers.emplace_back(Next.XPos, Next.YPos, Next.ZPos, NextLeft, Next.YSize, Next.ZSize, Next.Ch);
-	} else if (NextRight > 0) {
-			LeftOvers.emplace_back(EndMerge, Next.YPos, Next.ZPos, NextRight, Next.YSize, Next.ZSize, Next.Ch);
-	}
-
-	return true;
-}
-
-
 
 void Compression::PerfectXY(std::vector<Block> &Blocks, int ParentX, int ParentY, int ParentZ) {
 
