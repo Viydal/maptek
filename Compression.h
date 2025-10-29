@@ -13,6 +13,7 @@ public:
   int XCount, YCount, ZCount, ParentX, ParentY, ParentZ;
   std::vector<Block> AllLayerBlocks;
   std::vector<Block> FinalBlocks;
+  std::unordered_map<size_t, double> seenStates;
 
   Compression();
   void Merge(ParentBlock &ParentBlock);
@@ -25,12 +26,7 @@ public:
   void RelaxedXY(std::vector<Block> &Blocks);
   void RelaxedZ(std::vector<Block> &Blocks);
 
-  bool TryRelaxedMerge(Block& prev, Block& curr, int ParentY, std::vector<Block>& BlockStack, std::vector<Block>& OutputStack);
-  bool TryRelaxedLayerMerge(Block& Current, Block& Next, int ParentZ, std::vector<Block>& LeftOvers);
-
-  std::vector<Block>& GetBlocks();
-  size_t GetBlocksSize();
-  std::vector<Block>& GetFinalBlocks();
+  size_t HashParentBlock(const ParentBlock& pb);
 };
 
 #endif

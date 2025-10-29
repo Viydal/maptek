@@ -170,14 +170,14 @@ void Compression::TryAllSequences(ParentBlock Current, ParentBlock& Best, int& B
 	}
 
     // Pruning branches
-    // if (Depth > 0) {
-    //     double ImprovementPercentage = ((OriginalSize - CurrentSize) / OriginalSize) * 100;
-    //     double ImprovementThreshold = 0.05;
-    //     if (ImprovementPercentage < ImprovementThreshold) {
-    //         // std::cout << "PRUNED" << std::endl;
-    //         return;
-    //     }
-    // }
+    if (Depth > 0) {
+        double ImprovementPercentage = ((OriginalSize - CurrentSize) / OriginalSize) * 100;
+        // std::cout << ImprovementPercentage << std::endl;
+        if (ImprovementPercentage <= 0) {
+            // std::cout << "PRUNED" << std::endl;
+            return;
+        }
+    }
 
 	// Try each transformation at this Depth level
 	ParentBlock Temp;
@@ -363,52 +363,52 @@ void Compression::TryAllSequences(ParentBlock Current, ParentBlock& Best, int& B
 	MirrorX(Temp);
 	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
 
-	// Mirror XY operations
-	Temp = Current;
-	MirrorXY(Temp);
-	Merge(Temp);
-	MirrorXY(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+	// // Mirror XY operations
+	// Temp = Current;
+	// MirrorXY(Temp);
+	// Merge(Temp);
+	// MirrorXY(Temp);
+	// TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
 
-	Temp = Current;
-	MirrorXY(Temp);
-	SwapYZ(Temp);
-	Merge(Temp);
-	SwapYZ(Temp);
-	MirrorXY(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+	// Temp = Current;
+	// MirrorXY(Temp);
+	// SwapYZ(Temp);
+	// Merge(Temp);
+	// SwapYZ(Temp);
+	// MirrorXY(Temp);
+	// TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
 
-	Temp = Current;
-	MirrorXY(Temp);
-	SwapXY(Temp);
-	Merge(Temp);
-	SwapXY(Temp);
-	MirrorXY(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+	// Temp = Current;
+	// MirrorXY(Temp);
+	// SwapXY(Temp);
+	// Merge(Temp);
+	// SwapXY(Temp);
+	// MirrorXY(Temp);
+	// TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
 
-	Temp = Current;
-	MirrorXY(Temp);
-	RotateYZX(Temp);
-	Merge(Temp);
-	RotateZXY(Temp);
-	MirrorXY(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+	// Temp = Current;
+	// MirrorXY(Temp);
+	// RotateYZX(Temp);
+	// Merge(Temp);
+	// RotateZXY(Temp);
+	// MirrorXY(Temp);
+	// TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
 
-	Temp = Current;
-	MirrorXY(Temp);
-	RotateZXY(Temp);
-	Merge(Temp);
-	RotateYZX(Temp);
-	MirrorXY(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+	// Temp = Current;
+	// MirrorXY(Temp);
+	// RotateZXY(Temp);
+	// Merge(Temp);
+	// RotateYZX(Temp);
+	// MirrorXY(Temp);
+	// TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
 
-	Temp = Current;
-	MirrorXY(Temp);
-	SwapXZ(Temp);
-	Merge(Temp);
-	SwapXZ(Temp);
-	MirrorXY(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+	// Temp = Current;
+	// MirrorXY(Temp);
+	// SwapXZ(Temp);
+	// Merge(Temp);
+	// SwapXZ(Temp);
+	// MirrorXY(Temp);
+	// TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
 }
 
 void Compression::RelaxedXY(std::vector<Block> &Blocks) {

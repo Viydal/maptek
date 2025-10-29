@@ -71,25 +71,25 @@ void Parse::ParseMap(){
             startZ = i * ParentZ;
 
         
-        // Create a key for caching a parent block by concatenating its input lines into a large string
-        std::string MapKey3d;
-        Create3dKey(MapKey3d);
+        // // Create a key for caching a parent block by concatenating its input lines into a large string
+        // std::string MapKey3d;
+        // Create3dKey(MapKey3d);
 
-        // check if the entire string is uniform and skip compressing if so
-        if (UniformCheck(MapKey3d)){
-            OutputBlocks.push_back(ParentBlock(startX, startY, startZ, ParentX, ParentY, ParentZ, MapKey3d[0]));
-            continue; // move onto next parent block
-        }
+        // // check if the entire string is uniform and skip compressing if so
+        // if (UniformCheck(MapKey3d)){
+        //     OutputBlocks.push_back(ParentBlock(startX, startY, startZ, ParentX, ParentY, ParentZ, MapKey3d[0]));
+        //     continue; // move onto next parent block
+        // }
 
-        // check if the parent block is in the cache and skip compressing if so
-        auto it = CompressionCache3d.find(MapKey3d);
-        if (it != CompressionCache3d.end()) {
-            OutputBlocks.push_back(it->second);
-            OutputBlocks.back().StartX = startX;
-            OutputBlocks.back().StartY = startY;
-            OutputBlocks.back().StartZ = startZ;
-            continue; //move onto next parent block
-        }
+        // // check if the parent block is in the cache and skip compressing if so
+        // auto it = CompressionCache3d.find(MapKey3d);
+        // if (it != CompressionCache3d.end()) {
+        //     OutputBlocks.push_back(it->second);
+        //     OutputBlocks.back().StartX = startX;
+        //     OutputBlocks.back().StartY = startY;
+        //     OutputBlocks.back().StartZ = startZ;
+        //     continue; //move onto next parent block
+        // }
 
         ParentBlock IndividualParentBlock(startX, startY, startZ, ParentX, ParentY, ParentZ);
 
@@ -139,7 +139,7 @@ void Parse::ParseMap(){
 
             }
             // the saved answer is stored in the cache
-            CompressionCache3d.insert({MapKey3d, IndividualParentBlock.Blocks});
+            // CompressionCache3d.insert({MapKey3d, IndividualParentBlock.Blocks});
 
             OutputBlocks.push_back(IndividualParentBlock);
             // The process will now repeat
