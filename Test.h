@@ -33,32 +33,30 @@ public:
 
 public:
     // Constructor: takes the input lines and output lines
-    Test(const std::vector<std::string> &inputLines, const std::vector<std::string> &compressedLines)
-        : InputParse(inputLines), outputLines(compressedLines) 
+    Test(const std::vector<std::string> &inputLines, const std::vector<std::string> &compressedLines, Parse& parser)
+        : outputLines(compressedLines), InputParse(parser)
     {
-        // Expand input map for direct access
-            
-        InputMapExpanded.resize(InputParse.ZCount, std::vector<std::string>(InputParse.YCount, std::string(InputParse.XCount, ' ')));
-        //std::cout << InputParse.ZCount << " " << InputParse.YCount << " " << InputParse.XCount << "    -    " << InputMapExpanded.size() << " " << InputMapExpanded[0].size() << " " << InputMapExpanded[0][0].size() << std::endl;
-        //std::cout <<"Before test \n";
-        int Iterator = 0;
+        // Set InputParse dimensions to account for single chunk
+        InputParse.NumZBlocks = 1;
+        InputParse.ZCount = InputParse.ParentZ;
         
-        while (!inputLines[Iterator].empty()) {
-            //std::cout << "Line: " << inputLines[Iterator] << std::endl;
+        // Expand input map for direct access
+        InputMapExpanded.resize(InputParse.ZCount, std::vector<std::string>(InputParse.YCount, std::string(InputParse.XCount, ' ')));
+        
+        int Iterator = 0;
+        while (inputLines[Iterator].empty()) {
             Iterator++;
         }
-        std::cout << "\n\n";
-        Iterator++;
         int z_count = 0;
         int y_count = 0;
         while(Iterator < inputLines.size()){
+            std::string line = inputLines[Iterator];
             if (inputLines[Iterator].empty()){
                 z_count++;
                 Iterator++;
                 y_count = 0;
                 continue;
             }
-            std::string line = inputLines[Iterator];
             for (int x = 0; x < line.size(); x++) {
                 InputMapExpanded[z_count][(y_count) % InputParse.YCount][x] = (line[x]);
             }

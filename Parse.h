@@ -31,6 +31,7 @@ public:
   
   void StreamParseHeader(std::istream& infile);
   void StreamParseMapChunk(std::vector<ParentBlock>& ParentBlocks, int chunkIndex, std::istream& infile);
+  void TestStreamParseMapChunk(std::vector<ParentBlock>& ParentBlocks, int chunkIndex, std::istream& infile, std::unordered_map<std::string, std::vector<std::pair<int,char>>>& RleCache, std::vector<std::string>& inputLines);
 
   int ParseHeader();
   void ParseMap();

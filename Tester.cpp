@@ -14,141 +14,118 @@
 namespace fs = std::filesystem;
 
 bool Tester::RunTest(Args args) {
-    std::ifstream infile("TestCases/" + args.filePath);
-    if (!infile) {
+    std::unique_ptr<std::ifstream> file;
+    std::istream* in = &std::cin;
+    file = std::make_unique<std::ifstream>("TestCases/" + args.filePath);
+    if (!*file) {
         std::cerr << "Error: could not open " << args.filePath << "\n";
-        return false;
+        return 1;
     }
+    in = file.get();
 
-    std::vector<std::string> InitLines;
-    std::string line;
+    Parse Parser;
+
     auto TotalStart = chrono::high_resolution_clock::now();
     auto start = chrono::high_resolution_clock::now();
     auto end = chrono::high_resolution_clock::now();
     std::chrono::duration<double> elapsed;
-    while (std::getline(infile, line)) {
-        if (!line.empty() && line.back() == '\r') line.pop_back();
-        InitLines.push_back(line);
+    Parser.StreamParseHeader(*in);
+
+
+    std::vector<ParentBlock> ParentBlocks;
+    ParentBlocks.reserve(Parser.NumXBlocks * Parser.NumYBlocks);
+
+    for (int BlockRow = 0; BlockRow < Parser.NumYBlocks; BlockRow++) {
+        for (int BlockCol = 0; BlockCol < Parser.NumXBlocks; BlockCol++) {
+            ParentBlocks.emplace_back(BlockCol * Parser.ParentX, BlockRow * Parser.ParentY, 0, Parser.ParentX, Parser.ParentY, Parser.ParentZ);
+        }
     }
-    infile.close();
-
-    std::thread Thread1, Thread2, Thread3, Thread4;
-
-    Parse Parser(InitLines);
+    std::vector<std::string> lineBuffer;
     Compression Compressor;
-    std::vector<ParentBlock> ParentBlocks = Parser.OutputBlocks;
 
-    size_t TotalBlocks = ParentBlocks.size();
-    size_t Quarter = TotalBlocks / 4;
-    size_t Remainder = TotalBlocks % 4;
-
-    size_t Split1 = Quarter + (Remainder > 0 ? 1 : 0);
-    size_t Split2 = Split1 + Quarter + (Remainder > 1 ? 1 : 0);
-    size_t Split3 = Split2 + Quarter + (Remainder > 2 ? 1 : 0);
+    std::unordered_map<std::string, std::vector<std::pair<int,char>>> RleCache;
+    std::string Output;
+    bool TotalMatch = true;
+    double CompressionPercentTotal = 0;
+    Output.reserve(ParentBlocks.size() * 80);
+    //Processes a ParentX * ParentY * ParentZ chunk of the map at a time
+    for (int i = 0; i < Parser.NumZBlocks; i++){
+        start = chrono::high_resolution_clock::now();
+        Output.clear();
+        for (ParentBlock& PB : ParentBlocks) {
+            PB.StartZ = i * Parser.ParentZ; 
+            PB.Blocks.clear();
+        }
+        if (args.verbose){
+            cout << "\n--- PARSING --- " << i << std::endl;
+        }
+        Parser.TestStreamParseMapChunk(ParentBlocks, i, *in, RleCache, lineBuffer);
 
         if (args.verbose){
-            elapsed = chrono::high_resolution_clock::now() - TotalStart;
+            elapsed = chrono::high_resolution_clock::now() - start;
             cout << "Parsing done in " << elapsed.count() << " seconds." << std::endl;
-            cout << "\n--- COMPRESSING --- " << std::endl;
+            cout << "\n--- COMPRESSING --- " << i << std::endl;
             start = chrono::high_resolution_clock::now();
         }
-
-    ofstream myfile;
-    myfile.open ("SaveCases/" + args.filePath);
-    Thread1 = std::thread([&]() {
-        Compression LocalCompressor;
-        for (size_t i = 0; i < Split1; i++) {
-            LocalCompressor.CompressParentBlock(ParentBlocks[i]);
+        int counter = 0;
+        for (ParentBlock& PB : ParentBlocks) {
+            counter++;
+            //if (counter % 1 == 0 && args.verbose) {
+            //    cout << "\r Compressing Block " << counter << " / " << ParentBlocks.size() << std::flush;
+            //} 
+            Compressor.CompressParentBlock(PB);
+            PB.WriteBlock(Parser.TagTable, Output);
         }
-    });
-
-    Thread2 = std::thread([&]() {
-        Compression LocalCompressor;
-        for (size_t i = Split1; i < Split2; i++) {
-            LocalCompressor.CompressParentBlock(ParentBlocks[i]);
-        }
-    });
-
-    Thread3 = std::thread([&]() {
-        Compression LocalCompressor;
-        for (size_t i = Split2; i < Split3; i++) {
-            LocalCompressor.CompressParentBlock(ParentBlocks[i]);
-        }
-    });
-
-    Thread4 = std::thread([&]() {
-        Compression LocalCompressor;
-        for (size_t i = Split3; i < TotalBlocks; i++) {
-            LocalCompressor.CompressParentBlock(ParentBlocks[i]);
-        }
-    });
-
-    Thread1.join();
-    Thread2.join();
-    Thread3.join();
-    Thread4.join();
-
-    myfile.close();
-    end = std::chrono::high_resolution_clock::now();
-    elapsed = end - start;
         if (args.verbose) {
-            std::cout << "Compression done in " << elapsed.count() << " seconds." << std::endl;
-            //cout << "Writing blocks now\n";
-            //start = std::chrono::high_resolution_clock::now();
+            elapsed = chrono::high_resolution_clock::now() - start;
+            std::cout << "\nCompression done in " << elapsed.count() << " seconds." << std::endl;
+            start = std::chrono::high_resolution_clock::now();
         }
-    //Compressor.WriteBlocks(Compressor.GetBlocks(), Output, Parser.TagTable);
-    //    if (args.verbose) {
-    //        end = std::chrono::high_resolution_clock::now();
-    //        elapsed = end - start;
-    //        cout << "Writing blocks done in " << elapsed.count() << " seconds.\n";
-    //    }
+        std::string line;
+        std::string Output = Parser.TestCollectOutput(ParentBlocks);
+        std::vector<std::string> outputLines;
+        std::stringstream ss(Output);
+        while (std::getline(ss, line)) {
+            if (!line.empty())
+            outputLines.push_back(line);
+        }
+        
+        // Compare input/output
+        Test myTest(lineBuffer, outputLines, Parser);
+        bool match = myTest.compareInputOutput();
+        if (!match) {
+            TotalMatch = false;
+        }
+        // Compute compression %
+        size_t inputSize = 0;
+        for (auto &layer : myTest.InputMapExpanded)
+            for (auto &row : layer)
+                inputSize += row.size();
 
-    //if (args.verbose && args.verboseLevel == 0)
-    //    std::cout << "\n"; // move to new line after status bar
+        size_t compressedRows = outputLines.size();
+        double compressionPercent = 100.0 * (1.0 - double(compressedRows) / double(inputSize));
+        CompressionPercentTotal += (compressionPercent);
+        // Verbose level 1: show full per-test output
+        if (args.verbose && args.verboseLevel >= 2) {
+            std::cout << "\n--- TEST: " << args.filePath << " ---\n";
+            
+            myTest.printOutputLines();
+            
+            if(args.verbose && args.verboseLevel >= 3) {
+                std::cout << "-----INPUT V OUTPUT----- \n";
+                myTest.printInputParse();
+                myTest.printOutputParse();
+            }
+    }
+    } 
     end = std::chrono::high_resolution_clock::now();
     elapsed = end - TotalStart;
     std::cout << "Program done in " << elapsed.count() << " seconds." << std::endl;
-    // Collect output lines
-    std::string Output = Parser.TestCollectOutput(ParentBlocks);
-    std::vector<std::string> outputLines;
-    std::stringstream ss(Output);
-    while (std::getline(ss, line)) {
-
-        if (!line.empty())
-            outputLines.push_back(line);
-    }
-
-    // Compare input/output
-    Test myTest(InitLines, outputLines);
-    bool match = myTest.compareInputOutput();
-
-    // Compute compression %
-    size_t inputSize = 0;
-    for (auto &layer : myTest.InputMapExpanded)
-        for (auto &row : layer)
-            inputSize += row.size();
-
-    size_t compressedRows = outputLines.size();
-    double compressionPercent = 100.0 * (1.0 - double(compressedRows) / double(inputSize));
-
-    // Verbose level 1: show full per-test output
-    if (args.verbose && args.verboseLevel >= 2) {
-        std::cout << "\n--- TEST: " << args.filePath << " ---\n";
-        
-        myTest.printOutputLines();
-        
-        if(args.verbose && args.verboseLevel >= 3) {
-            std::cout << "-----INPUT V OUTPUT----- \n";
-            myTest.printInputParse();
-            myTest.printOutputParse();
-        }
-
-        
-    }
-    std::cout << "| Test Outcome: | " << (match ? "Success" : "Failure")
+    
+    std::cout << "| Test Outcome: | " << (TotalMatch ? "Success" : "Failure")
                 << " || Time | " << elapsed.count() << "s"
-                << " || Compression % | " << compressionPercent << "% |\n";
-    return match;
+                << " || Compression % | " << CompressionPercentTotal / Parser.NumZBlocks << "% |\n";
+    return TotalMatch;
 }
 
 void Tester::RunAllTests(Args args) {
