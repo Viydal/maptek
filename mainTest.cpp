@@ -169,7 +169,7 @@ int main(int argc, char* argv[]) {
     omp_set_num_threads(4);
     for (int i = 0; i < Parser.NumZBlocks; i++){
         auto start = std::chrono::high_resolution_clock::now();
-        #pragma omp parallel for schedule(static)
+        #pragma omp parallel for schedule(dynamic)
         for (int idx = 0; idx < ParentBlocks.size(); idx++) {
             ParentBlocks[idx].StartZ = i * Parser.ParentZ;
             ParentBlocks[idx].Blocks.clear();
@@ -194,7 +194,7 @@ int main(int argc, char* argv[]) {
         // Parallelize formatting, then join in order
         size_t total = 0;
         std::vector<std::string> chunks(ParentBlocks.size());
-        #pragma omp parallel for schedule(static)
+        #pragma omp parallel for schedule(dynamic)
         for (int idx = 0; idx < (int)ParentBlocks.size(); ++idx) {
             Compressor.CompressParentBlock(ParentBlocks[idx]);
             ParentBlocks[idx].WriteBlock(Parser.TagTable, chunks[idx]);

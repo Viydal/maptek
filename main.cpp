@@ -131,7 +131,8 @@ std::cout.tie(nullptr);
     omp_set_num_threads(4);
     for (int i = 0; i < Parser.NumZBlocks; i++){
         Output.clear();
-        #pragma omp parallel for schedule(static)
+        //Set to schedule(static) for prev version
+        #pragma omp parallel for schedule(dynamic)
         for (int idx = 0; idx < ParentBlocks.size(); idx++) {
             ParentBlocks[idx].StartZ = i * Parser.ParentZ;
             ParentBlocks[idx].Blocks.clear();
@@ -140,7 +141,7 @@ std::cout.tie(nullptr);
         Parser.StreamParseMapChunk(ParentBlocks, i, *in);
         size_t total = 0;
         std::vector<std::string> chunks(ParentBlocks.size());
-        #pragma omp parallel for schedule(static)
+        #pragma omp parallel for schedule(dynamic)
         for (int idx = 0; idx < (int)ParentBlocks.size(); ++idx) {
             Compressor.CompressParentBlock(ParentBlocks[idx]);
             ParentBlocks[idx].WriteBlock(Parser.TagTable, chunks[idx]);
