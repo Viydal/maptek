@@ -28,8 +28,7 @@ void Parse::StreamParseHeader(std::istream& in){
 
     // the next lines are the tag table
     while (std::getline(in, Line)) {
-        if (!Line.empty() && Line.back() == '\r') Line.pop_back();
-        if (Line.empty()) {break;}
+        if (Line.size() < 3) break; // minimal line is "A ,"
 
         char Symbol;
         std::string Location;
@@ -40,28 +39,25 @@ void Parse::StreamParseHeader(std::istream& in){
     }
 }
 
-void Parse::StreamParseMapChunk(std::vector<ParentBlock>& ParentBlocks, int chunkIndex, std::istream& in, std::unordered_map<std::string, std::vector<std::pair<int,char>>>& RleCache) {
+void Parse::StreamParseMapChunk(std::vector<ParentBlock>& ParentBlocks, int chunkIndex, std::istream& in) {
     std::string Line;
     Line.reserve(XCount + 3);
     //
      for (int Z = 0; Z < ParentZ; Z++) {
         int RowsRead = 0;
-
-
-
         while (RowsRead < YCount && std::getline(in, Line)) {
-            if (!Line.empty() && Line.back() == '\r') Line.pop_back();
-            if (Line.empty()) continue;
+            if (Line.size() < XCount) continue; // skip invalid lines
 
             int StartY = RowsRead / ParentY;
             int LocalY = RowsRead % ParentY;
 
             int StartX = 0;
+
             for (int XBlockIndex = 0; XBlockIndex < NumXBlocks; XBlockIndex++) {
                 int ParentBlockIndex = StartY * NumXBlocks + XBlockIndex;
 
                 std::string_view Substring(Line.data() + StartX, ParentX);
-                RLERow(Substring, ParentBlocks[ParentBlockIndex].Blocks, 0, LocalY, Z, RleCache);
+                RLERow(Substring, ParentBlocks[ParentBlockIndex].Blocks, 0, LocalY, Z);
                 StartX += ParentX;
             }
             RowsRead++;
@@ -153,21 +149,34 @@ std::string Parse::TestRLERow(std::string Row) {
     return RLEString;
 }
 
-void Parse::RLERow(std::string_view BlockString, std::vector<Block>& RowBlocks, int StartX, int RowNum, int LayerNum, std::unordered_map<std::string, std::vector<std::pair<int,char>>>&){
+void Parse::RLERow(std::string_view BlockString, std::vector<Block>& RowBlocks, int StartX, int RowNum, int LayerNum){
  
+    const size_t len = BlockString.size();
+    if (len == 0) return;
+    
+    const char* data = BlockString.data();
+    
+    // Reserve space to avoid reallocations
+    const size_t currentSize = RowBlocks.size();
+    RowBlocks.reserve(currentSize + ParentX / 4); // Reasonable estimate
+    
+    char Prev = data[0];
     int Count = 1;
-    char Prev = BlockString[0];
-    char Current; 
-    for (int i = 1; i < ParentX; i++){
-        Current = BlockString[i];
+    int Pos = StartX;
+    
+    // Simple, correct loop
+    for (size_t i = 1; i < len; i++) {
+        const char Current = data[i];
         if (Current == Prev) {
             Count++;
         } else {
-            RowBlocks.emplace_back(StartX, RowNum, LayerNum, Count, 1, 1, Prev);
-            StartX += Count;
+            RowBlocks.emplace_back(Pos, RowNum, LayerNum, Count, 1, 1, Prev);
+            Pos += Count;
             Prev = Current;
             Count = 1;
         }
     }
-    RowBlocks.emplace_back(StartX, RowNum, LayerNum, Count, 1, 1, Prev);
+    
+    // Don't forget the final run
+    RowBlocks.emplace_back(Pos, RowNum, LayerNum, Count, 1, 1, Prev);
 }

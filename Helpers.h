@@ -142,7 +142,8 @@ public:
             append_u32(out, B.XSize);         out += ',';
             append_u32(out, B.YSize);         out += ',';
             append_u32(out, B.ZSize);         out += ',';
-            out += TagTable[(unsigned char)B.Ch];
+            const auto& lbl = TagTable[(unsigned char)B.Ch];
+            out.append(lbl.data(), lbl.size());
             out += '\n';
         }
     }

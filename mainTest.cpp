@@ -8,8 +8,12 @@
 #include <chrono>
 #include <thread>
 #include <string>
+#include <string>
 #include <cstdio>
-
+#include <omp.h>
+#include <mutex>
+#include <condition_variable>
+#include <deque>
 
 //chat gpt windows output speedup
 #ifdef _WIN32
@@ -41,6 +45,7 @@ void* operator new(std::size_t sz, std::align_val_t al) {
 #endif
   return p;
 }
+
 
 int main(int argc, char* argv[]) {
 
@@ -154,60 +159,84 @@ int main(int argc, char* argv[]) {
 
     Compression Compressor;
 
-    std::unordered_map<std::string, std::vector<std::pair<int,char>>> RleCache;
-
     int ParseTime = 0, TotalCompressTime = 0, WriteTime = 0;
     int DeleteTime = 0, CompressTime = 0;
 
     std::string Output;
     Output.reserve(ParentBlocks.size() * 80);
 
+    Output.clear();
+    omp_set_num_threads(4);
     for (int i = 0; i < Parser.NumZBlocks; i++){
-        Output.clear();
-        for (auto& pb : ParentBlocks) {
-            pb.StartZ = i * Parser.ParentZ; 
-            pb.Blocks.clear();
+        auto start = std::chrono::high_resolution_clock::now();
+        #pragma omp parallel for schedule(static)
+        for (int idx = 0; idx < ParentBlocks.size(); idx++) {
+            ParentBlocks[idx].StartZ = i * Parser.ParentZ;
+            ParentBlocks[idx].Blocks.clear();
         }
 
-        auto start = std::chrono::high_resolution_clock::now();
-        Parser.StreamParseMapChunk(ParentBlocks, i, *in, RleCache);
+        Parser.StreamParseMapChunk(ParentBlocks, i, *in);
         auto end = std::chrono::high_resolution_clock::now();
         auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
         ParseTime += duration.count();
 
         start = std::chrono::high_resolution_clock::now();
-        for (auto& PB : ParentBlocks) {
-            Compressor.CompressParentBlock(PB);
-        }
+        //#pragma omp parallel for schedule(static)
+        //for (int idx = 0; idx < ParentBlocks.size(); idx++) {
+        //    Compressor.CompressParentBlock(ParentBlocks[idx]);
+        //}
         end = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
         TotalCompressTime += duration.count();
 
         start = std::chrono::high_resolution_clock::now();
-        for (auto& PB : ParentBlocks) {
-            PB.WriteBlock(Parser.TagTable, Output);
+
+        // Parallelize formatting, then join in order
+        size_t total = 0;
+        std::vector<std::string> chunks(ParentBlocks.size());
+        #pragma omp parallel for schedule(static)
+        for (int idx = 0; idx < (int)ParentBlocks.size(); ++idx) {
+            Compressor.CompressParentBlock(ParentBlocks[idx]);
+            ParentBlocks[idx].WriteBlock(Parser.TagTable, chunks[idx]);
+            total += chunks[idx].size();
         }
+        Output.clear();
+        Output.reserve(total);
+        for (auto& s : chunks) Output.append(s);
         std::cout.write(Output.data(), Output.size());
-        
+
         end = std::chrono::high_resolution_clock::now();
         duration = std::chrono::duration_cast<std::chrono::milliseconds>(end - start);
         WriteTime += duration.count();
+         std::cout << "Total program done in " << 0 << " ms. "
+     << "Parse Header done in " << ParseHeaderDuration.count() << " ms. "
+     << "Initialise Parent Blocks done in " << InitialiseParentBlocksDuration.count() << " ms. "
+     << "Parsing done in " << ParseTime << " ms. "
+     << "Total Compressing done in " << TotalCompressTime << " ms. "
+     << "Deleting done in " << DeleteTime << " ms. "
+     << "Compressing done in " << CompressTime << " ms. "
+     << "Writing done in " << WriteTime << " ms. "
+     << moveCounter << " ParentBlock or Block moves. "
+     << copyCounter << " ParentBlock or Block copies. "
+     << alloc_calls << " Heap allocations. "
+     << alloc_bytes << " Heap bytes allocated. ";
     }
+    //writer.finish();
     auto TotalProgramEnd = std::chrono::high_resolution_clock::now();
     auto TotalProgramDuration = std::chrono::duration_cast<std::chrono::milliseconds>(TotalProgramEnd - TotalProgramTime);
-
-    std::cout << "Total program done in " << TotalProgramDuration.count() << " ms. "
+    std::cout << "\nTotal program done in " << TotalProgramDuration.count() << " ms. \n"
     << "Parse Header done in " << ParseHeaderDuration.count() << " ms. "
-    << "Initialise Parent Blocks done in " << InitialiseParentBlocksDuration.count() << " ms. "
-    << "Parsing done in " << ParseTime << " ms. "
-    << "Total Compressing done in " << TotalCompressTime << " ms. "
-    << "Deleting done in " << DeleteTime << " ms. "
-    << "Compressing done in " << CompressTime << " ms. "
-    << "Writing done in " << WriteTime << " ms. "
-    << moveCounter << " ParentBlock or Block moves. "
-    << copyCounter << " ParentBlock or Block copies. "
-    << alloc_calls << " Heap allocations. "
-    << alloc_bytes << " Heap bytes allocated. ";
+    << "Initialise Parent Blocks done in " << InitialiseParentBlocksDuration.count() << " ms. \n"
+    << "Parsing done in " << ParseTime << " ms. \n"
+    << "Total Compressing done in " << TotalCompressTime << " ms. \n"
+    << "Deleting done in " << DeleteTime << " ms. \n"
+    << "Compressing done in " << CompressTime << " ms. \n"
+    << "Writing done in " << WriteTime << " ms. \n"
+    << moveCounter << " ParentBlock or Block moves. \n"
+    << copyCounter << " ParentBlock or Block copies. \n"
+    << alloc_calls << " Heap allocations. \n"
+    << alloc_bytes << " Heap bytes allocated. \n";
+    
     // std::cout << sizeof(ParentBlock) << " bytes per ParentBlock.\n";
     // std::cout << sizeof(Block) << " bytes per Block.\n";
     // std::cout << sizeof(std::vector<Block>) << " bytes per vector<Block> overhead.\n";

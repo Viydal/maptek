@@ -8,6 +8,7 @@
 #include "Helpers.h"
 #include "Compression.h"
 #include <cstring>
+#include <chrono>
 //#include <omp.h>
 
 
@@ -29,14 +30,13 @@ public:
   Parse(const std::vector<std::string>& Lines);
   
   void StreamParseHeader(std::istream& infile);
-  void StreamParseMapChunk(std::vector<ParentBlock>& ParentBlocks, int chunkIndex, std::istream& infile, std::unordered_map<std::string, std::vector<std::pair<int,char>>>& RleCache);
+  void StreamParseMapChunk(std::vector<ParentBlock>& ParentBlocks, int chunkIndex, std::istream& infile);
 
   int ParseHeader();
   void ParseMap();
 
   std::string TestRLERow(std::string Row);
-  void RLERow(std::string_view BlockString, std::vector<Block>& RowBlocks, int StartX, int RowNum, int LayerNum, std::unordered_map<std::string, std::vector<std::pair<int,char>>> &Cache);
-  void RLERow(char* XBlockString, std::vector<Block> *RowBlocks, std::unordered_map<std::string, std::vector<std::pair<int,char>>> *DP,int StartX, int RowNum, int LayerNum);
+  void RLERow(std::string_view BlockString, std::vector<Block>& RowBlocks, int StartX, int RowNum, int LayerNum);
 
   void Create3dKey(char * Key3d);
   void Create2dKey(std::string& Key2d, int localZ);

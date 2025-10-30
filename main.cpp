@@ -8,6 +8,7 @@
 #include <chrono>
 #include <thread>
 #include <cstdio>
+#include <omp.h>
 
 //chat gpt windows output speedup
 #ifdef _WIN32
@@ -124,25 +125,32 @@ std::cout.tie(nullptr);
     }
 
     Compression Compressor;
-
-    std::unordered_map<std::string, std::vector<std::pair<int,char>>> RleCache;
     std::string Output;
     Output.reserve(ParentBlocks.size() * 80);
     //Processes a ParentX * ParentY * ParentZ chunk of the map at a time
+    omp_set_num_threads(4);
     for (int i = 0; i < Parser.NumZBlocks; i++){
         Output.clear();
-        for (ParentBlock& PB : ParentBlocks) {
-            PB.StartZ = i * Parser.ParentZ; 
-            PB.Blocks.clear();
+        #pragma omp parallel for schedule(static)
+        for (int idx = 0; idx < ParentBlocks.size(); idx++) {
+            ParentBlocks[idx].StartZ = i * Parser.ParentZ;
+            ParentBlocks[idx].Blocks.clear();
         }
 
-        Parser.StreamParseMapChunk(ParentBlocks, i, *in, RleCache);
-
-        for (ParentBlock& PB : ParentBlocks) {
-            Compressor.CompressParentBlock(PB);
-            PB.WriteBlock(Parser.TagTable, Output);
+        Parser.StreamParseMapChunk(ParentBlocks, i, *in);
+        size_t total = 0;
+        std::vector<std::string> chunks(ParentBlocks.size());
+        #pragma omp parallel for schedule(static)
+        for (int idx = 0; idx < (int)ParentBlocks.size(); ++idx) {
+            Compressor.CompressParentBlock(ParentBlocks[idx]);
+            ParentBlocks[idx].WriteBlock(Parser.TagTable, chunks[idx]);
+            total += chunks[idx].size();
         }
-        fwrite(Output.data(), 1, Output.size(), stdout);
+        Output.clear();
+        Output.reserve(total);
+        for (auto& s : chunks) Output.append(s);
+
+        std::cout.write(Output.data(), Output.size());
     }   
 }
 

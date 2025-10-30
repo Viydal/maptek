@@ -82,33 +82,47 @@ void Compression::CompressParentBlock(ParentBlock &ParentBlock) {
 
 
 void Compression::RelaxedXY(std::vector<Block> &Blocks) {
+    const size_t Size = Blocks.size();
+    if (Size < 2) return;
+    
     std::sort(Blocks.begin(), Blocks.end(), [](const Block& a, const Block& b) {
         if (a.Ch   != b.Ch  ) return a.Ch   < b.Ch;
         if (a.ZPos != b.ZPos) return a.ZPos < b.ZPos;
         if (a.YPos != b.YPos) return a.YPos < b.YPos;
-        if (a.XPos != b.XPos) return a.XPos < b.XPos;
-        return a.YPos < b.YPos;
+        return a.XPos < b.XPos;
     });
 
-    const size_t Size = Blocks.size();
-    std::vector<int> RecheckI;
-    RecheckI.reserve(Size / 10);
-
-    for (size_t i = 0; i < Size; i++) {
+    for (size_t i = 0; i < Size; ) {
+        if (Blocks[i].Merged) {
+            i++;
+            continue;
+        }
+        
         Block &Current = Blocks[i];
+        bool merged = false;
 
-        while (i + 1 < Size) {
-            Block &Next = Blocks[i + 1];
+        for (size_t j = i + 1; j < Size; j++) {
+            if (Blocks[j].Merged) continue;
+            Block &Next = Blocks[j];
 
+            // Early exit - blocks are sorted by Ch, ZPos, YPos
             if (Current.Ch != Next.Ch) break;
             if (Current.ZPos != Next.ZPos || Current.ZSize != Next.ZSize) break;
-            if (Current.YPos + Current.YSize != Next.YPos) break;
+            
+            // Check if Next is vertically adjacent to Current
+            if (Current.YPos + Current.YSize != Next.YPos) {
+                // If Next.YPos is beyond Current's end, no more blocks can merge
+                if (Next.YPos > Current.YPos + Current.YSize) break;
+                continue;
+            }
 
+            // Calculate overlap
             int startMerge = std::max(Current.XPos, Next.XPos);
             int EndMerge   = std::min(Current.XPos + Current.XSize, Next.XPos + Next.XSize);
             int overlap    = EndMerge - startMerge;
-            if (overlap <= 0) break;
-            if (overlap < Current.XSize / 2) break;
+            
+            if (overlap <= 0) continue;
+            if (overlap < Current.XSize / 2) continue;
 
             int CurXPosInitial = Current.XPos;
             int CurXSizeInitial = Current.XSize;
@@ -118,83 +132,77 @@ void Compression::RelaxedXY(std::vector<Block> &Blocks) {
             int NextYSizeInitial = Next.YSize;
 
             bool LeftAligned  = (startMerge == Current.XPos && startMerge == Next.XPos);
-            bool RightAligned = (EndMerge   == Current.XPos + Current.XSize && EndMerge   == Next.XPos   + Next.XSize);
+            bool RightAligned = (EndMerge   == Current.XPos + Current.XSize && EndMerge == Next.XPos + Next.XSize);
 
             if (LeftAligned) {
                 if (NextXSizeInitial == overlap && CurXSizeInitial == overlap) {
+                    // Perfect merge
                     Current.YSize += NextYSizeInitial;
                     Next.Merged = true;
+                    merged = true;
                 } else if (NextXSizeInitial == overlap) {
+                    // Merge overlap, keep Current remainder
                     Current.XSize = overlap;
                     Current.YSize = CurYSizeInitial + NextYSizeInitial;
 
                     Next.XPos  = CurXPosInitial + overlap;
                     Next.XSize = CurXSizeInitial - overlap;
-                    Next.YPos  = Current.YPos;  Next.ZPos  = Current.ZPos;
-                    Next.YSize = CurYSizeInitial; Next.ZSize = Current.ZSize;
+                    Next.YPos  = Current.YPos;
+                    Next.ZPos  = Current.ZPos;
+                    Next.YSize = CurYSizeInitial;
+                    Next.ZSize = Current.ZSize;
                     Next.Ch    = Current.Ch;
-
-                    RecheckI.push_back(int(i + 1));
+                    Next.Merged = false; // Will be processed later
+                    merged = true;
                 } else {
+                    // Merge overlap, keep Next remainder
                     Current.XSize = overlap;
                     Current.YSize = CurYSizeInitial + NextYSizeInitial;
 
                     Next.XPos  = NextXPosInitial + overlap;
                     Next.XSize = NextXSizeInitial - overlap;
-
-                    RecheckI.push_back(int(i + 1));
+                    Next.Merged = false; // Will be processed later
+                    merged = true;
                 }
-                i++;
-                continue;
+                continue; // Check for more blocks to merge with Current
             }
 
             if (RightAligned) {
                 if (NextXSizeInitial == overlap && CurXSizeInitial == overlap) {
+                    // Perfect merge
                     Current.YSize += NextYSizeInitial;
                     Next.Merged = true;
+                    merged = true;
                 } else if (NextXSizeInitial == overlap) {
+                    // Merge overlap, keep Current remainder
                     Current.XPos  = startMerge;
                     Current.XSize = overlap;
                     Current.YSize = CurYSizeInitial + NextYSizeInitial;
 
                     Next.XPos  = CurXPosInitial;
                     Next.XSize = startMerge - CurXPosInitial;
-                    Next.YPos  = Current.YPos;  Next.ZPos  = Current.ZPos;
-                    Next.YSize = CurYSizeInitial; Next.ZSize = Current.ZSize;
+                    Next.YPos  = Current.YPos;
+                    Next.ZPos  = Current.ZPos;
+                    Next.YSize = CurYSizeInitial;
+                    Next.ZSize = Current.ZSize;
                     Next.Ch    = Current.Ch;
-
-                    RecheckI.push_back(int(i + 1));
+                    Next.Merged = false; // Will be processed later
+                    merged = true;
                 } else {
+                    // Merge overlap, keep Next remainder
                     Current.YSize = CurYSizeInitial + NextYSizeInitial;
-
                     Next.XSize = startMerge - NextXPosInitial;
-
-                    RecheckI.push_back(int(i + 1));
+                    Next.Merged = false; // Will be processed later
+                    merged = true;
                 }
-                i++;
-                continue;
+                continue; // Check for more blocks to merge with Current
             }
 
+            // No alignment, can't merge
             break;
         }
-    }
-
-    for (size_t pos : RecheckI) {
-        Block &Current = Blocks[size_t(pos)];
-
-        for (int i = 0; i < Size; ++i) {
-            Block &Next = Blocks[i];
-
-            bool canMerge = (Current.Ch == Next.Ch
-			&& Current.XPos == Next.XPos && Current.XSize == Next.XSize
-			&& Current.ZPos == Next.ZPos&& Current.ZSize == Next.ZSize
-			&& (Next.YPos == Current.YPos + Current.YSize));
-
-            if (canMerge) {
-                Current.YSize += Next.YSize;
-                Next.Merged = true;
-            }
-        }
+        
+        i++;
     }
 }
 
@@ -229,120 +237,110 @@ int RegionChoice(const Block& A, const Block& B) {
 }
 
 void Compression::RelaxedZ(std::vector<Block> &Blocks) {
-	std::sort(Blocks.begin(), Blocks.end(),[](const Block& a, const Block& b) {
-		if (a.Ch    != b.Ch  ) return a.Ch   < b.Ch;
-		if (a.XPos  != b.XPos)  return a.XPos  < b.XPos;
-		if (a.YPos  != b.YPos)  return a.YPos  < b.YPos;
-		if (a.ZPos  != b.ZPos)  return a.ZPos  < b.ZPos;
-		return a.YPos < b.YPos;
-	});
+	const size_t Size = Blocks.size();
+    if (Size < 2) return;
+    
+    // Sort once
+    std::sort(Blocks.begin(), Blocks.end(),[](const Block& a, const Block& b) {
+        if (a.Ch    != b.Ch  ) return a.Ch   < b.Ch;
+        if (a.XPos  != b.XPos) return a.XPos < b.XPos;
+        if (a.YPos  != b.YPos) return a.YPos < b.YPos;
+        return a.ZPos < b.ZPos;
+    });
 
-	std::vector<int> RecheckI;
-	int Size = Blocks.size();
-    RecheckI.reserve(Size);
-	int counter = 0;
-	for (size_t i = 0; i < Size; i++) {
-		Block& Current = Blocks[i];
-		while (i + 1 < Size) {
-			Block& Next = Blocks[i + 1];
+    // Single pass merging
+    for (size_t i = 0; i < Size; ) {
+        if (Blocks[i].Merged) {
+            i++;
+            continue;
+        }
+        
+        Block& Current = Blocks[i];
+        bool merged = false;
+        
+        for (size_t j = i + 1; j < Size; j++) {
+            if (Blocks[j].Merged) continue;
+            Block& Next = Blocks[j];
 
-			if (!CanRelaxedZMerge(Current, Next)) break;
-			int region = RegionChoice(Current, Next);
-			
-			if (region == -1) {
-				i++;
-				continue;
-			}
-			
-			switch (region) {
-				case 0: // perfect alignment
-					Current.ZSize += Next.ZSize;
-					Next.Merged = true;
-					break;
-				case 1:{ // Perfect X, trim Current End Y
-					Next.ZPos = Current.ZPos;
-					Next.ZSize += Current.ZSize;
-					Current.YPos = Next.YPos + Next.YSize;
-					Current.YSize -= Next.YSize;
-					goto BREAK;
-				}
-				case 2: { // Perfect X, trim Next End Y
-					Current.ZSize += Next.ZSize;
-					Next.YPos = Current.YPos + Current.YSize;
-					Next.YSize -= Current.YSize;
-					RecheckI.push_back(int(i + 1));
-					break;
-				}
-				case 3: { // Perfect X, trim Next Start Y
-					Current.YSize -= Next.YSize;
-					Next.ZPos = Current.ZPos;
-					Next.ZSize += Current.ZSize;
-					goto BREAK;
-				}
-				case 4: { // Perfect X, trim Current Start Y
-					Next.YSize = Next.YPos - Current.YPos;
-					Current.ZSize += Next.ZSize;
-					RecheckI.push_back(int(i + 1));
-					break;
-					
-				}
-				case 5: { // Perfect Y, trim Current End X
-					Next.ZSize += Current.ZSize;
-					Next.ZPos = Current.ZPos;
-					Current.XPos = Next.XPos + Next.XSize;
-					Current.XSize -= Next.XSize;
-					goto BREAK;
-				}
-				case 6: { // Perfect Y, trim Next End X
-					Current.ZSize += Next.ZSize;
-					Next.XPos = Current.XPos + Current.XSize;
-					Next.XSize -= Current.XSize;
-					RecheckI.push_back(int(i + 1));
-					break;
-				}
-				case 7: { // Perfect Y, trim Current Start X
-					Current.XSize = Next.XPos - Current.XPos;
-					Next.ZSize += Current.ZSize;
-					Next.ZPos = Current.ZPos;
-					goto BREAK;
-				}
-				case 8:{ // Perfect Y, trim Next Start X
-					Current.ZSize += Next.ZSize;
-					Next.XSize = Current.XSize - (Next.XPos - Current.XPos);
-					RecheckI.push_back(int(i + 1));
-					break;
-				}
-				default:
-					break;
-			}
-			
-			i++;
-			continue;
-			BREAK:
-			break;
-		}
-	}
-	for (size_t pos : RecheckI) {
-		if (Blocks[pos].Merged) continue;
-        Block &Current = Blocks[pos];
+            // Early exit if we've moved to different Ch/X/Y group
+            if (Current.Ch != Next.Ch || Current.XPos != Next.XPos || Current.YPos != Next.YPos) {
+                break;
+            }
 
-        for (int i = 0; i < Size; ++i) {
-			if (i == pos) continue;
-			if (Blocks[i].Merged) continue;
-            Block &Next = Blocks[i];
-
-            bool canMerge = (Current.XPos == Next.XPos && 
-							Current.YPos == Next.YPos &&
-							Current.XSize == Next.XSize && 
-							Current.YSize == Next.YSize &&
-							Current.Ch == Next.Ch &&
-							Current.ZPos + Current.ZSize == Next.ZPos);
-
-            if (canMerge) {
-                Current.ZSize += Next.ZSize;
-				Next.Merged = true;
+            if (!CanRelaxedZMerge(Current, Next)) continue;
+            
+            int region = RegionChoice(Current, Next);
+            
+            if (region == -1) continue;
+            
+            switch (region) {
+                case 0: // Perfect alignment
+                    Current.ZSize += Next.ZSize;
+                    Next.Merged = true;
+                    merged = true;
+                    break;
+                    
+                case 2: // Perfect X, trim Next End Y
+                    Current.ZSize += Next.ZSize;
+                    Next.YPos = Current.YPos + Current.YSize;
+                    Next.YSize -= Current.YSize;
+                    Next.Merged = false; // Will be checked later
+                    merged = true;
+                    break;
+                    
+                case 4: // Perfect X, trim Current Start Y
+                    Next.YSize = Next.YPos - Current.YPos;
+                    Current.ZSize += Next.ZSize;
+                    Next.Merged = false;
+                    merged = true;
+                    break;
+                    
+                case 6: // Perfect Y, trim Next End X
+                    Current.ZSize += Next.ZSize;
+                    Next.XPos = Current.XPos + Current.XSize;
+                    Next.XSize -= Current.XSize;
+                    Next.Merged = false;
+                    merged = true;
+                    break;
+                    
+                case 8: // Perfect Y, trim Next Start X
+                    Current.ZSize += Next.ZSize;
+                    Next.XSize = Current.XSize - (Next.XPos - Current.XPos);
+                    Next.Merged = false;
+                    merged = true;
+                    break;
+                    
+                // Cases where Current is modified - stop looking forward
+                case 1: // Perfect X, trim Current End Y
+                case 3: // Perfect X, trim Next Start Y
+                case 5: // Perfect Y, trim Current End X
+                case 7: // Perfect Y, trim Current Start X
+                    // Apply transformation and move to next block
+                    if (region == 1) {
+                        Next.ZPos = Current.ZPos;
+                        Next.ZSize += Current.ZSize;
+                        Current.YPos = Next.YPos + Next.YSize;
+                        Current.YSize -= Next.YSize;
+                    } else if (region == 3) {
+                        Current.YSize -= Next.YSize;
+                        Next.ZPos = Current.ZPos;
+                        Next.ZSize += Current.ZSize;
+                    } else if (region == 5) {
+                        Next.ZSize += Current.ZSize;
+                        Next.ZPos = Current.ZPos;
+                        Current.XPos = Next.XPos + Next.XSize;
+                        Current.XSize -= Next.XSize;
+                    } else if (region == 7) {
+                        Current.XSize = Next.XPos - Current.XPos;
+                        Next.ZSize += Current.ZSize;
+                        Next.ZPos = Current.ZPos;
+                    }
+                    goto next_block;
             }
         }
+        
+        next_block:
+        i++;
     }
 }
 
