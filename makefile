@@ -18,4 +18,4 @@ test:
 	g++ testGenerator.cpp Parse.cpp Test.cpp -o MakeTests.exe
 
 clean: # Remove made files
-	rm *.exe main callgrind.*
+	powershell -Command "Remove-Item -Path *.exe, *.o, callgrind.* -ErrorAction SilentlyContinue"
