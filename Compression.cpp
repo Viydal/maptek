@@ -158,257 +158,152 @@ void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
 	}
 }
 
-void Compression::TryAllSequences(ParentBlock Current, ParentBlock& Best, int& BestSize, int Depth, int MaxDepth, double OriginalSize) {
-    double CurrentSize = Current.Blocks.size();
-	// Base case of completing set Depth
-	if (Depth == MaxDepth) {
-		if (CurrentSize < BestSize) {
-			BestSize = CurrentSize;
-			Best = Current;
-		}
-		return;
-	}
+void Compression::TryAllSequences(ParentBlock Current, ParentBlock& Best, 
+                                  int& BestSize, int Depth, int MaxDepth, 
+                                  double OriginalSize) {
+    BestSize = OriginalSize;
+    std::vector<PathCandidate> Candidates;
+    
+    // First pass: explore 2 steps, collect candidates at depth 2
+    TryAllSequencesHelper(Current, Candidates, Best, BestSize, 0, 3);
+    
+    // Sort and keep top 5
+    std::sort(Candidates.begin(), Candidates.end(), 
+              [](const PathCandidate& a, const PathCandidate& b) {
+                  return a.Size < b.Size;
+              });
+    
+    if (Candidates.size() > 5) {
+        Candidates.resize(5);
+    }
+    
+    // Second pass: explore 3 more steps from each top candidate
+    for (const auto& candidate : Candidates) {
+        std::vector<PathCandidate> dummy; // Not used in second pass
+        TryAllSequencesHelper(candidate.Block, dummy, Best, BestSize, 0, 2);
+    }
+}
 
-    // Pruning branches
-    if (Depth > 0) {
-        double ImprovementPercentage = ((OriginalSize - CurrentSize) / OriginalSize) * 100;
-        // std::cout << ImprovementPercentage << std::endl;
-        if (ImprovementPercentage <= 0) {
-            // std::cout << "PRUNED" << std::endl;
-            return;
-        }
+void Compression::TryAllSequencesHelper(ParentBlock Current, 
+                                        std::vector<PathCandidate>& Candidates,
+                                        ParentBlock& Best, int& BestSize,
+                                        int Depth, int MaxDepth) {
+    int CurrentSize = Current.Blocks.size();
+    
+    // Check if this is the best so far
+    if (CurrentSize < BestSize) {
+        BestSize = CurrentSize;
+        Best = Current;
+    }
+    
+    // Stop if we've reached max depth
+    if (Depth == MaxDepth) {
+        Candidates.push_back({Current, CurrentSize});
+        return;
     }
 
-	// Try each transformation at this Depth level
-	ParentBlock Temp;
+    // Try all transformations
+    ParentBlock Temp;
 
-	// (x,y,z)
-	Temp = Current;
-	Merge(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    // Basic swaps
+    Temp = Current;
+    Merge(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	// (x,z,y)
-	Temp = Current;
-	SwapYZ(Temp);
-	Merge(Temp);
-	SwapYZ(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    Temp = Current;
+    SwapYZ(Temp); Merge(Temp); SwapYZ(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	// (y,x,z)
-	Temp = Current;
-	SwapXY(Temp);
-	Merge(Temp);
-	SwapXY(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    Temp = Current;
+    SwapXY(Temp); Merge(Temp); SwapXY(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	// (y,z,x)
-	Temp = Current;
-	RotateYZX(Temp);
-	Merge(Temp);
-	RotateZXY(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    Temp = Current;
+    RotateYZX(Temp); Merge(Temp); RotateZXY(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	// (z,x,y)
-	Temp = Current;
-	RotateZXY(Temp);
-	Merge(Temp);
-	RotateYZX(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    Temp = Current;
+    RotateZXY(Temp); Merge(Temp); RotateYZX(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	// (z,y,x)
-	Temp = Current;
-	SwapXZ(Temp);
-	Merge(Temp);
-	SwapXZ(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    Temp = Current;
+    SwapXZ(Temp); Merge(Temp); SwapXZ(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	// Mirror Z operations
-	Temp = Current;
-	MirrorZ(Temp);
-	Merge(Temp);
-	MirrorZ(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    // Mirror Z + swaps
+    Temp = Current;
+    MirrorZ(Temp); Merge(Temp); MirrorZ(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	Temp = Current;
-	MirrorZ(Temp);
-	SwapYZ(Temp);
-	Merge(Temp);
-	SwapYZ(Temp);
-	MirrorZ(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    Temp = Current;
+    MirrorZ(Temp); SwapYZ(Temp); Merge(Temp); SwapYZ(Temp); MirrorZ(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	Temp = Current;
-	MirrorZ(Temp);
-	SwapXY(Temp);
-	Merge(Temp);
-	SwapXY(Temp);
-	MirrorZ(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    Temp = Current;
+    MirrorZ(Temp); SwapXY(Temp); Merge(Temp); SwapXY(Temp); MirrorZ(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	Temp = Current;
-	MirrorZ(Temp);
-	RotateYZX(Temp);
-	Merge(Temp);
-	RotateZXY(Temp);
-	MirrorZ(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    Temp = Current;
+    MirrorZ(Temp); RotateYZX(Temp); Merge(Temp); RotateZXY(Temp); MirrorZ(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	Temp = Current;
-	MirrorZ(Temp);
-	RotateZXY(Temp);
-	Merge(Temp);
-	RotateYZX(Temp);
-	MirrorZ(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    Temp = Current;
+    MirrorZ(Temp); RotateZXY(Temp); Merge(Temp); RotateYZX(Temp); MirrorZ(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	Temp = Current;
-	MirrorZ(Temp);
-	SwapXZ(Temp);
-	Merge(Temp);
-	SwapXZ(Temp);
-	MirrorZ(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    Temp = Current;
+    MirrorZ(Temp); SwapXZ(Temp); Merge(Temp); SwapXZ(Temp); MirrorZ(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	// Mirror Y operations
-	Temp = Current;
-	MirrorY(Temp);
-	Merge(Temp);
-	MirrorY(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    // Mirror Y + swaps
+    Temp = Current;
+    MirrorY(Temp); Merge(Temp); MirrorY(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	Temp = Current;
-	MirrorY(Temp);
-	SwapYZ(Temp);
-	Merge(Temp);
-	SwapYZ(Temp);
-	MirrorY(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    Temp = Current;
+    MirrorY(Temp); SwapYZ(Temp); Merge(Temp); SwapYZ(Temp); MirrorY(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	Temp = Current;
-	MirrorY(Temp);
-	SwapXY(Temp);
-	Merge(Temp);
-	SwapXY(Temp);
-	MirrorY(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    Temp = Current;
+    MirrorY(Temp); SwapXY(Temp); Merge(Temp); SwapXY(Temp); MirrorY(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	Temp = Current;
-	MirrorY(Temp);
-	RotateYZX(Temp);
-	Merge(Temp);
-	RotateZXY(Temp);
-	MirrorY(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    Temp = Current;
+    MirrorY(Temp); RotateYZX(Temp); Merge(Temp); RotateZXY(Temp); MirrorY(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	Temp = Current;
-	MirrorY(Temp);
-	RotateZXY(Temp);
-	Merge(Temp);
-	RotateYZX(Temp);
-	MirrorY(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    Temp = Current;
+    MirrorY(Temp); RotateZXY(Temp); Merge(Temp); RotateYZX(Temp); MirrorY(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	Temp = Current;
-	MirrorY(Temp);
-	SwapXZ(Temp);
-	Merge(Temp);
-	SwapXZ(Temp);
-	MirrorY(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    Temp = Current;
+    MirrorY(Temp); SwapXZ(Temp); Merge(Temp); SwapXZ(Temp); MirrorY(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	// Mirror X operations
-	Temp = Current;
-	MirrorX(Temp);
-	Merge(Temp);
-	MirrorX(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    // Mirror X + swaps
+    Temp = Current;
+    MirrorX(Temp); Merge(Temp); MirrorX(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	Temp = Current;
-	MirrorX(Temp);
-	SwapYZ(Temp);
-	Merge(Temp);
-	SwapYZ(Temp);
-	MirrorX(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    Temp = Current;
+    MirrorX(Temp); SwapYZ(Temp); Merge(Temp); SwapYZ(Temp); MirrorX(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	Temp = Current;
-	MirrorX(Temp);
-	SwapXY(Temp);
-	Merge(Temp);
-	SwapXY(Temp);
-	MirrorX(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    Temp = Current;
+    MirrorX(Temp); SwapXY(Temp); Merge(Temp); SwapXY(Temp); MirrorX(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	Temp = Current;
-	MirrorX(Temp);
-	RotateYZX(Temp);
-	Merge(Temp);
-	RotateZXY(Temp);
-	MirrorX(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    Temp = Current;
+    MirrorX(Temp); RotateYZX(Temp); Merge(Temp); RotateZXY(Temp); MirrorX(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	Temp = Current;
-	MirrorX(Temp);
-	RotateZXY(Temp);
-	Merge(Temp);
-	RotateYZX(Temp);
-	MirrorX(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    Temp = Current;
+    MirrorX(Temp); RotateZXY(Temp); Merge(Temp); RotateYZX(Temp); MirrorX(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 
-	Temp = Current;
-	MirrorX(Temp);
-	SwapXZ(Temp);
-	Merge(Temp);
-	SwapXZ(Temp);
-	MirrorX(Temp);
-	TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
-
-	// // Mirror XY operations
-	// Temp = Current;
-	// MirrorXY(Temp);
-	// Merge(Temp);
-	// MirrorXY(Temp);
-	// TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
-
-	// Temp = Current;
-	// MirrorXY(Temp);
-	// SwapYZ(Temp);
-	// Merge(Temp);
-	// SwapYZ(Temp);
-	// MirrorXY(Temp);
-	// TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
-
-	// Temp = Current;
-	// MirrorXY(Temp);
-	// SwapXY(Temp);
-	// Merge(Temp);
-	// SwapXY(Temp);
-	// MirrorXY(Temp);
-	// TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
-
-	// Temp = Current;
-	// MirrorXY(Temp);
-	// RotateYZX(Temp);
-	// Merge(Temp);
-	// RotateZXY(Temp);
-	// MirrorXY(Temp);
-	// TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
-
-	// Temp = Current;
-	// MirrorXY(Temp);
-	// RotateZXY(Temp);
-	// Merge(Temp);
-	// RotateYZX(Temp);
-	// MirrorXY(Temp);
-	// TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
-
-	// Temp = Current;
-	// MirrorXY(Temp);
-	// SwapXZ(Temp);
-	// Merge(Temp);
-	// SwapXZ(Temp);
-	// MirrorXY(Temp);
-	// TryAllSequences(Temp, Best, BestSize, Depth + 1, MaxDepth, OriginalSize);
+    Temp = Current;
+    MirrorX(Temp); SwapXZ(Temp); Merge(Temp); SwapXZ(Temp); MirrorX(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
 }
 
 void Compression::RelaxedXY(std::vector<Block> &Blocks) {
