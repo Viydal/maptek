@@ -132,7 +132,7 @@ std::cout.tie(nullptr);
     for (int i = 0; i < Parser.NumZBlocks; i++){
         Output.clear();
         //Set to schedule(static) for prev version
-        #pragma omp parallel for schedule(dynamic)
+        #pragma omp parallel for schedule(static)
         for (int idx = 0; idx < ParentBlocks.size(); idx++) {
             ParentBlocks[idx].StartZ = i * Parser.ParentZ;
             ParentBlocks[idx].Blocks.clear();
@@ -143,6 +143,7 @@ std::cout.tie(nullptr);
         std::vector<std::string> chunks(ParentBlocks.size());
         #pragma omp parallel for schedule(dynamic)
         for (int idx = 0; idx < (int)ParentBlocks.size(); ++idx) {
+            std::cout << "Compressing block " << idx << std::endl;
             Compressor.CompressParentBlock(ParentBlocks[idx]);
             ParentBlocks[idx].WriteBlock(Parser.TagTable, chunks[idx]);
             total += chunks[idx].size();

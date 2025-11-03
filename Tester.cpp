@@ -10,6 +10,7 @@
 #include <chrono>
 #include <filesystem>
 #include <thread>
+#include <omp.h>
 
 namespace fs = std::filesystem;
 
@@ -52,9 +53,10 @@ bool Tester::RunTest(Args args) {
     for (int i = 0; i < Parser.NumZBlocks; i++){
         start = chrono::high_resolution_clock::now();
         Output.clear();
-        for (ParentBlock& PB : ParentBlocks) {
-            PB.StartZ = i * Parser.ParentZ; 
-            PB.Blocks.clear();
+        #pragma omp parallel for schedule(static)
+        for (int idx = 0; idx < ParentBlocks.size(); idx++) {
+            ParentBlocks[idx].StartZ = i * Parser.ParentZ;
+            ParentBlocks[idx].Blocks.clear();
         }
         if (args.verbose){
             cout << "\n--- PARSING --- " << i << std::endl;
@@ -67,14 +69,15 @@ bool Tester::RunTest(Args args) {
             cout << "\n--- COMPRESSING --- " << i << std::endl;
             start = chrono::high_resolution_clock::now();
         }
-        int counter = 0;
-        for (ParentBlock& PB : ParentBlocks) {
-            counter++;
-            //if (counter % 1 == 0 && args.verbose) {
-            //    cout << "\r Compressing Block " << counter << " / " << ParentBlocks.size() << std::flush;
-            //} 
-            Compressor.CompressParentBlock(PB);
-            PB.WriteBlock(Parser.TagTable, Output);
+        size_t total = 0;
+        std::vector<std::string> chunks(ParentBlocks.size());
+        omp_set_num_threads(4);
+        #pragma omp parallel for schedule(dynamic)
+        for (int idx = 0; idx < (int)ParentBlocks.size(); ++idx) {
+            std::cout << "Compressing block " << idx << std::endl;
+            Compressor.CompressParentBlock(ParentBlocks[idx]);
+            ParentBlocks[idx].WriteBlock(Parser.TagTable, chunks[idx]);
+            total += chunks[idx].size();
         }
         if (args.verbose) {
             elapsed = chrono::high_resolution_clock::now() - start;

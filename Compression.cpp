@@ -1,6 +1,7 @@
 #include "Compression.h"
 #include <algorithm>
 #include <chrono>
+
 Compression::Compression() {}
 
 inline void compact_live(std::vector<Block>& v) {
@@ -14,79 +15,296 @@ inline void compact_live(std::vector<Block>& v) {
     v.resize(w);
 }
 
-//deleting the merged parent blocks reducing the number of blocks needed to be iterated over
-void Compression::CompressParentBlock(ParentBlock &ParentBlock, int &DeleteTime, int &CompressTime) {
-
-	auto start = std::chrono::high_resolution_clock::now();
-	ProcessLayerSort(ParentBlock.Blocks, ParentBlock.LimitX, ParentBlock.LimitY, ParentBlock.LimitZ);
-	auto end = std::chrono::high_resolution_clock::now();
-    auto duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-	CompressTime += duration.count();
-
-	start = std::chrono::high_resolution_clock::now();
-	compact_live(ParentBlock.Blocks);
-	end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-	DeleteTime += duration.count();
-
-	start = std::chrono::high_resolution_clock::now();
-	MergeLayers(ParentBlock.Blocks, ParentBlock.LimitZ);
-	end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-	CompressTime += duration.count();
-	
-	start = std::chrono::high_resolution_clock::now();
-	compact_live(ParentBlock.Blocks);
-	end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-	DeleteTime += duration.count();
-
-	start = std::chrono::high_resolution_clock::now();
-	RelaxedXY(ParentBlock.Blocks);
-	end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-	CompressTime += duration.count();
-	
-	start = std::chrono::high_resolution_clock::now();
-	compact_live(ParentBlock.Blocks);
-	end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-	DeleteTime += duration.count();
-	
-	start = std::chrono::high_resolution_clock::now();
-	RelaxedZ(ParentBlock.Blocks);
-	end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-	CompressTime += duration.count();
-	
-	start = std::chrono::high_resolution_clock::now();
-	compact_live(ParentBlock.Blocks);
-	end = std::chrono::high_resolution_clock::now();
-    duration = std::chrono::duration_cast<std::chrono::microseconds>(end - start);
-	DeleteTime += duration.count();
+inline void SwapXY(ParentBlock& PB) {
+    for (auto& b : PB.Blocks) {
+        std::swap(b.XPos, b.YPos);
+        std::swap(b.XSize, b.YSize);
+    }
+    std::swap(PB.LimitX, PB.LimitY);
 }
 
-void Compression::CompressParentBlock(ParentBlock &ParentBlock) {
-	ProcessLayerSort(ParentBlock.Blocks, ParentBlock.LimitX, ParentBlock.LimitY, ParentBlock.LimitZ);
-	ParentBlock.Blocks.erase(std::remove_if(ParentBlock.Blocks.begin(), ParentBlock.Blocks.end(),[](const Block& b){return b.Merged;}), ParentBlock.Blocks.end());
-
-	MergeLayers(ParentBlock.Blocks, ParentBlock.LimitZ);
-	ParentBlock.Blocks.erase(std::remove_if(ParentBlock.Blocks.begin(), ParentBlock.Blocks.end(),[](const Block& b){return b.Merged;}), ParentBlock.Blocks.end());
-
-	RelaxedXY(ParentBlock.Blocks);
-	ParentBlock.Blocks.erase(std::remove_if(ParentBlock.Blocks.begin(), ParentBlock.Blocks.end(),[](const Block& b){return b.Merged;}), ParentBlock.Blocks.end());
-
-	RelaxedZ(ParentBlock.Blocks);
-	ParentBlock.Blocks.erase(std::remove_if(ParentBlock.Blocks.begin(), ParentBlock.Blocks.end(),[](const Block& b){return b.Merged;}), ParentBlock.Blocks.end());
-
-    //Remove this for test case 1
-    ProcessLayerSort(ParentBlock.Blocks, ParentBlock.LimitX, ParentBlock.LimitY, ParentBlock.LimitZ);
-	ParentBlock.Blocks.erase(std::remove_if(ParentBlock.Blocks.begin(), ParentBlock.Blocks.end(),[](const Block& b){return b.Merged;}), ParentBlock.Blocks.end());
-
-	MergeLayers(ParentBlock.Blocks, ParentBlock.LimitZ);
-	ParentBlock.Blocks.erase(std::remove_if(ParentBlock.Blocks.begin(), ParentBlock.Blocks.end(),[](const Block& b){return b.Merged;}), ParentBlock.Blocks.end());
+inline void SwapYZ(ParentBlock& pb) {
+    for (auto& b : pb.Blocks) {
+        std::swap(b.YPos, b.ZPos);
+        std::swap(b.YSize, b.ZSize);
+    }
+    std::swap(pb.LimitY, pb.LimitZ);
 }
 
+inline void SwapXZ(ParentBlock& pb) {
+    for (auto& b : pb.Blocks) {
+        std::swap(b.XPos, b.ZPos);
+        std::swap(b.XSize, b.ZSize);
+    }
+    std::swap(pb.LimitX, pb.LimitZ);
+}
+
+inline void RotateYZX(ParentBlock& pb) {
+    for (auto& b : pb.Blocks) {
+        std::swap(b.XPos, b.YPos);
+        std::swap(b.XSize, b.YSize);
+        std::swap(b.YPos, b.ZPos);
+        std::swap(b.YSize, b.ZSize);
+    }
+    std::swap(pb.LimitX, pb.LimitY);
+    std::swap(pb.LimitY, pb.LimitZ);
+}
+
+inline void RotateZXY(ParentBlock& PB) {
+    for (auto& B : PB.Blocks) {
+        std::swap(B.YPos, B.ZPos);
+        std::swap(B.YSize, B.ZSize);
+        std::swap(B.XPos, B.YPos);
+        std::swap(B.XSize, B.YSize);
+    }
+    std::swap(PB.LimitY, PB.LimitZ);
+    std::swap(PB.LimitX, PB.LimitY);
+}
+
+inline void MirrorX(ParentBlock& pb) {
+    for (auto& b : pb.Blocks) {
+        b.XPos = pb.LimitX - b.XPos - b.XSize;
+    }
+}
+
+inline void MirrorY(ParentBlock& pb) {
+    for (auto& b : pb.Blocks) {
+        b.YPos = pb.LimitY - b.YPos - b.YSize;
+    }
+}
+
+inline void MirrorZ(ParentBlock& pb) {
+    for (auto& b : pb.Blocks) {
+        b.ZPos = pb.LimitZ - b.ZPos - b.ZSize;
+    }
+}
+
+inline void MirrorXY(ParentBlock& pb) {
+    MirrorX(pb);
+    MirrorY(pb);
+}
+
+inline void MirrorXZ(ParentBlock& pb) {
+    MirrorX(pb);
+    MirrorZ(pb);
+}
+
+inline void MirrorYZ(ParentBlock& pb) {
+    MirrorY(pb);
+    MirrorZ(pb);
+}
+
+inline void MirrorXYZ(ParentBlock& pb) {
+    MirrorX(pb);
+    MirrorY(pb);
+    MirrorZ(pb);
+}
+
+inline void CheckAndSave(ParentBlock &PB, int &PrevSize, ParentBlock &Best, const ParentBlock& Original) {
+	if (PB.Blocks.size() < PrevSize) {
+		PrevSize = PB.Blocks.size();
+		Best = PB;
+	}
+	PB = Original;
+}
+
+void Compression::Merge(ParentBlock &WorkingParentBlock){
+	int PrevSize;
+	int Strike = 0;
+
+	// Perfect merges only
+	PrevSize = WorkingParentBlock.Blocks.size();
+	while(Strike < 5){
+		PerfectXY(WorkingParentBlock.Blocks, WorkingParentBlock.LimitX, WorkingParentBlock.LimitY, WorkingParentBlock.LimitZ);
+		compact_live(WorkingParentBlock.Blocks);
+		
+		PerfectZ(WorkingParentBlock.Blocks, WorkingParentBlock.LimitZ);
+		compact_live(WorkingParentBlock.Blocks);
+
+		PerfectX(WorkingParentBlock.Blocks);
+		compact_live(WorkingParentBlock.Blocks);
+
+		RelaxedXY(WorkingParentBlock.Blocks);
+		compact_live(WorkingParentBlock.Blocks);
+
+		RelaxedZ(WorkingParentBlock.Blocks);
+		compact_live(WorkingParentBlock.Blocks);
+
+		int NewSize = WorkingParentBlock.Blocks.size();
+		if (NewSize == PrevSize) {
+			Strike++;
+		} else {
+			Strike = 0;
+		}
+		PrevSize = NewSize;
+	}
+}
+
+void Compression::CompressParentBlock(ParentBlock &WorkingParentBlock) {
+	int PrevSize = WorkingParentBlock.Blocks.size();
+
+	while (true) {
+		ParentBlock BestResult = WorkingParentBlock;
+		int BestSize = PrevSize;
+
+		// Try all possible 5-step sequences
+		TryAllSequences(WorkingParentBlock, BestResult, BestSize, 0, 3, PrevSize);
+
+		// If no improvement found, break
+		if (BestSize >= PrevSize) break;
+		
+		PrevSize = BestSize;
+		WorkingParentBlock = BestResult;
+	}
+}
+
+void Compression::TryAllSequences(ParentBlock Current, ParentBlock& Best, 
+                                  int& BestSize, int Depth, int MaxDepth, 
+                                  double OriginalSize) {
+    BestSize = OriginalSize;
+    std::vector<PathCandidate> Candidates;
+    
+    // First pass: explore 2 steps, collect candidates at depth 2
+    TryAllSequencesHelper(Current, Candidates, Best, BestSize, 0, 4);
+    
+    // Sort and keep top 5
+    std::sort(Candidates.begin(), Candidates.end(), 
+              [](const PathCandidate& a, const PathCandidate& b) {
+                  return a.Size < b.Size;
+              });
+    
+    if (Candidates.size() > 5) {
+        Candidates.resize(5);
+    }
+    
+    // Second pass: explore 3 more steps from each top candidate
+    for (const auto& candidate : Candidates) {
+        std::vector<PathCandidate> dummy; // Not used in second pass
+        TryAllSequencesHelper(candidate.Block, dummy, Best, BestSize, 0, 3);
+    }
+}
+
+void Compression::TryAllSequencesHelper(ParentBlock Current, 
+                                        std::vector<PathCandidate>& Candidates,
+                                        ParentBlock& Best, int& BestSize,
+                                        int Depth, int MaxDepth) {
+    int CurrentSize = Current.Blocks.size();
+    
+    // Check if this is the best so far
+    if (CurrentSize < BestSize) {
+        BestSize = CurrentSize;
+        Best = Current;
+    }
+    
+    // Stop if we've reached max depth
+    if (Depth == MaxDepth) {
+        Candidates.push_back({Current, CurrentSize});
+        return;
+    }
+
+    // Try all transformations
+    ParentBlock Temp;
+
+    // Basic swaps
+    Temp = Current;
+    Merge(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    Temp = Current;
+    SwapYZ(Temp); Merge(Temp); SwapYZ(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    Temp = Current;
+    SwapXY(Temp); Merge(Temp); SwapXY(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    Temp = Current;
+    RotateYZX(Temp); Merge(Temp); RotateZXY(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    Temp = Current;
+    RotateZXY(Temp); Merge(Temp); RotateYZX(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    Temp = Current;
+    SwapXZ(Temp); Merge(Temp); SwapXZ(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    // Mirror Z + swaps
+    Temp = Current;
+    MirrorZ(Temp); Merge(Temp); MirrorZ(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    Temp = Current;
+    MirrorZ(Temp); SwapYZ(Temp); Merge(Temp); SwapYZ(Temp); MirrorZ(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    Temp = Current;
+    MirrorZ(Temp); SwapXY(Temp); Merge(Temp); SwapXY(Temp); MirrorZ(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    Temp = Current;
+    MirrorZ(Temp); RotateYZX(Temp); Merge(Temp); RotateZXY(Temp); MirrorZ(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    Temp = Current;
+    MirrorZ(Temp); RotateZXY(Temp); Merge(Temp); RotateYZX(Temp); MirrorZ(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    Temp = Current;
+    MirrorZ(Temp); SwapXZ(Temp); Merge(Temp); SwapXZ(Temp); MirrorZ(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    // Mirror Y + swaps
+    Temp = Current;
+    MirrorY(Temp); Merge(Temp); MirrorY(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    Temp = Current;
+    MirrorY(Temp); SwapYZ(Temp); Merge(Temp); SwapYZ(Temp); MirrorY(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    Temp = Current;
+    MirrorY(Temp); SwapXY(Temp); Merge(Temp); SwapXY(Temp); MirrorY(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    Temp = Current;
+    MirrorY(Temp); RotateYZX(Temp); Merge(Temp); RotateZXY(Temp); MirrorY(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    Temp = Current;
+    MirrorY(Temp); RotateZXY(Temp); Merge(Temp); RotateYZX(Temp); MirrorY(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    Temp = Current;
+    MirrorY(Temp); SwapXZ(Temp); Merge(Temp); SwapXZ(Temp); MirrorY(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    // Mirror X + swaps
+    Temp = Current;
+    MirrorX(Temp); Merge(Temp); MirrorX(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    Temp = Current;
+    MirrorX(Temp); SwapYZ(Temp); Merge(Temp); SwapYZ(Temp); MirrorX(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    Temp = Current;
+    MirrorX(Temp); SwapXY(Temp); Merge(Temp); SwapXY(Temp); MirrorX(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    Temp = Current;
+    MirrorX(Temp); RotateYZX(Temp); Merge(Temp); RotateZXY(Temp); MirrorX(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    Temp = Current;
+    MirrorX(Temp); RotateZXY(Temp); Merge(Temp); RotateYZX(Temp); MirrorX(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+
+    Temp = Current;
+    MirrorX(Temp); SwapXZ(Temp); Merge(Temp); SwapXZ(Temp); MirrorX(Temp);
+    TryAllSequencesHelper(Temp, Candidates, Best, BestSize, Depth + 1, MaxDepth);
+}
 
 void Compression::RelaxedXY(std::vector<Block> &Blocks) {
     const size_t Size = Blocks.size();
@@ -244,7 +462,7 @@ int RegionChoice(const Block& A, const Block& B) {
 }
 
 void Compression::RelaxedZ(std::vector<Block> &Blocks) {
-	const size_t Size = Blocks.size();
+    const size_t Size = Blocks.size();
     if (Size < 2) return;
     
     // Sort once
@@ -350,9 +568,9 @@ void Compression::RelaxedZ(std::vector<Block> &Blocks) {
         i++;
     }
 }
-
+	
 /**
- * MergeLayers
+ * PerfectZ
  * -----------
  * Attempts to merge blocks vertically along the Z axis.
  * Blocks can merge if they:
@@ -360,7 +578,7 @@ void Compression::RelaxedZ(std::vector<Block> &Blocks) {
  *   - Are adjacent in Z
  *   - Do not exceed ParentZ boundaries
  */
-void Compression::MergeLayers(std::vector<Block>& Blocks, int ParentZ) {
+void Compression::PerfectZ(std::vector<Block>& Blocks, int ParentZ) {
 	
 	// Sort all blocks by position (X, Y, then Z)
 	std::sort(Blocks.begin(), Blocks.end(), [](const Block& a, const Block& b) {
@@ -389,32 +607,56 @@ void Compression::MergeLayers(std::vector<Block>& Blocks, int ParentZ) {
 	}
 }
 
+void Compression::PerfectX(std::vector<Block>& Blocks) {
+	// Sort all blocks by position (X, Y, then Z)
+	std::sort(Blocks.begin(), Blocks.end(), [](const Block& a, const Block& b) {
+		if (a.YPos != b.YPos) return a.YPos < b.YPos;
+		if (a.ZPos != b.ZPos) return a.ZPos < b.ZPos;
+		return a.XPos < b.XPos;
+	});
+
+	for (size_t i = 0; i < Blocks.size(); i++) {
+		Block& Current = Blocks[i];
+		while (i + 1 < Blocks.size()) {
+			const Block& Next = Blocks[i + 1];
+			// Can the blocks be merged?
+			bool canMerge = (Current.YPos == Next.YPos && Current.YSize == Next.YSize && Current.Ch == Next.Ch && Current.ZPos == Next.ZPos && Current.ZSize == Next.ZSize && (Next.XPos == Current.XPos + Current.XSize));
+			
+			if (!canMerge) break;
+
+			Current.XSize = Current.XSize + Next.XSize;
+			Blocks[i+1].Merged = true;
+			i++;
+		}
+	}
 
 
-void Compression::ProcessLayerSort(std::vector<Block> &Blocks, int ParentX, int ParentY, int ParentZ) {
+}
 
-    std::sort(Blocks.begin(), Blocks.end(),[](const Block& a, const Block& b) {
-        if (a.XPos  != b.XPos)  return a.XPos  < b.XPos;
-        if (a.ZPos  != b.ZPos)  return a.ZPos  < b.ZPos;
-        return a.YPos < b.YPos;
-    });
+void Compression::PerfectXY(std::vector<Block> &Blocks, int ParentX, int ParentY, int ParentZ) {
 
-    for (size_t i = 0; i < Blocks.size(); i++) {
-            Block& Current = Blocks[i];
-            while (i + 1 < Blocks.size()) {
-                const Block& Next = Blocks[i + 1];
-                //// << "testinA " << Next.YPos << " " << ParentY << std::endl;
-                //// << "After Testing" << (Next.YPos / ParentY) << std::endl;
-                bool canMerge = Current.Ch == Next.Ch && Current.XPos == Next.XPos && 
-                Current.XSize == Next.XSize && Current.ZPos == Next.ZPos && Current.ZSize == Next.ZSize &&
-                (Next.YPos == Current.YPos + Current.YSize);
-                //// << "After" << std::endl;
-                if (!canMerge) break;
+		std::sort(Blocks.begin(), Blocks.end(),[](const Block& a, const Block& b) {
+			if (a.XPos  != b.XPos)  return a.XPos  < b.XPos;
+			if (a.ZPos  != b.ZPos)  return a.ZPos  < b.ZPos;
+			return a.YPos < b.YPos;
+		});
+		
+		for (size_t i = 0; i < Blocks.size(); i++) {
+				Block& Current = Blocks[i];
+				while (i + 1 < Blocks.size()) {
+					const Block& Next = Blocks[i + 1];
+					//// << "testinA " << Next.YPos << " " << ParentY << std::endl;
+					//// << "After Testing" << (Next.YPos / ParentY) << std::endl;
+					bool canMerge = Current.Ch == Next.Ch && Current.XPos == Next.XPos && 
+					Current.XSize == Next.XSize && Current.ZPos == Next.ZPos && Current.ZSize == Next.ZSize &&
+					(Next.YPos == Current.YPos + Current.YSize);
+					//// << "After" << std::endl;
+					if (!canMerge) break;
 
-                int TotalYSize = Current.YSize + Next.YSize;
-                Current.YSize = TotalYSize;
-                Blocks[i+1].Merged = true;
-                i++;
-            }
-    }
+					int TotalYSize = Current.YSize + Next.YSize;
+					Current.YSize = TotalYSize;
+					Blocks[i+1].Merged = true;
+					i++;
+				}
+		}
 }

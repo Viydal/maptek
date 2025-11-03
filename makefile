@@ -19,3 +19,6 @@ test:
 
 clean: # Remove made files
 	powershell -Command "Remove-Item -Path *.exe, *.o, callgrind.* -ErrorAction SilentlyContinue"
+
+fastMain:
+	x86_64-w64-mingw32-gcc   -Os -s  -fno-asynchronous-unwind-tables -fno-unwind-tables -fno-stack-protector  -ffunction-sections -fdata-sections -Wl,--gc-sections -Wl,--no-seh   -nostdlib -Wl,-e,mainCRTStartup -Wl,--subsystem,console   fastmain.c -o fastchill.exe -lkernel32
